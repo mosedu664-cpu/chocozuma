@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates>
+
+    <t t-name="wk_odoo_direct_print.WkPrintJobsMenu">
+        <div class="wk-pj-root" t-ref="root">
+
+            <button class="wk-pj-btn" t-on-click="toggle">
+                <i class="fa fa-print wk-pj-icon" role="img" aria-label="Print Jobs" />
+                <span t-if="counts.Queue > 0 or counts.Failed > 0" class="wk-pj-badge">
+                    <t t-esc="counts.Queue + counts.Failed" />
+                </span>
+            </button>
+
+            <div t-if="state.open" class="wk-pj-panel">
+
+                <div class="wk-pj-tabs">
+                    <div
+                        t-att-class="'wk-pj-tab wk-pj-tab--q' + (state.tab === 'Queue' ? ' wk-pj-tab--active' : '')"
+                        t-on-click="() => this.setTab('Queue')">
+                        <span class="wk-pj-tab-cnt wk-pj-cnt--q">
+                            <t t-esc="counts.Queue" />
+                        </span>
+                        <div class="wk-pj-tab-ico wk-pj-ico--q">
+                            <i class="fa fa-clock-o" />
+                        </div>
+                        <span class="wk-pj-tab-lbl">Queue</span>
+                    </div>
+                    <div
+                        t-att-class="'wk-pj-tab wk-pj-tab--s' + (state.tab === 'Done' ? ' wk-pj-tab--active' : '')"
+                        t-on-click="() => this.setTab('Done')">
+                        <span class="wk-pj-tab-cnt wk-pj-cnt--s">
+                            <t t-esc="counts.Done" />
+                        </span>
+                        <div class="wk-pj-tab-ico wk-pj-ico--s">
+                            <i class="fa fa-check" />
+                        </div>
+                        <span class="wk-pj-tab-lbl">Sent</span>
+                    </div>
+                    <div
+                        t-att-class="'wk-pj-tab wk-pj-tab--f' + (state.tab === 'Failed' ? ' wk-pj-tab--active' : '')"
+                        t-on-click="() => this.setTab('Failed')">
+                        <span class="wk-pj-tab-cnt wk-pj-cnt--f">
+                            <t t-esc="counts.Failed" />
+                        </span>
+                        <div class="wk-pj-tab-ico wk-pj-ico--f">
+                            <i class="fa fa-times" />
+                        </div>
+                        <span class="wk-pj-tab-lbl">Failed</span>
+                    </div>
+                </div>
+
+                <div class="wk-pj-body">
+                    <t t-if="activeJobs.length === 0">
+                        <div class="wk-pj-empty">
+                            <i class="fa fa-inbox" />
+                            <span>No jobs</span>
+                        </div>
+                    </t>
+                    <t t-foreach="activeJobs" t-as="job" t-key="job.id">
+                        <div class="wk-pj-item" t-on-click="() => this.openJob(job.id)">
+                            <div
+                                t-att-class="'wk-pj-item-ico ' + (state.tab === 'Done' ? 'wk-pj-ico--s' : state.tab === 'Failed' ? 'wk-pj-ico--f' : 'wk-pj-ico--q')">
+                                <i
+                                    t-att-class="'fa ' + (state.tab === 'Done' ? 'fa-check' : state.tab === 'Failed' ? 'fa-times' : 'fa-clock-o')" />
+                            </div>
+                            <div class="wk-pj-item-body">
+
+                                <div class="wk-pj-item-top">
+                                    <span class="wk-pj-item-id">#<t t-esc="job.id" /></span>
+                                    <span class="wk-pj-item-time" t-esc="formatTime(job.write_date)" />
+                                </div>
+
+                                <div class="wk-pj-item-meta">
+                                    <span t-if="job.printer_id"
+                                        class="wk-pj-meta-pill wk-pj-meta--printer">
+                                        <i class="fa fa-print" />
+                                        <t t-esc="job.printer_id[1]" />
+                                    </span>
+                                    <span t-if="job.print_job_for"
+                                        class="wk-pj-meta-pill wk-pj-meta--printer">
+                                        <i class="fa fa-tag" />
+                                        <t t-esc="job.print_job_for" />
+                                    </span>
+                                    <span t-if="job.model_ref"
+                                        class="wk-pj-meta-pill wk-pj-meta--printer">
+                                        <i class="fa fa-cube" />
+                                        <t t-esc="job.model_ref" />
+                                    </span>
+                                    <span t-if="job.rec_ref"
+                                        class="wk-pj-meta-pill wk-pj-meta--printer">
+                                        <i class="fa fa-file-o" />
+                                        <t t-esc="job.rec_ref" />
+                                    </span>
+                                </div>
+
+                                <div t-if="job.msg and state.tab === 'Failed'"
+                                    class="wk-pj-item-err">
+                                    <i class="fa fa-exclamation-circle" />
+                                    <t t-esc="job.msg" />
+                                </div>
+
+                            </div>
+                            <i class="fa fa-chevron-right wk-pj-item-arrow" />
+                        </div>
+                    </t>
+                </div>
+                <div t-if="currentHasMore" class="wk-pj-loadmore">
+                    <button class="wk-pj-loadmore-btn" t-on-click="loadMore"
+                        t-att-disabled="state.loading">
+                        <i
+                            t-att-class="'fa ' + (state.loading ? 'fa-spinner fa-spin' : 'fa-chevron-down')" />
+                        <t t-if="!state.loading">Load more</t>
+                        <t t-if="state.loading">Loading...</t>
+                    </button>
+                </div>
+                <div class="wk-pj-footer">
+                    <button class="wk-pj-footer-btn" t-on-click="openAll"> View all print jobs <i
+                            class="fa fa-arrow-right" />
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </t>
+
+</templates>

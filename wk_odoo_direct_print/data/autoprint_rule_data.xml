@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+    <!-- See LICENSE file for full copyright and licensing details. -->
+    <!-- License URL : <https://store.webkul.com/license.html/> -->
+    <record id="autoprint_rule_sale_order_confirm" model="autoprint.rule">
+        <field name="model">sale.order</field>
+        <field name="name_rule_id" ref="wk_odoo_direct_print.report_trigger_rule_confirm_so" />
+        <field name="report_id" ref="sale.action_report_saleorder" />
+        <field name="no_of_copies">1</field>
+        <field name="is_enabled">0</field>
+    </record>
+
+    <record id="autoprint_rule_sale_order_cancel" model="autoprint.rule">
+        <field name="model">sale.order</field>
+        <field name="name_rule_id" ref="wk_odoo_direct_print.report_trigger_rule_cancel_so" />
+        <field name="report_id" ref="sale.action_report_saleorder" />
+        <field name="no_of_copies">1</field>
+        <field name="is_enabled">0</field>
+    </record>
+
+    <record id="autoprint_rule_stock_picking_validate" model="autoprint.rule">
+        <field name="model">stock.picking</field>
+        <field name="name_rule_id" ref="wk_odoo_direct_print.report_trigger_rule_validate_sp" />
+        <field name="report_id" ref="stock.action_report_delivery" />
+        <field name="no_of_copies">2</field>
+        <field name="is_enabled">0</field>
+    </record>
+
+    <record id="autoprint_rule_stock_picking_send_to_shipper" model="autoprint.rule">
+        <field name="model">stock.picking</field>
+        <field name="name_rule_id" ref="wk_odoo_direct_print.report_trigger_rule_send_to_shipper_sp" />
+        <field name="report_id" ref="stock.action_report_delivery" />
+        <field name="no_of_copies">1</field>
+        <field name="is_enabled">0</field>
+    </record>
+
+    <record id="autoprint_rule_purchase_order_confirm" model="autoprint.rule">
+        <field name="model">purchase.order</field>
+        <field name="name_rule_id" ref="wk_odoo_direct_print.report_trigger_rule_confirm_po" />
+        <field name="report_id" ref="purchase.action_report_purchase_order" />
+        <field name="no_of_copies">1</field>
+        <field name="is_enabled">0</field>
+    </record>
+
+    <record id="autoprint_rule_invoice_confirm" model="autoprint.rule">
+        <field name="model">account.move</field>
+        <field name="name_rule_id" ref="wk_odoo_direct_print.report_trigger_rule_confirm_am" />
+        <field name="report_id" ref="account.account_invoices" />
+        <field name="no_of_copies">1</field>
+        <field name="is_enabled">0</field>
+    </record>
+
+    <record id="autoprint_rule_invoice_payment" model="autoprint.rule">
+        <field name="model">account.move</field>
+        <field name="name_rule_id" ref="wk_odoo_direct_print.report_trigger_rule_payment_am" />
+        <field name="report_id" ref="account.account_invoices" />
+        <field name="no_of_copies">2</field>
+        <field name="is_enabled">0</field>
+    </record>
+</odoo>

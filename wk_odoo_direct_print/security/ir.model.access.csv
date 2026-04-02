@@ -1,0 +1,12 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+
+access_wizard_test_printer,access_wizard_test_printer,model_wizard_test_printer,base.group_user,1,1,1,1
+access_wk_hostmachine,access_wk_hostmachine,model_wk_hostmachine,base.group_user,1,1,1,1
+access_wk_printer,access_wk_printer,model_wk_printer,base.group_user,1,1,1,1
+access_print_jobs,access_print_jobs,model_print_jobs,base.group_user,1,1,1,1
+access_default_printer,access_default_printer,model_default_printer,base.group_user,1,1,1,1
+access_autoprint_rule,access_autoprint_rule,model_autoprint_rule,base.group_user,1,1,1,1
+access_report_trigger_rule,access_report_trigger_rule,model_report_trigger_rule,base.group_user,1,1,1,1
+access_print_job_source,access_print_job_source,model_print_job_source,base.group_user,1,1,1,1
+access_attachment_automation,access_attachment_automation,model_attachment_automation,base.group_user,1,1,1,1
+access_shipping_label_automation,access_shipping_label_automation,model_shipping_label_automation,base.group_user,1,1,1,1

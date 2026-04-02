@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+<odoo>
+    <data>
+
+        <record id="wk_printer_list" model="ir.ui.view">
+            <field name="name">wk_printer_list</field>
+            <field name="model">wk.printer</field>
+            <field name="arch" type="xml">
+                <list string="" create="false">
+                    <field name="name" />
+                    <field name="description" />
+                    <field name="printerType" />
+                    <field name="hostmachine_id" />
+                    <field name="state" />
+                </list>
+            </field>
+        </record>
+
+        <record id="wk_printer_form" model="ir.ui.view">
+            <field name="name">wk_printer_form</field>
+            <field name="model">wk.printer</field>
+            <field name="arch" type="xml">
+                <form string="" create="false">
+                    <header>
+                        <button name="test_printer" class="btn btn-primary" type="object" string="Test Printer" invisible="printerType not in ['ESCPOS', 'ZPL']"/>
+                        <button name="toggle_is_active" type="object" help="Click to set Inactive" string="Set Inactive" invisible="state == 'Inactive'"/>
+                        <button name="toggle_is_active" type="object" help="Click to set Active" string="Set Active" class="btn btn-primary" invisible="state == 'Active'"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <span>Printer Name</span>
+                            <h1><field name="name" readonly="True"/></h1>
+                            <span><label for="description"/></span>
+                            <h2><field name="description" placeholder="Eg: Office Printer"/></h2>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="printerType" required="True" readonly="False"/>
+                                <field name="paper_width" invisible="platform != 'Windows' or printerType not in ['Image', 'PDF Image']" placeholder="Eg: 603"/>
+                                <field name="paper_height" invisible="platform != 'Windows' or printerType not in ['Image', 'PDF Image']" placeholder="Eg: 1703"/>
+                                <field name="use_printer_access" />
+                                <field name="user_ids" widget="many2many_tags" required='use_printer_access' invisible='use_printer_access==False'/>
+                            </group>
+                            <group>
+                                <field name="hostmachine_id" readonly="True"/>
+                                <field name="idProduct" readonly="True" invisible="interface != 'Raw(USB)'"/>
+                                <field name="idVendor" readonly="True" invisible="interface != 'Raw(USB)'"/>
+                                <field name="interface" required="False" widget="badge" string="" />
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Reports">
+                                <field name="report_ids" domain="[('printerType', '=', printerType_domain)]">
+                                    <list string="">
+                                        <field name="name" />
+                                        <field name="model" />
+                                        <field name="report_type" />
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+    </data>
+    <record id="wk_printer_search_view" model="ir.ui.view">
+        <field name="name">wk.printer.search.view</field>
+        <field name="model">wk.printer</field>
+        <field name="arch" type="xml">
+            <search>
+                <filter string="State" name="filter_by_state" domain="[('state', '=', 'Active')]"/> 
+                <filter string="Host Machine" name="group_by_hostmachine" domain="[]" context="{'group_by':'hostmachine_id'}"/> 
+                <filter string="Company" name="group_by_company" domain="[]" context="{'group_by':'company_ids'}"/> 
+                <filter string="Printer Type" name="group_by_printerType" domain="[]" context="{'group_by':'printerType'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="wk_hostmachine_view" model="ir.actions.act_window">
+        <field name="name">Host Machine</field>
+        <field name="res_model">wk.hostmachine</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="wk_printer_view" model="ir.actions.act_window">
+        <field name="name">Printer</field>
+        <field name="res_model">wk.printer</field>
+        <field name="context">{'search_default_filter_by_state': 1}</field>
+        <!-- <field name="context">{'search_default_filter_by_state': 1, 'search_default_group_by_hostmachine': 1}</field> -->
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="ir_actions_report_search" model="ir.ui.view">
+        <field name="name">search.ir.actions.report</field>
+        <field name="model">ir.actions.report</field>
+        <field name="inherit_id" ref="base.act_report_xml_search_view" />
+        <field name="arch" type="xml">
+            <search>
+                <filter name="group_by_printertype" string="Printer Type" domain="[]" context="{'group_by':'printerType'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="new_ir_actions_report_view">
+        <field name="name">Reports</field>
+        <field name="res_model">ir.actions.report</field>
+        <field name="context">{'search_default_group_by_printertype': 1}</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record model="ir.actions.act_window" id="ir_action_inventory_operation_types">
+        <field name="name">Operation Types</field>
+        <field name="res_model">stock.picking.type</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_open_settings" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="context" eval="{'module': 'wk_odoo_direct_print', 'bin_size': False}"/>
+    </record>
+
+    <record id="host_sys_info_cron_action" model="ir.actions.act_window">
+        <field name="name">Scheduled Actions Host Info</field>
+        <field name="res_model">ir.cron</field>
+        <field name="view_mode">form</field>
+        <field name="res_id" ref="wk_odoo_direct_print.ir_cron_hostmachine_system_info"/>
+    </record>
+    <record id="renotify_print_jobs_cron_action" model="ir.actions.act_window">
+        <field name="name">Scheduled Actions Notify Print Jobs</field>
+        <field name="res_model">ir.cron</field>
+        <field name="view_mode">form</field>
+        <field name="res_id" ref="wk_odoo_direct_print.ir_cron_renotify_print_jobs"/>
+    </record>
+    <record id="clean_print_jobs_cron_action" model="ir.actions.act_window">
+        <field name="name">Scheduled Actions Clean Print Jobs</field>
+        <field name="res_model">ir.cron</field>
+        <field name="view_mode">form</field>
+        <field name="res_id" ref="wk_odoo_direct_print.ir_cron_clean_print_jobs"/>
+    </record>
+
+    <menuitem name="Print Direct" id="wk_direct_printer_main_menu"
+        web_icon="wk_odoo_direct_print,static/description/icon.png" />
+
+    <menuitem name="Host Machine"
+        sequence="1"
+        id="hostmachine_menu"
+        parent="wk_direct_printer_main_menu"
+        action="wk_hostmachine_view"
+    />
+    <menuitem name="Printer"
+        sequence="2"
+        id="add_printer_menu"
+        parent="wk_direct_printer_main_menu"
+    />
+    <menuitem name="Printers"
+        sequence="2"
+        id="add_printers_menu"
+        parent="add_printer_menu"
+        action="wk_printer_view"
+    />
+    <menuitem name="Configuration"
+        sequence="5"
+        id="direct_printer_configuration"
+        parent="wk_direct_printer_main_menu"
+    />
+    <menuitem name="Reports"
+        sequence="2"
+        id="direct_printer_configuration_setting"
+        parent="direct_printer_configuration"
+        action="new_ir_actions_report_view"
+    />
+    <!-- <menuitem name="Operation Types"
+        sequence="3"
+        id="inventory_operation_types"
+        parent="direct_printer_configuration"
+        action="ir_action_inventory_operation_types"
+    /> -->
+    <menuitem name="Settings"
+        sequence="4"
+        id="direct_printer_open_settings"
+        parent="direct_printer_configuration"
+        action="action_open_settings"
+    />
+    <menuitem id="menu_cron_settings" name="Cron" parent="direct_printer_configuration"
+        groups="base.group_no_one">
+        <menuitem name="Fetch Host Machine Info" id="host_sys_info_menu_cron"
+            action="host_sys_info_cron_action" />
+        <menuitem name="Notify Print Jobs" id="renotify_print_jobs_menu_crom"
+            action="renotify_print_jobs_cron_action" />
+        <menuitem name="Clean Print Jobs" id="clean_print_jobs_menu_cron"
+            action="clean_print_jobs_cron_action" />
+    </menuitem>
+
+</odoo>

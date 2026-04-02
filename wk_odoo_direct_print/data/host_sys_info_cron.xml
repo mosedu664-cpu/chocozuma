@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+<odoo noupdate="1">
+    <record id="ir_cron_hostmachine_system_info" model="ir.cron">
+        <field name="name">Host Machine System Info (Online/Offline)</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="model_id" ref="model_wk_hostmachine" />
+        <field name="user_id" ref="base.user_root" />
+        <field name="state">code</field>
+        <field name="code">model._cron_sys_info()</field>
+    </record>
+</odoo>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+
+<odoo>
+    <data>
+
+        <record id="print_jobs_list" model="ir.ui.view">
+            <field name="name">print_jobs_list</field>
+            <field name="model">print.jobs</field>
+            <field name="arch" type="xml">
+                <list string="" create="false" default_order="create_date desc">
+                    <field name="create_date" />
+                    <field name="create_uid" />
+                    <field name="printer_id" />
+                    <field name="rec_ref" />
+                    <field name="model_ref" />
+                    <field name="content_ref" />
+                    <field name="print_job_for" optional='hide' />
+                    <field name="method" optional='hide' />
+                    <field name="state"
+                        decoration-warning="state == 'Queue'"
+                        decoration-success="state == 'Done'"
+                        decoration-danger="state == 'Failed'"
+                        widget="badge"
+                    />
+                </list>
+            </field>
+        </record>
+
+        <record id="print_jobs_form" model="ir.ui.view">
+            <field name="name">print_jobs_form</field>
+            <field name="model">print.jobs</field>
+            <field name="arch" type="xml">
+                <form string="" create="false">
+                    <header>
+                        <field name="state" widget="statusbar" statusbar_visible="Queue,Done" />
+                        <button name="retry_print" type="object" string="Retry"
+                            invisible="state == 'Done'" class="btn-primary" />
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <span>Record ID</span>
+                            <h1>
+                                <field name="id" readonly="True" />
+                            </h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="printer_id" readonly="True" />
+                                <field name="method" readonly="True" />
+                                <field name="file_extension" invisible="file_extension == False"
+                                    readonly="True" />
+                            </group>
+                            <group>
+                                <field name="msg" invisible="state != 'Failed'" readonly="True"
+                                    class="text-danger" />
+                                <field name="create_date" />
+                                <field name="create_uid" />
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Printer">
+                                <field name="content">
+
+                                </field>
+                            </page>
+                            <page string="Reference">
+                                <field name="print_job_source_ids" readonly='True'>
+                                    <list create="false" delete="false">
+                                        <field name="print_id" />
+                                        <field name="content_ref" />
+                                        <field name="print_job_for" />
+                                        <field name="source_ref_char" />
+                                        <field name="source_ref" />
+                                    </list>
+                                    <form string="Print Job Source">
+                                        <sheet>
+                                            <group>
+                                                <group>
+                                                    <field name="print_id" />
+                                                    <field name="source_ref_char" invisible='source_ref'/>
+                                                    <field name="source_ref" invisible='not source_ref' />
+                                                </group>
+
+                                                <group>
+                                                    <field name="print_job_for" />
+                                                    <field name="content_ref" />
+                                                </group>
+                                            </group>
+                                        </sheet>
+                                    </form>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="print_jobs_search_view" model="ir.ui.view">
+            <field name="name">print.jobs.search.view</field>
+            <field name="model">print.jobs</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="print_job_source_ids"/>
+                    <field name="name"/>
+                </search>
+            </field>
+        </record>
+    </data>
+
+    <record id="print_jobs_view" model="ir.actions.act_window">
+        <field name="name">Print Jobs</field>
+        <field name="res_model">print.jobs</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem name="Print Jobs"
+        sequence="4"
+        id="print_jobs_menu"
+        parent="wk_direct_printer_main_menu"
+        action="print_jobs_view"
+    />
+
+</odoo>

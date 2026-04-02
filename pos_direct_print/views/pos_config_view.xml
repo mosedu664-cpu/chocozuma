@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+
+
+<odoo>
+    <record id="pos_direct_print_config_view_form" model="ir.ui.view">
+        <field name="name">pos.direct.print.config.form.view</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//setting[@id='other_devices']" position="after">
+                <setting id="use_direct_print" string="Use Direct Print" help="Printing POS payment Receipt directly by printers">
+                    <field name="use_direct_print"/>
+                    <div invisible="not use_direct_print">
+                        <div class="row">
+                            <label class="col-lg o_light_label" for="direct_printer_id" string="Receipt Printer"/>
+                            <field class="col-lg o_light_label" string="Receipt Printer" domain="[('state', '=', 'Active')]" name="direct_printer_id" options="{'no_create': True}"/>
+                        </div>
+                        <div class="row">
+                            <label class="col-lg o_light_label" for="invoice_operation" string="Invoice Operation"/>
+                            <field class="col-lg o_light_label" name="invoice_operation" required="use_direct_print" />
+                        </div>
+                        <div class="row" invisible="invoice_operation != 'print'">
+                            <label class="col-lg o_light_label" for="selected_invoice_printer" string="Select Invoice Printing Printer"/>
+                            <field class="col-lg o_light_label" name="selected_invoice_printer" domain="[('state', '=', 'Active'),('printerType', '=', 'PDF')]" options="{'no_create': True}"/>
+                        </div>
+                        <div class="row">
+                            <label class="col-lg o_light_label" for="order_receipt_format" string="Order Receipt Format"/>
+                            <field name="order_receipt_format" required="1"/>
+                        </div>
+                        <div>
+                            <button name="%(wk_odoo_direct_print.wk_printer_view)d" icon="oi-arrow-right" type="action" string="Printer" class="btn-link"/>
+                        </div>
+                        <div>
+                            <button name="%(wk_odoo_direct_print.wk_hostmachine_view)d" icon="oi-arrow-right" type="action" string="Host Machine" class="btn-link"/>
+                        </div>
+                    </div>
+                </setting>
+                <setting invisible="not use_direct_print" id="receipt_print_auto" string="Automatic Receipt Printing via Direct Printer" help="The receipt will automatically be printed via Direct Printer at the open of Receipt Screen.">
+                    <field name="receipt_print_auto" required="1"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+    <record id="res_config_settings_view_form_direct_print" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.direct.print</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="point_of_sale.res_config_settings_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='pos_connected_devices_section']" position="inside">
+                <setting id="pos_use_direct_print" string="Use Direct Print" help="Printing POS payment Receipt directly by printers">
+                    <field name="pos_use_direct_print"/>
+                    <div class="content-group" invisible="not pos_use_direct_print">
+                        <div class="row">
+                            <label class="col-lg o_light_label" for="pos_direct_printer_id" string="Receipt Printer"/>
+                            <field class="col-lg o_light_label" name="pos_direct_printer_id" domain="[('state', '=', 'Active')]" options="{'no_create': True}"/>
+                        </div>
+                        <div class="row">
+                            <label class="col-lg o_light_label" for="pos_invoice_operation" string="Invoice Operation"/>
+                            <field class="col-lg o_light_label" name="pos_invoice_operation" required="pos_use_direct_print" />
+                        </div>
+                        <div class="row" invisible="pos_invoice_operation != 'print'">
+                            <label class="col-lg o_light_label" for="pos_selected_invoice_printer" string="Select Invoice Printing Printer"/>
+                            <field class="col-lg o_light_label" name="pos_selected_invoice_printer" domain="[('state', '=', 'Active'),('printerType', '=', 'PDF')]" options="{'no_create': True}"/>
+                        </div>
+                        <div>
+                            <button name="%(wk_odoo_direct_print.wk_printer_view)d" icon="oi-arrow-right" type="action" string="My Printers" class="btn-link"/>
+                        </div>
+                        <div>
+                            <button name="%(wk_odoo_direct_print.wk_hostmachine_view)d" icon="oi-arrow-right" type="action" string="Host Machine" class="btn-link"/>
+                        </div>
+                    </div>
+                </setting>
+                <setting invisible="not pos_use_direct_print" id="pos_receipt_print_auto" string="Automatic Receipt Printing via Direct Printer" help="The receipt will automatically be printed via Direct Printer at the open of Receipt Screen.">
+                    <field name="pos_receipt_print_auto"/>
+                </setting>
+
+                <setting invisible="not pos_use_direct_print" id="pos_order_receipt_format_id" string="Order Receipt Format" help="Will the receipt be printed in the default format or in XML (RAW) format?">
+                    <field name="pos_order_receipt_format" required="1"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="pos_direct_print_wk_printer_form" model="ir.ui.view">
+        <field name="name">wk.printer.wk_printer_form</field>
+        <field name="model">wk.printer</field>
+        <field name="inherit_id" ref="wk_odoo_direct_print.wk_printer_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='interface']" position="after">
+                <field name="pos_cashdrawer"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

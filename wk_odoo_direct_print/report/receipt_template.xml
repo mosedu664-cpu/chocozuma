@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<odoo noupdate="1">
+    <!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+    <!-- See LICENSE file for full copyright and licensing details. -->
+    <!-- License URL : <https://store.webkul.com/license.html/> -->
+
+    <template id="escpos_receipt_sale_order">
+        <t t-foreach="docs" t-as="object">
+            <receipt>
+                <header>
+                    <div align="center">
+                        <h1 t-if="object.company_id" t-esc="object.company_id.name" />
+                        <t t-if="object.company_id.vat">
+                            <p>
+                                <t t-esc="object.company_id.vat" style="white-space:pre-line" />
+                            </p>
+                        </t>
+                        <p t-if="object.company_id.phone" t-esc="object.company_id.phone" />
+                        <p t-if="object.company_id.email" t-esc="object.company_id.email" />
+                        <p t-if="object.company_id.website" t-esc="object.company_id.website" />
+                        <br />
+                    </div>
+                    <line size='double-height' bold='on'>
+                        <left>
+                            <t t-esc="object.name" />
+                        </left>
+                        <right>Date: <span t-field="object.date_order" /></right>
+                    </line>
+                    <hr />
+                </header>
+                <line bold='on'>
+                    <left>Item --- Qty. Price</left>
+                    <right>Total Price</right>
+                </line>
+                <hr />
+                <t t-foreach="object.order_line" t-as="line">
+                    <span t-esc="line.name" />
+                    <line>
+                        <left><span t-esc="line.product_uom_qty" /> X <span t-esc="line.price_unit" /></left>
+                        <right>
+                            <span t-esc="line.price_subtotal" />
+                        </right>
+                    </line>
+                    <br />
+                </t>
+                <hr />
+                <line size='double-height'>
+                    <left>TOTAL</left>
+                    <right>
+                        <span t-esc="object.amount_total" />
+                    </right>
+                </line>
+                <footer>
+                    <div align="center">
+                        <p>
+                            <b>Thank you.</b>
+                        </p>
+                    </div>
+                </footer>
+            </receipt>
+        </t>
+    </template>
+
+    <template id="escpos_receipt_account_invoice">
+        <t t-foreach="docs" t-as="object">
+            <receipt>
+                <header>
+                    <div align="center">
+                        <h1 t-if="object.company_id" t-esc="object.company_id.name" />
+                        <t t-if="object.company_id.vat">
+                            <p>
+                                <t t-esc="object.company_id.vat" style="white-space:pre-line" />
+                            </p>
+                        </t>
+                        <p t-if="object.company_id.phone" t-esc="object.company_id.phone" />
+                        <p t-if="object.company_id.email" t-esc="object.company_id.email" />
+                        <p t-if="object.company_id.website" t-esc="object.company_id.website" />
+                        <br />
+                    </div>
+                    <line size='double-height' bold='on'>
+                        <left>
+                            <t t-esc="object.name" />
+                        </left>
+                        <right>Date: <span t-field="object.invoice_date" /></right>
+                    </line>
+                    <hr />
+                </header>
+                <line bold='on'>
+                    <left>Item --- Qty. Price</left>
+                    <right>Total Price</right>
+                </line>
+                <hr />
+                <t t-foreach="object.invoice_line_ids" t-as="line">
+                    <span t-field="line.name" />
+                    <line>
+                        <left><span t-field="line.quantity" /> X <span t-esc="line.price_unit" /></left>
+                        <right>
+                            <span t-esc="line.price_subtotal" />
+                        </right>
+                    </line>
+                    <br></br>
+                </t>
+                <hr />
+                <line>
+                    <left></left>
+                    <right>Subtotal: <span t-if="object.amount_untaxed"
+                            t-esc="object.amount_untaxed" /></right>
+                </line>
+                <line>
+                    <left></left>
+                    <right>
+                        <t t-if="object.tax_totals">
+                            <t t-if="object.tax_totals.get('groups_by_subtotal')">
+                                <t
+                                    t-if="object.tax_totals['groups_by_subtotal'].get('Untaxed Amount')">
+                                    <span
+                                        t-esc="object.tax_totals['groups_by_subtotal']['Untaxed Amount'][0]['tax_group_name']" />
+                                </t>
+                            </t>
+                        </t>
+                        <span t-if="object.amount_tax" t-raw="object.amount_tax" />
+                    </right>
+                </line>
+                <line>
+                    <left></left>
+                    <right>
+                        <hr />
+                    </right>
+                </line>
+                <line size='double-height'>
+                    <left>TOTAL</left>
+                    <right>
+                        <span t-esc="object.amount_total" />
+                    </right>
+                </line>
+                <footer>
+                    <div align="center">
+                        <p>
+                            <b>Thanks for shopping.</b>
+                        </p>
+                    </div>
+                </footer>
+            </receipt>
+        </t>
+    </template>
+
+</odoo>

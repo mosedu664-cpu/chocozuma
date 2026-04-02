@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+<odoo>
+    <data>
+
+        <record id="wk_hostmachine_kanban" model="ir.ui.view">
+            <field name="name">wk_hostmachine_kanban</field>
+            <field name="model">wk.hostmachine</field>
+            <field name="arch" type="xml">
+                <kanban class="o_kanban_mobile" create="false">
+                    <field name="name" />
+                    <field name="host_id" />
+                    <field name="platform" />
+                    <field name="is_online" />
+                    <templates>
+                        <t t-name="card">
+                            <div t-attf-class="oe_kanban_global_click">
+                                <div class="row">
+                                    <div class="col-9">
+                                        <span class="h4">
+                                            <field name="name" />
+                                        </span>
+                                    </div>
+                                    <div class="col-3">
+                                        <div invisible="is_online == False">
+                                            <span class="badge rounded-pill text-bg-success">Online</span>
+                                        </div>
+                                        <div invisible="is_online == True">
+                                            <span class="badge rounded-pill text-bg-danger">Offline</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <field name="description" />
+                                    </div>
+                                    <div class="col-8">
+                                        <span class="text-muted">Host ID: </span>
+                                        <field name="host_id" />
+                                    </div>
+                                    <div class="col-12 text-primary">
+                                        <div invisible="platform != 'Linux'">
+                                            <i class="fa fa-linux"> </i>
+                                            <field name="platform" />
+                                        </div>
+                                        <div invisible="platform != 'Windows'">
+                                            <i class="fa fa-windows"> </i>
+                                            <field name="platform" />
+                                        </div>
+                                        <div invisible="platform != 'Darwin'">
+                                            <i class="fa fa-apple"> </i>
+                                            <field name="platform" />
+                                        </div>
+                                        <div invisible="platform != 'iOS'">
+                                            <i class="fa fa-apple"> </i>
+                                            <field name="platform" />
+                                        </div>
+                                        <div invisible="platform != 'Android'">
+                                            <i class="fa fa-android"> </i>
+                                            <field name="platform" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
+        <record id="wk_hostmachine_list" model="ir.ui.view">
+            <field name="name">wk_hostmachine_list</field>
+            <field name="model">wk.hostmachine</field>
+            <field name="arch" type="xml">
+                <list string="" create="false">
+                    <field name="name" />
+                    <field name="description" />
+                </list>
+            </field>
+        </record>
+
+        <record id="wk_hostmachine_form" model="ir.ui.view">
+            <field name="name">wk_hostmachine_form</field>
+            <field name="model">wk.hostmachine</field>
+            <field name="arch" type="xml">
+                <form string="" create="false">
+                    <header>
+                        <button name="get_printers" type="object" class="btn btn-primary"
+                            string="Fetch and Add Printers" />
+                    </header>
+                    <sheet>
+                        <widget name="web_ribbon" title="Online" bg_color="bg-success"
+                            invisible="is_online == False" />
+                        <widget name="web_ribbon" title="Offline" bg_color="bg-danger"
+                            invisible="is_online == True" />
+
+                        <div class="oe_title">
+                            <span>Name</span>
+                            <h2>
+                                <field name="name" readonly="False" />
+                            </h2>
+                            <span class="text-muted">
+                                <label for="description" />
+                            </span>
+                            <h4>
+                                <field name="description" placeholder="Eg: Noida Branch" />
+                            </h4>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="user_ids" widget="many2many_tags" />
+                                <field name="company_ids" widget="many2many_tags" />
+                                <field name="offline_hostmachine_action" required='1'/>
+                            </group>
+                            <group>
+                                <label for="hostname" />
+                                <div class="o_row">
+                                    <field name="hostname" readonly="True" />
+                                    <button name="get_sys_info"
+                                        string="Refresh Status"
+                                        type="object"
+                                        help="Click to refresh Online/Offline status."
+                                        class="bt btn-info"
+                                        icon="fa-refresh"
+                                    />
+                                </div>
+                                <field name="logged_with" readonly="True" />
+                                <field name="host_id" readonly="True" />
+                                <field name="platform" readonly="True" />
+                                <field name="app_version" readonly="True" />
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Printer">
+                                <div class="alert alert-info" role="alert">
+                                    <i class="fa fa-info-circle"></i>
+                                    <span class="px-2">For the listed printers, please select the
+                                        correct Printer Type and Set as Active.</span>
+                                </div>
+                                <field name="printer_ids">
+                                    <list create="false">
+                                        <field name="name" />
+                                        <field name="description" />
+                                        <field name="interface" />
+                                        <field name="state"
+                                            decoration-success="state == 'Active'"
+                                            decoration-danger="state == 'Inactive'"
+                                        />
+                                        <field name="printerType" />
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+    </data>
+
+    <record id="wk_hostmachine_view" model="ir.actions.act_window">
+        <field name="name">Host Machine</field>
+        <field name="res_model">wk.hostmachine</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <img src="/wk_odoo_direct_print/static/description/app_interface.png" alt="PrintDirect Application" width="60%" class="rounded"/>
+            <p class="">
+            No Host Machines are connected.
+            </p><p>
+            Run the PrintDirect Desktop application.
+            <br></br>
+            Connect and then refresh this page.
+            </p>
+        </field>
+    </record>
+        
+    <menuitem name="Host Machine"
+        sequence="1"
+        id="hostmachine_menu"
+        parent="wk_direct_printer_main_menu"
+        action="wk_hostmachine_view"
+    />
+
+</odoo>

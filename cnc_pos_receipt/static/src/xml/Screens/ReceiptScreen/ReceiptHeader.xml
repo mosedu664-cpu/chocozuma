@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="point_of_sale.ReceiptHeader" t-inherit-mode="extension">
+        <xpath expr="//img[hasclass('pos-receipt-logo')]" position="replace">
+        </xpath>
+        <xpath expr="//div[hasclass('pos-receipt-contact')]" position="replace">
+            <style>
+                .receipt-center { text-align: center; font-weight: bold; }
+            </style>
+            <div class="receipt-center ">
+                <div><t t-esc="props.data.company.name"/></div>
+                <div>PAKET SIPARIS</div>
+                <div>Paket    #<t t-if="props.data.trackingNumber and !props.data.bigTrackingNumber"
+                                  t-esc="props.data.trackingNumber"/>
+                </div>
+            </div>
+        </xpath>
+        <xpath expr="//div[@class='d-flex flex-column align-items-center']/following-sibling::br" position="replace"/>
+    </t>
+</templates>
+

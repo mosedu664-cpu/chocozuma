@@ -1,0 +1,46 @@
+<odoo>
+    <!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+    <!-- See LICENSE file for full copyright and licensing details. -->
+    <!-- License URL : <https://store.webkul.com/license.html/> -->
+    <record id="autoprint_rule_list_view" model="ir.ui.view">
+        <field name="name">autoprint.rule.list</field>
+        <field name="model">autoprint.rule</field>
+        <field name="arch" type="xml">
+            <list string="Automation Print Rules" editable="bottom">
+                <field name="model" />
+                <field name="name_rule_id" options="{'no_create_edit': True, 'no_create': True}" />
+                <field name="report_id" options="{'no_create_edit': True, 'no_create': True}" />
+                <field name="no_of_copies" />
+                <field name="printer_id" options="{'no_create_edit': True, 'no_create': True}"
+                    required="True" />
+                <field name="is_enabled" widget="boolean_toggle" />
+            </list>
+        </field>
+    </record>
+
+    <record id="action_autoprint_rule_server" model="ir.actions.act_window">
+        <field name="name">Printing Automation Rules</field>
+        <field name="res_model">autoprint.rule</field>
+        <field name="view_mode">list</field>
+        <field name="target">current</field>
+    </record>
+
+    <menuitem name="Automation"
+        sequence="3"
+        id="direct_printer_Automation"
+        parent="wk_direct_printer_main_menu"
+    />
+    <menuitem
+        id="menu_automation_print"
+        name="Rule Based Automation"
+        parent="direct_printer_Automation"
+        sequence="1"
+        action="action_autoprint_rule_server"
+    />
+
+    <menuitem id="menu_advance_automation_rule"
+        name="Advance Automation Rule"
+        parent="direct_printer_Automation"
+        sequence="4"
+        action="base_automation.base_automation_act" />
+</odoo>

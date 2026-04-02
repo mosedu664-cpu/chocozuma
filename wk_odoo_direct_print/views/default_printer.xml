@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+
+<odoo>
+    <data>
+
+        <record id="default_printer_list" model="ir.ui.view">
+            <field name="name">default_printer_list</field>
+            <field name="model">default.printer</field>
+            <field name="arch" type="xml">
+                <list string="" create="false" delete="false">
+                    <field name="file_type" />
+                    <field name="printer_ids" />
+                </list>
+            </field>
+        </record>
+
+        <record id="default_printer_from" model="ir.ui.view">
+            <field name="name">default_printer_form</field>
+            <field name="model">default.printer</field>
+            <field name="arch" type="xml">
+                <form string="" create="false" delete="false">
+                    <header>
+                    </header>
+                    <sheet>
+                        <group string='Default Printer Configuration'>
+                            <field name="file_type" readonly='True' />
+                            <field name="printer_ids" options="{'no_create': True}"
+                                widget="many2many_tags" domain="[('state', '=', 'Active')]" />
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+    </data>
+
+    <record id="default_printer_view" model="ir.actions.act_window">
+        <field name="name">Default Printer For Attachments</field>
+        <field name="res_model">default.printer</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem name="Default Printers for Attachment"
+        sequence="3"
+        id="default_printer_menu"
+        parent="add_printer_menu"
+        action="default_printer_view"
+    />
+
+</odoo>

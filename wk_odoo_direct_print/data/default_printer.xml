@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+<odoo>
+    <data noupdate="1">
+        <record id="pdf-01" model="default.printer">
+            <field name="file_type">PDF</field>
+        </record>
+
+        <record id="zpl-01" model="default.printer">
+            <field name="file_type">ZPL</field>
+        </record>
+
+        <record id="img-01" model="default.printer">
+            <field name="file_type">Image</field>
+        </record>
+    </data>
+</odoo>

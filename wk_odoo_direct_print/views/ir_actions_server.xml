@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+    <!-- See LICENSE file for full copyright and licensing details. -->
+    <!-- License URL : <https://store.webkul.com/license.html/> -->
+    <record id="view_server_action_form_inherit" model="ir.ui.view">
+        <field name="name">ir.actions.server.inherit</field>
+        <field name="model">ir.actions.server</field>
+        <field name="type">form</field>
+        <field name="inherit_id" ref="base.view_server_action_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//div[@class='d-flex flex-column']" position="after">
+                <group>
+                    <group>
+                        <field name="printer_id" invisible="state != 'auto_print'" />
+                        <field name="report_id" invisible="state != 'auto_print'" />
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_base_automation_kanban_inherit_domain" model="ir.ui.view">
+        <field name="name">base.automation.kanban.inherit.domain</field>
+        <field name="model">base.automation</field>
+        <field name="inherit_id" ref="base_automation.view_base_automation_kanban" />
+        <field name="arch" type="xml">
+            <xpath expr="//div[contains(@class,'o_automation_base_info')]/div" position="inside">
+                <div class="mt-2">
+                    <strong>Domain:</strong>
+                    <field name="filter_pre_domain" widget="text" readonly="1" />
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

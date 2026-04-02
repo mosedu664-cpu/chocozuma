@@ -1,0 +1,83 @@
+<odoo>
+    <!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+    <!-- See LICENSE file for full copyright and licensing details. -->
+    <!-- License URL : <https://store.webkul.com/license.html/> -->
+    <!-- Sale Order Actions -->
+    <record id="report_trigger_rule_confirm_so" model="report.trigger.rule">
+        <field name="name">Confirm</field>
+        <field name="model">sale.order</field>
+    </record>
+
+    <record id="report_trigger_rule_cancel_so" model="report.trigger.rule">
+        <field name="name">Cancel</field>
+        <field name="model">sale.order</field>
+    </record>
+
+    <!-- Stock Picking Actions -->
+    <record id="report_trigger_rule_cancel_sp" model="report.trigger.rule">
+        <field name="name">Cancel</field>
+        <field name="model">stock.picking</field>
+    </record>
+
+    <record id="report_trigger_rule_validate_sp" model="report.trigger.rule">
+        <field name="name">Validate</field>
+        <field name="model">stock.picking</field>
+    </record>
+
+    <record id="report_trigger_rule_put_in_pack_sp" model="report.trigger.rule">
+        <field name="name">Put in Pack</field>
+        <field name="model">stock.picking</field>
+    </record>
+
+    <record id="report_trigger_rule_send_to_shipper_sp" model="report.trigger.rule">
+        <field name="name">Send to Shipper</field>
+        <field name="model">stock.picking</field>
+    </record>
+
+    <!-- Purchase Order Actions -->
+    <record id="report_trigger_rule_confirm_po" model="report.trigger.rule">
+        <field name="name">Confirm</field>
+        <field name="model">purchase.order</field>
+    </record>
+
+    <record id="report_trigger_rule_cancel_po" model="report.trigger.rule">
+        <field name="name">Cancel</field>
+        <field name="model">purchase.order</field>
+    </record>
+
+    <record id="report_trigger_rule_lock_po" model="report.trigger.rule">
+        <field name="name">Lock</field>
+        <field name="model">purchase.order</field>
+    </record>
+
+    <record id="report_trigger_rule_create_bill_po" model="report.trigger.rule">
+        <field name="name">Create Bill</field>
+        <field name="model">purchase.order</field>
+    </record>
+
+    <!-- Account Move (Invoice/Bill) Actions -->
+    <record id="report_trigger_rule_credit_note_am" model="report.trigger.rule">
+        <field name="name">Credit Note</field>
+        <field name="model">account.move</field>
+    </record>
+
+    <record id="report_trigger_rule_reset_draft_am" model="report.trigger.rule">
+        <field name="name">Reset to Draft</field>
+        <field name="model">account.move</field>
+    </record>
+
+    <record id="report_trigger_rule_payment_am" model="report.trigger.rule">
+        <field name="name">Pay</field>
+        <field name="model">account.move</field>
+    </record>
+
+    <record id="report_trigger_rule_cancel_am" model="report.trigger.rule">
+        <field name="name">Cancel</field>
+        <field name="model">account.move</field>
+    </record>
+
+    <record id="report_trigger_rule_confirm_am" model="report.trigger.rule">
+        <field name="name">Confirm</field>
+        <field name="model">account.move</field>
+    </record>
+</odoo>

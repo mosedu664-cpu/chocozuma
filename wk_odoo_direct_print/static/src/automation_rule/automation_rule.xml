@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+
+
+<templates xml:space="preserve">
+
+    <t t-name="wk_odoo_direct_print.ActionsOne2ManyFieldExtension"
+       t-inherit="base_automation.ActionsOne2ManyField"
+       t-inherit-mode="extension">
+
+        <xpath expr="//div[@class='ps-2']" position="after">
+
+            <t t-if="action.data.state === 'auto_print'">
+
+                <div class="ms-4 mt-1 small text-muted border-start ps-3">
+
+                    <div class="mt-1">
+                        <span class="fw-semibold">Printer:</span>
+                        <t t-esc="action.data.printer_id ? action.data.printer_id[1] : '-'"/>
+                    </div>
+
+                    <div>
+                        <span class="fw-semibold">Report:</span>
+                        <t t-esc="action.data.report_id ? action.data.report_id[1] : '-'"/>
+                    </div>
+
+                </div>
+
+            </t>
+
+        </xpath>
+
+        <xpath expr="//i[@data-name='server_action_icon']"
+                position="attributes">
+
+            <attribute name="t-att-class">
+                {
+                    'code': 'fa-file-code-o',
+                    'object_create': 'fa-edit',
+                    'object_write': 'fa-refresh',
+                    'multi': 'fa-list-ul',
+                    'mail_post': 'fa-envelope',
+                    'followers': 'fa-user-o',
+                    'remove_followers': 'fa-user-times',
+                    'next_activity': 'fa-clock-o',
+                    'sms': 'fa-comments-o',
+                    'auto_print': 'fa-print'
+                }[action.data.state]
+            </attribute>
+
+        </xpath>
+
+    </t>
+    
+</templates>

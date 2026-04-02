@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+
+<template>
+
+    <t t-name="wk_odoo_direct_print.ButtonDirectPrint">
+        <button t-on-click="onClick" t-att-name="props.method" type="button" class="btn oe_inline btn-link" t-att-title="props.title">
+           <t t-out="props.title"/>
+        </button>
+    </t>
+
+</template>

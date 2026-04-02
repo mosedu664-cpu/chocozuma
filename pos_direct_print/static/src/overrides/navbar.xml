@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) 2016-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+<!-- See LICENSE file for full copyright and licensing details. -->
+<!-- License URL : <https://store.webkul.com/license.html/> -->
+<templates id="template" xml:space="preserve">
+
+    <t t-name="DirectPrintPrinterstatus">
+        <div class="oe_status btn btn-light rounded-0 d-flex" t-on-click="refresh_printer_info">
+            <span t-if="totalWaitQueue" class="js_msg">
+                <t t-esc="totalWaitQueue" />
+                <span></span>
+            </span>
+            <div t-if="isHostmachineOnline and totalWaitQueue" class="js_connecting oe_icon text-warning">
+                <i class="fa fa-fw fa-print" role="img" aria-label="Printer waiting for Queue" title="Printer waiting for Queue"></i>
+            </div>
+            <div t-elif="isHostmachineOnline" class="js_connected oe_icon text-success">
+                <i class="fa fa-fw fa-print" role="img" aria-label="Printer Connected" title="Printer Connected"></i>
+            </div>
+
+            <div t-elif="!isHostmachineOnline" class="js_disconnected oe_icon text-danger">
+                <i class="fa fa-fw fa-print" role="img" aria-label="Printer Disconnected" title="Printer Disconnected"></i>
+            </div>
+        </div>
+    </t>
+
+    <t t-name="pos_direct_print.Navbar" t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
+        <xpath expr="//Dropdown" position="before">
+            <DirectPrintPrinterstatus t-if="pos.config.use_direct_print"/>
+        </xpath>
+    </t>
+
+
+</templates>

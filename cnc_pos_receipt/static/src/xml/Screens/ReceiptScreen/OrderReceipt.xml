@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
+        <xpath expr="//OrderWidget" position="replace">
+            <style>
+                .main-info-section{
+                    font-size: 10px;
+                    margin-bottom: 5px;
+                    margin-top: 5px;
+                }
+                .item-info-section{
+                    font-size: 16px;
+                    font-weight: bold;
+                   margin-top: 10px;
+                }
+                .info-row{
+                display: flex;
+                align-items: flex-start;
+                margin-bottom: 2px;
+               }
+                .info-row .label{
+                min-width: 40px;
+                font-weight: bold;
+                }
+                .info-row .value{
+                word-break: break-word;
+                }
+                .item-info-row{
+                display: flex;
+                font-size: 9px;
+                    margin-bottom: 5px;
+                }
+                .item-info-row > span{
+                display: inline-block;
+                }
+              .item-info-row > span:nth-child(1){ width: 55%; }
+                .item-info-row > span:nth-child(2){ width: 10%; text-align: center; }
+                .item-info-row > span:nth-child(3){ width: 25%; text-align: right; }
+                .item-info-row > span:nth-child(4){ width: 15%; text-align: right; }
+            </style>
+            <div class="main-container-box">
+                <div class="main-info-section">
+                    <div class="info-row" t-if='props.data.partner'>
+                        <b>Adi: </b>
+                        <span class="value" t-if='props.data.partner.name' t-out="props.data.partner.name"/>
+                        <span class="value" t-elif='props.data.partner.display_name'
+                              t-out="props.data.partner.display_name"/>
+                    </div>
+                    <div class="info-row" t-if="props.data.partner and props.data.partner.phone">
+                        <b>Tel: </b>
+                        <span class="value" t-out="props.data.partner.phone"/>
+                    </div>
+                    <div class="info-row" t-if="props.data.partner and props.data.partner.contact_address">
+                        <b>Adres: </b>
+                        <span class="value" t-out="props.data.partner.contact_address"/>
+                    </div>
+                    <div class="info-row" t-if="props.data.partner and props.data.partner.phone">
+                        <b>İl: </b>
+                        <span class="value" t-out="props.data.partner.city"/>
+                    </div>
+                    <div class="info-row" t-if="props.data.partner and props.data.partner.phone">
+                        <b>Odeme Turu: </b>
+                        <p style="display: inline-block; margin-bottom: -9px;" t-foreach="props.data.paymentlines"
+                           t-as="line" t-key="line_index">
+                            <span t-out="line.name"/>
+                        </p>
+                    </div>
+                    <div class="info-row" t-if="props.data.partner and props.data.partner.phone">
+                        <b>Teslimat Turu: </b>
+                        <span> Paket Servis</span>
+                    </div>
+                </div>
+                <div style="border-bottom: 1px dashed #000; width: 100%; margin: 0;"/>
+                <div class="main-info-section">
+                      <div class="info-row" t-if="props.data.partner and props.data.partner.phone">
+                        <b>İs Merkezi: </b>
+                          <span class="value" t-out="props.data.company_address"/>
+                    </div>
+                    <div class="info-row" t-if="props.data.date">
+                        <b>Tarih: </b>
+                        <span class="value"
+                              t-out="props.data.date.replace('T', ' ').slice(0, 16).split('-').reverse().join('.')"/>
+                    </div>
+                    <div class="info-row">
+                        <b>Cek No: #</b>
+                        <span t-if="props.data.invoice_number" class="value" t-out="props.data.invoice_number"/>
+                    </div>
+
+                </div>
+                <div style="border-bottom: 1px dashed #000; width: 100%; margin: 0;"/>
+            </div>
+            <div class="item-info-section">
+                <span t-foreach="props.data.orderlines" t-as="line" t-key="line_index" class="item-table-row">
+                    <div class="item-info-row">
+                        <span t-out="line.productName" style="font-size: 9px;"/>
+                        <span t-out="line.qty"/>
+                        <span t-out="line.price.slice(0, -3)"/>
+                        <span t-out="line.price_without_discount"/>
+                    </div>
+                </span>
+            </div>
+        </xpath>
+        <xpath expr="//div[hasclass('pos-receipt-taxes')]" position="replace"></xpath>
+        <xpath expr="//p[text()='Powered by Odoo']" position="replace"></xpath>
+    </t>
+</templates>

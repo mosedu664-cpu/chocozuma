@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+    <!-- See LICENSE file for full copyright and licensing details. -->
+    <!-- License URL : <https://store.webkul.com/license.html/> -->
+
+    <record id="ir_actions_report_inherit" model="ir.ui.view">
+        <field name="name">ir.actions.report.inherit</field>
+        <field name="model">ir.actions.report</field>
+        <field name="type">form</field>
+        <field name="inherit_id" ref="base.act_report_xml_view" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='paperformat_id']" position="after">
+                <field name="report_type_alert" string="" invisible="report_type_alert == ''" />
+                <field name="printerType" placeholder="   Please select a Type.   " />
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Server action  -->
+    <record id="set_printer_type_pdf" model="ir.actions.server">
+        <field name="name">Set Printer Type as PDF</field>
+        <field name="model_id" ref="model_ir_actions_report" />
+        <field name="binding_model_id" ref="model_ir_actions_report" />
+        <field name="state">code</field>
+        <field name="code">
+            action = records.set_printerType_pdf()
+        </field>
+    </record>
+    <record id="set_printer_type_zpl" model="ir.actions.server">
+        <field name="name">Set Printer Type as ZPL</field>
+        <field name="model_id" ref="model_ir_actions_report" />
+        <field name="binding_model_id" ref="model_ir_actions_report" />
+        <field name="state">code</field>
+        <field name="code">
+            action = records.set_printerType_zpl()
+        </field>
+    </record>
+    <record id="set_printer_type_escpos" model="ir.actions.server">
+        <field name="name">Set Printer Type as ESCPOS</field>
+        <field name="model_id" ref="model_ir_actions_report" />
+        <field name="binding_model_id" ref="model_ir_actions_report" />
+        <field name="state">code</field>
+        <field name="code">
+            action = records.set_printerType_escpos()
+        </field>
+    </record>
+
+
+</odoo>

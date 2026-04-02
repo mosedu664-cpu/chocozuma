@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Copyright (c) 2025-Present Webkul Software Pvt. Ltd. (<https://webkul.com/>) -->
+    <!-- See LICENSE file for full copyright and licensing details. -->
+    <!-- License URL : <https://store.webkul.com/license.html/> -->
+
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">direct.print.res.config.view.form</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="30" />
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Print Direct" name="wk_odoo_direct_print" string="Print Direct">
+                    <block title="Instructions" name="instruction_container">
+                        <div class="col-12 o_setting_box">
+                            <b>Run Desktop Application.</b>
+                            <ul>
+                                <li> Run the Desktop Application, version 2.0.x. <br></br>Supported
+                                    on Windows and select Linux OS. </li>
+                                <li>
+                                    Use your Odoo credentials to fill the details on the
+                                    Application.
+                                </li>
+                                <li>
+                                    Connect the Application with Odoo. Let the app run on the
+                                    background.
+                                </li>
+                                <br></br>
+                                <img
+                                    src="/wk_odoo_direct_print/static/src/image/app-logged-in-ss.png"
+                                    alt="app-logged-in-ss" width="30%" height="auto" />
+                                <img src="/wk_odoo_direct_print/static/src/image/odoo-creds-ss.png"
+                                    alt="odoo-creds-ss" width="30%" height="auto" />
+                                <img
+                                    src="/wk_odoo_direct_print/static/src/image/app-logged-out-ss.png"
+                                    alt="app-logged-out-ss" width="30%" height="auto" />
+                                <br></br>
+                                <li>
+                                    Upon successfull login, the Host Machine will be added to Odoo
+                                    automatically.
+                                </li>
+                                <li>
+                                    Remember to use unique Host ID for each Host Machine.
+                                </li>
+                            </ul>
+                            <b>Add Printers on Odoo.</b>
+                            <ul>
+                                <li> Open a Host Machine, and fetch the printers. <br></br>All
+                                    printers will be added, refresh the page to view. </li>
+                                <li>
+                                    Open a Printer, select the Printer Type and click to Set as
+                                    Active.
+                                </li>
+                            </ul>
+                            <b>Configure Odoo Reports and Attachments.</b>
+                            <ul>
+                                <li> Open a Printer, Add the reports. <br></br>If you are unable to
+                                    see your report on the list, go to Configuration→ Reports and
+                                    assign the Printer Type on the report. </li>
+                                <li>
+                                    Set the Default printers for attachment files.
+                                </li>
+                            </ul>
+                            <b>How to print?</b>
+                            <ul>
+                                <li> Click on any report from the actions. <br></br>
+                                    <img
+                                        src="/wk_odoo_direct_print/static/src/image/pdf-report-print-ss.png"
+                                        alt="pdf-report-ss" width="40%" height="auto" />
+                                </li>
+                                <li> Click on the printer icon present on the attachments. <br></br>
+                                    <img
+                                        src="/wk_odoo_direct_print/static/src/image/pdf-attachment-ss.png"
+                                        alt="pdf-attachment-ss" width="30%" height="auto" />
+                                    <img
+                                        src="/wk_odoo_direct_print/static/src/image/zpl-attachment-ss.png"
+                                        alt="pdf-attachment-ss" width="25%" height="auto" />
+                                </li>
+                            </ul>
+                        </div>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
