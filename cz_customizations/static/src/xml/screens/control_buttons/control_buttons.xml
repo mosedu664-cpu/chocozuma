@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="point_of_sale.ControlButtons" t-inherit-mode="extension" owl="1">
+        <!-- Add Print Receipt button right after the Kitchen Note (OrderlineNoteButton) in the main bar -->
+        <xpath expr="//t[@t-if='!props.showRemainingButtons || (ui.isSmall and props.showRemainingButtons)']" position="after">
+            <button t-if="!props.showRemainingButtons"
+                t-attf-class="{{ buttonClass }}"
+                t-on-click="() => this.onClickPrintReceiptDirectly()">
+                <i class="fa fa-file-text-o me-1" role="img" aria-label="Print Receipt" title="Print Receipt" />
+                Print Receipt
+            </button>
+        </xpath>
+        <!-- Also add Print Receipt button in the Actions dialog (showRemainingButtons mode) -->
+        <xpath expr="//div[hasclass('control-buttons-modal')]/OrderlineNoteButton[last()]" position="after">
+            <button class="btn btn-secondary btn-lg py-5" t-on-click="() => this.onClickPrintReceiptDirectly()">
+                <i class="fa fa-file-text-o me-1" role="img" aria-label="Print Receipt" title="Print Receipt" />
+                Print Receipt
+            </button>
+        </xpath>
+    </t>
+</templates>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="point_of_sale.ReceiptScreen" t-inherit-mode="extension" owl="1">
+        <!-- Add Back button on desktop before New Order -->
+        <xpath expr="//div[@id='action_btn_desktop']/button[@name='done']" position="before">
+            <button class="button back btn btn-secondary btn-lg w-100 py-4 lh-lg" t-on-click="() => this.pos.showScreen('ProductScreen')">
+                <i class="fa fa-arrow-left me-1" /> Back
+            </button>
+        </xpath>
+        <!-- Add Back button on mobile before New Order -->
+        <xpath expr="//div[@id='action_btn_mobile']/div[@name='done']" position="before">
+            <div class="btn-switchpane btn btn-secondary btn-lg py-3 flex-fill lh-lg" t-on-click="() => this.pos.showScreen('ProductScreen')">
+                <i class="fa fa-arrow-left me-1" /> Back
+            </div>
+        </xpath>
+    </t>
+</templates>
