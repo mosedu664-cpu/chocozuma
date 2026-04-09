@@ -23,16 +23,6 @@ patch(ControlButtons.prototype, {
                 this.notification.add("Printing...", { type: "info" });
             }
 
-            // Temporary fix: Prevent string IDs (unvalidated order) from freezing ORM calls via Webkul.
-            const originalId = order.id;
-            const originalRawId = order.raw ? order.raw.id : null;
-            if (typeof order.id !== "number") {
-                order.id = 0;
-            }
-            if (order.raw && typeof order.raw.id !== "number") {
-                order.raw.id = 0;
-            }
-
             if (this.pos.config.use_direct_print && this.pos.direct_printer) {
                 if (this.pos.config.order_receipt_format === 'xml' && typeof this.pos.get_esc_receipt === 'function') {
                     await this.pos.get_esc_receipt(order, 'print-complex');
@@ -55,11 +45,6 @@ patch(ControlButtons.prototype, {
                         formatCurrency: this.env.utils.formatCurrency,
                     }
                 );
-            }
-
-            order.id = originalId;
-            if (order.raw) {
-                order.raw.id = originalRawId;
             }
 
             if (this.notification) {
