@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Expense allocation is handled via Odoo's native Analytic Accounting.
+        This view provides a shortcut filtered view of analytic lines
+        tied to grant analytic accounts, giving the grant manager
+        visibility into all expenses charged against each grant.
+    -->
+    <record id="action_grant_analytic_lines" model="ir.actions.act_window">
+        <field name="name">Grant Expense Allocations</field>
+        <field name="res_model">account.analytic.line</field>
+        <field name="view_mode">list,form,pivot</field>
+        <field name="context">{'search_default_group_by_account': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No expense allocations yet!</p>
+            <p>When a grant is awarded, an analytic account is created automatically.
+               Tag journal entries and expenses with this analytic account to track
+               all costs against the grant budget.</p>
+        </field>
+    </record>
+</odoo>

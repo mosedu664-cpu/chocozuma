@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <record id="seq_grant_opportunity" model="ir.sequence">
+            <field name="name">Grant Opportunity Reference</field>
+            <field name="code">grant.opportunity</field>
+            <field name="prefix">OPP/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+        </record>
+
+        <record id="seq_grant_grant" model="ir.sequence">
+            <field name="name">Grant Reference</field>
+            <field name="code">grant.grant</field>
+            <field name="prefix">GRT/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+        </record>
+
+        <record id="seq_form_990" model="ir.sequence">
+            <field name="name">Form 990 Reference</field>
+            <field name="code">form.990</field>
+            <field name="prefix">990/%(year)s/</field>
+            <field name="padding">3</field>
+            <field name="number_next">1</field>
+            <field name="number_increment">1</field>
+        </record>
+
+    </data>
+</odoo>

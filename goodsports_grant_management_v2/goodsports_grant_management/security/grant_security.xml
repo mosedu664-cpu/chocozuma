@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Grant Management Category -->
+        <record id="module_category_grant_management" model="ir.module.category">
+            <field name="name">Grant Management</field>
+            <field name="description">GoodSports Grant Management Module</field>
+            <field name="sequence">50</field>
+        </record>
+
+        <!-- User Groups -->
+        <record id="group_grant_user" model="res.groups">
+            <field name="name">Grant User</field>
+            <field name="category_id" ref="module_category_grant_management"/>
+            <field name="comment">Can view and update grants assigned to them.</field>
+        </record>
+
+        <record id="group_grant_manager" model="res.groups">
+            <field name="name">Grant Manager</field>
+            <field name="category_id" ref="module_category_grant_management"/>
+            <field name="implied_ids" eval="[(4, ref('group_grant_user'))]"/>
+            <field name="comment">Can create, edit, and manage all grants.</field>
+        </record>
+
+        <record id="group_grant_admin" model="res.groups">
+            <field name="name">Grant Administrator</field>
+            <field name="category_id" ref="module_category_grant_management"/>
+            <field name="implied_ids" eval="[(4, ref('group_grant_manager'))]"/>
+            <field name="users" eval="[(4, ref('base.user_admin'))]"/>
+            <field name="comment">Full access including configuration and deletion.</field>
+        </record>
+
+    </data>
+</odoo>

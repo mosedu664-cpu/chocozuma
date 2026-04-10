@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Opportunity Kanban -->
+    <record id="view_grant_opportunity_kanban" model="ir.ui.view">
+        <field name="name">grant.opportunity.kanban</field>
+        <field name="model">grant.opportunity</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="stage_id" class="o_kanban_small_column"
+                    on_create="quick_create" quick_create_view="view_grant_opportunity_quick_create">
+                <field name="name"/>
+                <field name="funder_id"/>
+                <field name="deadline"/>
+                <field name="estimated_amount"/>
+                <field name="priority"/>
+                <field name="grant_writer_id"/>
+                <field name="days_to_deadline"/>
+                <field name="is_past_deadline"/>
+                <field name="outcome"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_card">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_record_top">
+                                    <div class="o_kanban_record_headings">
+                                        <strong class="o_kanban_record_title">
+                                            <field name="name"/>
+                                        </strong>
+                                    </div>
+                                    <field name="priority" widget="priority"/>
+                                </div>
+                                <div class="o_kanban_record_body">
+                                    <div><field name="funder_id"/></div>
+                                    <div class="mt4">
+                                        <strong><field name="estimated_amount" widget="monetary"/></strong>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <span t-att-class="record.is_past_deadline.raw_value ? 'text-danger' : 'text-muted'">
+                                            <i class="fa fa-calendar" title="Deadline"/> <field name="deadline"/>
+                                        </span>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <field name="grant_writer_id" widget="many2one_avatar_user"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Opportunity List -->
+    <record id="view_grant_opportunity_list" model="ir.ui.view">
+        <field name="name">grant.opportunity.list</field>
+        <field name="model">grant.opportunity</field>
+        <field name="arch" type="xml">
+            <list string="Grant Opportunities"
+                  decoration-danger="is_past_deadline == True"
+                  decoration-warning="days_to_deadline &lt;= 14 and days_to_deadline >= 0">
+                <field name="reference"/>
+                <field name="name"/>
+                <field name="funder_id"/>
+                <field name="stage_id"/>
+                <field name="priority" widget="priority"/>
+                <field name="estimated_amount"/>
+                <field name="deadline"/>
+                <field name="days_to_deadline"/>
+                <field name="grant_writer_id"/>
+                <field name="eligibility_check" widget="badge"
+                       decoration-success="eligibility_check == 'eligible'"
+                       decoration-danger="eligibility_check == 'ineligible'"
+                       decoration-warning="eligibility_check == 'conditional'"/>
+                <field name="outcome"/>
+                <field name="is_past_deadline" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Opportunity Form -->
+    <record id="view_grant_opportunity_form" model="ir.ui.view">
+        <field name="name">grant.opportunity.form</field>
+        <field name="model">grant.opportunity</field>
+        <field name="arch" type="xml">
+            <form string="Grant Opportunity">
+                <header>
+                    <button name="action_convert_to_grant" type="object"
+                            string="Convert to Active Grant"
+                            class="btn-primary"
+                            invisible="grant_id != False or outcome in ('awarded','not_applied','declined','withdrawn')"/>
+                    <field name="outcome" widget="statusbar"
+                           statusbar_visible="pending,applied,awarded,declined"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" icon="fa-trophy" type="action" name="%(action_grant_grant)s" domain="[('id', '=', grant_id)]"
+                                invisible="grant_id == False">                            <span class="o_stat_info">
+                                <span class="o_stat_text">Grant Created</span>
+                            </span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="e.g. Nike Community Sports Grant 2025"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="reference" readonly="1"/>
+                            <field name="funder_id"/>
+                            <field name="stage_id"/>
+                            <field name="priority" widget="priority"/>
+                            <field name="focus_area_ids" widget="many2many_tags"/>
+                            <field name="grant_type"/>
+                        </group>
+                        <group>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="estimated_amount"/>
+                            <field name="min_amount"/>
+                            <field name="max_amount"/>
+                            <field name="eligibility_check"/>
+                            <field name="fit_score"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Key Dates">
+                            <group>
+                                <group string="Application Timeline">
+                                    <field name="rfp_release_date"/>
+                                    <field name="deadline"
+                                           decoration-danger="is_past_deadline"
+                                           class="fw-bold"/>
+                                    <field name="days_to_deadline" readonly="1"/>
+                                    <field name="award_notification_date"/>
+                                </group>
+                                <group string="Project Dates">
+                                    <field name="project_start_date"/>
+                                    <field name="project_end_date"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Team">
+                            <group>
+                                <field name="grant_writer_id"/>
+                                <field name="program_manager_id"/>
+                                <field name="reviewed_by_id"/>
+                            </group>
+                        </page>
+                        <page string="Requirements">
+                            <group>
+                                <field name="reporting_requirements" placeholder="Describe reporting requirements..."/>
+                                <field name="eligibility_notes" placeholder="Eligibility notes..."/>
+                            </group>
+                        </page>
+                        <page string="Research Notes">
+                            <field name="notes" placeholder="Research findings, funder priorities, past awards..."/>
+                        </page>
+                    </notebook>
+                    <field name="is_past_deadline" invisible="1"/>
+                    <field name="grant_id" invisible="1"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Quick Create (for Kanban) -->
+    <record id="view_grant_opportunity_quick_create" model="ir.ui.view">
+        <field name="name">grant.opportunity.quick.create</field>
+        <field name="model">grant.opportunity</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="name" placeholder="Opportunity name"/>
+                    <field name="funder_id"/>
+                    <field name="deadline"/>
+                    <field name="estimated_amount"/>
+                </group>
+            </form>
+        </field>
+    </record>
+
+    <!-- Opportunity Action -->
+    <record id="action_grant_opportunity" model="ir.actions.act_window">
+        <field name="name">Grant Opportunities</field>
+        <field name="res_model">grant.opportunity</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Start tracking grant opportunities!</p>
+            <p>Research and manage potential grants before submitting applications.</p>
+        </field>
+    </record>
+
+</odoo>

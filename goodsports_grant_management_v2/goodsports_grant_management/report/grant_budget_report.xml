@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ─── Grant Portfolio Budget Report (all active grants overview) ─── -->
+    <record id="action_report_grant_budget" model="ir.actions.report">
+        <field name="name">Grant Portfolio Report</field>
+        <field name="model">grant.grant</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">goodsports_grant_management.report_grant_budget_document</field>
+        <field name="report_file">goodsports_grant_management.report_grant_budget_document</field>
+        <field name="print_report_name">'Grant Portfolio Report ' + env.context_today().strftime('%Y-%m-%d')</field>
+        <field name="binding_model_id" ref="model_grant_grant"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_grant_budget_document">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <h2 class="text-primary">Grant Portfolio Report</h2>
+                    <p class="text-muted">
+                        Generated: <t t-esc="env.context_today().strftime('%B %d, %Y')"/> |
+                        Total Grants: <t t-esc="len(docs)"/>
+                    </p>
+                    <hr/>
+
+                    <!-- Portfolio Summary -->
+                    <div class="row mb-4">
+                        <div class="col-4">
+                            <div class="card border text-center p-3">
+                                <div class="fs-4 fw-bold text-primary">
+                                    $<t t-esc="'{:,.0f}'.format(sum(docs.mapped('awarded_amount')))"/>
+                                </div>
+                                <div class="text-muted">Total Portfolio Value</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card border text-center p-3">
+                                <div class="fs-4 fw-bold text-danger">
+                                    $<t t-esc="'{:,.0f}'.format(sum(docs.mapped('total_expenses')))"/>
+                                </div>
+                                <div class="text-muted">Total Spent</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="card border text-center p-3">
+                                <div class="fs-4 fw-bold text-success">
+                                    $<t t-esc="'{:,.0f}'.format(sum(docs.mapped('remaining_budget')))"/>
+                                </div>
+                                <div class="text-muted">Total Remaining</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grant Portfolio Table -->
+                    <h4>Portfolio Overview</h4>
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Reference</th>
+                                <th>Grant Name</th>
+                                <th>Funder</th>
+                                <th>Status</th>
+                                <th class="text-end">Awarded</th>
+                                <th class="text-end">Spent</th>
+                                <th class="text-end">Remaining</th>
+                                <th class="text-end">Utilized %</th>
+                                <th>End Date</th>
+                                <th>Next Report</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="docs" t-as="grant">
+                                <tr t-att-class="'table-danger' if grant.is_overdue else ''">
+                                    <td><small><t t-esc="grant.reference"/></small></td>
+                                    <td><t t-esc="grant.name"/></td>
+                                    <td><t t-esc="grant.funder_id.name"/></td>
+                                    <td>
+                                        <span class="badge"
+                                              t-att-class="'bg-success' if grant.state == 'active' else ('bg-info' if grant.state in ('awarded','reporting') else 'bg-secondary')">
+                                            <t t-esc="dict(grant._fields['state'].selection).get(grant.state)"/>
+                                        </span>
+                                    </td>
+                                    <td class="text-end"><t t-esc="'{:,.0f}'.format(grant.awarded_amount)"/></td>
+                                    <td class="text-end"><t t-esc="'{:,.0f}'.format(grant.total_expenses)"/></td>
+                                    <td class="text-end"
+                                        t-att-class="'text-danger' if grant.remaining_budget &lt; 0 else ''">
+                                        <t t-esc="'{:,.0f}'.format(grant.remaining_budget)"/>
+                                    </td>
+                                    <td class="text-end"
+                                        t-att-class="'text-danger fw-bold' if grant.budget_utilization > 90 else ''">
+                                        <t t-esc="'{:.1f}'.format(grant.budget_utilization)"/>%
+                                    </td>
+                                    <td><t t-esc="grant.project_end_date"/></td>
+                                    <td t-att-class="'text-danger' if grant.next_report_due and grant.next_report_due &lt; env.context_today() else ''">
+                                        <t t-esc="grant.next_report_due or '—'"/>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                        <tfoot class="table-light fw-bold">
+                            <tr>
+                                <td colspan="4">Totals</td>
+                                <td class="text-end">$<t t-esc="'{:,.0f}'.format(sum(docs.mapped('awarded_amount')))"/></td>
+                                <td class="text-end">$<t t-esc="'{:,.0f}'.format(sum(docs.mapped('total_expenses')))"/></td>
+                                <td class="text-end">$<t t-esc="'{:,.0f}'.format(sum(docs.mapped('remaining_budget')))"/></td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <!-- Overdue Milestones Section -->
+                    <t t-set="overdue_grants" t-value="docs.filtered(lambda g: g.overdue_milestone_count > 0)"/>
+                    <t t-if="overdue_grants">
+                        <div class="mt-4 page-break-inside-avoid">
+                            <h4 class="text-danger">
+                                <i class="fa fa-exclamation-triangle"/> Grants with Overdue Milestones
+                            </h4>
+                            <table class="table table-sm table-bordered table-danger">
+                                <thead>
+                                    <tr>
+                                        <th>Grant</th>
+                                        <th>Milestone</th>
+                                        <th>Due Date</th>
+                                        <th>Assigned To</th>
+                                        <th>Type</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="overdue_grants" t-as="grant">
+                                        <t t-foreach="grant.milestone_ids.filtered(lambda m: m.is_overdue)" t-as="ms">
+                                            <tr>
+                                                <td><t t-esc="grant.reference"/></td>
+                                                <td><t t-esc="ms.name"/></td>
+                                                <td class="text-danger fw-bold"><t t-esc="ms.due_date"/></td>
+                                                <td><t t-esc="ms.assigned_to_id.name if ms.assigned_to_id else '—'"/></td>
+                                                <td><t t-esc="dict(ms._fields['milestone_type'].selection).get(ms.milestone_type)"/></td>
+                                            </tr>
+                                        </t>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+</odoo>

@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ROOT MENU
+    ═══════════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_grant_root"
+              name="Grant Management"
+              sequence="50"
+              web_icon="goodsports_grant_management,static/description/icon.png"
+              groups="goodsports_grant_management.group_grant_user"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         DASHBOARD
+    ═══════════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_grant_dashboard"
+              name="Dashboard"
+              parent="menu_grant_root"
+              action="action_grant_dashboard"
+              sequence="5"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         PIPELINE (Pre-Award)
+    ═══════════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_grant_pipeline"
+              name="Pipeline"
+              parent="menu_grant_root"
+              sequence="10"/>
+
+    <menuitem id="menu_grant_opportunity"
+              name="Opportunities"
+              parent="menu_grant_pipeline"
+              action="action_grant_opportunity"
+              sequence="10"/>
+
+    <menuitem id="menu_grant_funder"
+              name="Funders"
+              parent="menu_grant_pipeline"
+              action="action_grant_funder"
+              sequence="20"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ACTIVE GRANTS
+    ═══════════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_grant_active"
+              name="My Grants"
+              parent="menu_grant_root"
+              sequence="20"/>
+
+    <menuitem id="menu_grant_all"
+              name="All Grants"
+              parent="menu_grant_active"
+              action="action_grant_grant"
+              sequence="10"/>
+
+    <menuitem id="menu_grant_active_only"
+              name="Active Grants"
+              parent="menu_grant_active"
+              action="action_grant_active"
+              sequence="20"/>
+
+    <menuitem id="menu_grant_milestones"
+              name="Milestones &amp; Deliverables"
+              parent="menu_grant_active"
+              action="action_grant_milestone"
+              sequence="30"/>
+
+    <menuitem id="menu_grant_expense_alloc"
+              name="Expense Allocations"
+              parent="menu_grant_active"
+              action="action_grant_analytic_lines"
+              sequence="40"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         COMPLIANCE & REPORTING
+    ═══════════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_grant_compliance"
+              name="Compliance"
+              parent="menu_grant_root"
+              sequence="30"/>
+
+    <menuitem id="menu_grant_reports"
+              name="Reports Due"
+              parent="menu_grant_compliance"
+              action="action_grant_report"
+              sequence="10"/>
+
+    <menuitem id="menu_grant_reports_overdue"
+              name="Overdue Reports"
+              parent="menu_grant_compliance"
+              action="action_grant_report_overdue"
+              sequence="20"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         ANALYTICS
+    ═══════════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_grant_analytics"
+              name="Analytics"
+              parent="menu_grant_root"
+              sequence="40"/>
+
+    <menuitem id="menu_grant_analytics_dashboard"
+              name="Grant Summary"
+              parent="menu_grant_analytics"
+              action="action_grant_dashboard"
+              sequence="10"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         CONFIGURATION (Admin only)
+    ═══════════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_grant_config"
+              name="Configuration"
+              parent="menu_grant_root"
+              sequence="100"
+              groups="goodsports_grant_management.group_grant_admin"/>
+
+    <menuitem id="menu_grant_focus_areas"
+              name="Focus Areas"
+              parent="menu_grant_config"
+              sequence="10"
+              action="action_grant_focus_area"
+              groups="goodsports_grant_management.group_grant_admin"/>
+
+    <menuitem id="menu_grant_opp_stages"
+              name="Pipeline Stages"
+              parent="menu_grant_config"
+              sequence="20"
+              action="action_grant_opportunity_stage"
+              groups="goodsports_grant_management.group_grant_admin"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         FORM 990 MENU (added to Compliance section)
+    ═══════════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_form_990"
+              name="Form 990 Returns"
+              parent="menu_grant_compliance"
+              action="action_form_990"
+              sequence="50"/>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         FORM 990 MENU (added in v2)
+    ═══════════════════════════════════════════════════════════════ -->
+    <menuitem id="menu_form990_root"
+              name="Form 990"
+              parent="menu_grant_root"
+              sequence="45"/>
+
+    <menuitem id="menu_form990_list"
+              name="All Returns"
+              parent="menu_form990_root"
+              action="goodsports_grant_management.action_form_990"
+              sequence="10"/>
+
+    <menuitem id="menu_form990_new"
+              name="New Return"
+              parent="menu_form990_root"
+              action="goodsports_grant_management.action_form_990"
+              sequence="20"/>
+
+</odoo>

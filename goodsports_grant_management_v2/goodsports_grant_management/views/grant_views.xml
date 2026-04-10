@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Grant List View -->
+    <record id="view_grant_grant_list" model="ir.ui.view">
+        <field name="name">grant.grant.list</field>
+        <field name="model">grant.grant</field>
+        <field name="arch" type="xml">
+            <list string="Grants"
+                  decoration-danger="is_overdue == True"
+                  decoration-warning="days_remaining &lt;= 30 and days_remaining >= 0 and state == 'active'">
+                <field name="reference"/>
+                <field name="name"/>
+                <field name="funder_id"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'active'"
+                       decoration-info="state in ('awarded','reporting')"
+                       decoration-warning="state in ('submitted','under_review')"
+                       decoration-muted="state in ('closed','declined','draft')"/>
+                <field name="awarded_amount" sum="Total Awarded"/>
+                <field name="total_expenses" sum="Total Spent"/>
+                <field name="budget_utilization" widget="progressbar"/>
+                <field name="project_end_date"/>
+                <field name="days_remaining"/>
+                <field name="next_report_due"/>
+                <field name="program_manager_id"/>
+                <field name="overdue_milestone_count"
+                       decoration-danger="overdue_milestone_count &gt; 0"
+                       string="Overdue Milestones"/>
+                <field name="is_overdue" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Grant Form View -->
+    <record id="view_grant_grant_form" model="ir.ui.view">
+        <field name="name">grant.grant.form</field>
+        <field name="model">grant.grant</field>
+        <field name="arch" type="xml">
+            <form string="Grant">
+                <header>
+                    <button name="action_submit" type="object" string="Submit Application"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_under_review" type="object" string="Mark Under Review"
+                            invisible="state != 'submitted'"/>
+                    <button name="action_award" type="object" string="Mark as Awarded"
+                            class="btn-success" invisible="state not in ('submitted','under_review')"/>
+                    <button name="action_decline" type="object" string="Mark Declined"
+                            invisible="state not in ('submitted','under_review','draft')"/>
+                    <button name="action_set_reporting" type="object" string="Enter Reporting Period"
+                            invisible="state != 'active'"/>
+                    <button name="action_close" type="object" string="Close Grant"
+                            class="btn-secondary"
+                            invisible="state in ('closed','declined','draft')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,awarded,active,reporting,closed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_milestones" type="object"
+                                class="oe_stat_button" icon="fa-flag">
+                            <field name="milestone_count" widget="statinfo" string="Milestones"/>
+                        </button>
+                        <button name="action_view_reports" type="object"
+                                class="oe_stat_button" icon="fa-file-text">
+                            <field name="report_count" widget="statinfo" string="Reports"/>
+                        </button>
+                        <button class="oe_stat_button" icon="fa-exclamation-triangle"
+                                invisible="overdue_milestone_count == 0">
+                            <field name="overdue_milestone_count" widget="statinfo"
+                                   string="Overdue" class="text-danger"/>
+                        </button>
+                    </div>
+                    <widget name="web_ribbon" text="Overdue" bg_color="text-bg-danger"
+                            invisible="not is_overdue"/>
+                    <widget name="web_ribbon" text="Closed" bg_color="text-bg-secondary"
+                            invisible="state != 'closed'"/>
+                    <div class="oe_title">
+                        <label for="reference"/>
+                        <h2><field name="reference" readonly="1"/></h2>
+                        <h1><field name="name" placeholder="Grant Name"/></h1>
+                    </div>
+
+                    <!-- Financial Summary Cards -->
+                    <div class="row mb-4" invisible="state == 'draft'">
+                        <div class="col-3">
+                            <div class="o_stat_info border rounded p-2 text-center">
+                                <span class="o_stat_value">
+                                    <field name="awarded_amount" widget="monetary"/>
+                                </span>
+                                <span class="o_stat_text d-block text-muted">Awarded</span>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="o_stat_info border rounded p-2 text-center">
+                                <span class="o_stat_value">
+                                    <field name="total_expenses" widget="monetary"/>
+                                </span>
+                                <span class="o_stat_text d-block text-muted">Total Spent</span>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="o_stat_info border rounded p-2 text-center">
+                                <span class="o_stat_value">
+                                    <field name="remaining_budget" widget="monetary"/>
+                                </span>
+                                <span class="o_stat_text d-block text-muted">Remaining</span>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="o_stat_info border rounded p-2 text-center">
+                                <span class="o_stat_value">
+                                    <field name="budget_utilization"/>%
+                                </span>
+                                <span class="o_stat_text d-block text-muted">Utilization</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <group>
+                        <group string="Grant Details">
+                            <field name="funder_id"/>
+                            <field name="funder_reference" placeholder="Funder's award reference #"/>
+                            <field name="grant_type"/>
+                            <field name="focus_area_ids" widget="many2many_tags"/>
+                            <field name="analytic_account_id"/>
+                            <field name="project_id"/>
+                            <field name="opportunity_id" readonly="1"/>
+                        </group>
+                        <group string="Financials">
+                            <field name="currency_id" invisible="1"/>
+                            <field name="requested_amount"/>
+                            <field name="awarded_amount"/>
+                            <field name="budget_total"/>
+                            <field name="match_required"/>
+                            <field name="match_amount" invisible="not match_required"/>
+                            <field name="match_type" invisible="not match_required"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Key Dates">
+                            <field name="application_date"/>
+                            <field name="award_date"/>
+                            <field name="project_start_date"/>
+                            <field name="project_end_date"/>
+                            <field name="next_report_due" readonly="1"/>
+                            <field name="days_remaining" readonly="1"/>
+                        </group>
+                        <group string="Team">
+                            <field name="grant_writer_id"/>
+                            <field name="program_manager_id"/>
+                            <field name="finance_contact_id"/>
+                            <field name="executive_approver_id"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Budget Lines">
+                            <field name="budget_line_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="expense_category"/>
+                                    <field name="budgeted_amount" sum="Total Budget"/>
+                                    <field name="actual_amount" sum="Total Spent"/>
+                                    <field name="variance" sum="Total Variance"/>
+                                    <field name="utilization_pct" widget="progressbar"/>
+                                    <field name="notes"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Milestones">
+                            <field name="milestone_ids">
+                                <list decoration-danger="is_overdue == True"
+                                      decoration-success="state == 'done'">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="milestone_type"/>
+                                    <field name="due_date"/>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state == 'done'"
+                                           decoration-warning="state == 'in_progress'"
+                                           decoration-danger="is_overdue"/>
+                                    <field name="target_quantity"/>
+                                    <field name="actual_quantity"/>
+                                    <field name="unit_of_measure"/>
+                                    <field name="achievement_pct" widget="progressbar"/>
+                                    <field name="assigned_to_id"/>
+                                    <field name="is_overdue" column_invisible="1"/>
+                                    <button name="action_complete" type="object"
+                                            icon="fa-check" string="Complete"
+                                            invisible="state == 'done'"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Payment Schedule">
+                            <field name="payment_ids">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="payment_type"/>
+                                    <field name="amount" sum="Total"/>
+                                    <field name="expected_date"/>
+                                    <field name="received_date"/>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state == 'received'"
+                                           decoration-warning="state == 'invoiced'"
+                                           decoration-danger="state == 'overdue'"/>
+                                    <field name="linked_milestone_id"/>
+                                    <field name="notes"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Reports Due">
+                            <field name="report_ids">
+                                <list decoration-danger="is_overdue == True">
+                                    <field name="name"/>
+                                    <field name="report_type"/>
+                                    <field name="due_date"/>
+                                    <field name="submitted_date"/>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state in ('submitted','accepted')"
+                                           decoration-danger="state == 'revision_required'"
+                                           decoration-warning="state == 'in_progress'"/>
+                                    <field name="prepared_by_id"/>
+                                    <field name="is_overdue" column_invisible="1"/>
+                                    <button name="action_submit" type="object"
+                                            icon="fa-paper-plane" string="Submit"
+                                            invisible="state in ('submitted','accepted')"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Compliance &amp; Requirements">
+                            <group>
+                                <field name="reporting_frequency"/>
+                                <field name="reporting_requirements"
+                                       placeholder="Describe all reporting requirements and deadlines..."/>
+                                <field name="allowable_expenses"
+                                       placeholder="List allowable expense categories per grant agreement..."/>
+                                <field name="restrictions"
+                                       placeholder="Restrictions, compliance conditions, special terms..."/>
+                            </group>
+                        </page>
+                        <page string="Internal Notes">
+                            <field name="notes"/>
+                        </page>
+                    </notebook>
+                    <field name="is_overdue" invisible="1"/>
+                    <field name="kanban_state" invisible="1"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Grant Kanban -->
+    <record id="view_grant_grant_kanban" model="ir.ui.view">
+        <field name="name">grant.grant.kanban</field>
+        <field name="model">grant.grant</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_small_column">
+                <field name="name"/>
+                <field name="funder_id"/>
+                <field name="awarded_amount"/>
+                <field name="budget_utilization"/>
+                <field name="project_end_date"/>
+                <field name="program_manager_id"/>
+                <field name="is_overdue"/>
+                <field name="overdue_milestone_count"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_card">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_record_top">
+                                    <div class="o_kanban_record_headings">
+                                        <strong class="o_kanban_record_title">
+                                            <field name="name"/>
+                                        </strong>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_record_body">
+                                    <div class="text-muted"><field name="funder_id"/></div>
+                                    <div class="mt4">
+                                        <strong><field name="awarded_amount" widget="monetary"/></strong>
+                                    </div>
+                                    <div class="mt4">
+                                        <field name="budget_utilization" widget="progressbar"/>
+                                    </div>
+                                    <t t-if="record.overdue_milestone_count.raw_value &gt; 0">
+                                        <div class="mt4 text-danger">
+                                            <i class="fa fa-exclamation-triangle" title="Overdue Milestones"/>
+                                            <field name="overdue_milestone_count"/> overdue milestone(s)
+                                        </div>
+                                    </t>
+                                </div>
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left text-muted small">
+                                        Ends: <field name="project_end_date"/>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <field name="program_manager_id" widget="many2one_avatar_user"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Grant Action -->
+    <record id="action_grant_grant" model="ir.actions.act_window">
+        <field name="name">Grants</field>
+        <field name="res_model">grant.grant</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No active grants yet!</p>
+            <p>Convert an opportunity to a grant, or create one directly.</p>
+        </field>
+    </record>
+
+    <!-- Active Grants Only Action -->
+    <record id="action_grant_active" model="ir.actions.act_window">
+        <field name="name">Active Grants</field>
+        <field name="res_model">grant.grant</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('state', 'in', ['active', 'reporting'])]</field>
+    </record>
+
+</odoo>

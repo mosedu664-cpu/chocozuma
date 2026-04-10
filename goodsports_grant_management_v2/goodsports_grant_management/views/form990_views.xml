@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         FORM 990 LIST VIEW
+    ═══════════════════════════════════════════════════════════════ -->
+    <record id="view_form990_list" model="ir.ui.view">
+        <field name="name">form.990.list</field>
+        <field name="model">form.990</field>
+        <field name="arch" type="xml">
+            <list string="Form 990 Returns"
+                  decoration-danger="state == 'draft' and due_date != False and due_date &lt; current_date"
+                  decoration-success="state in ('filed','accepted')">
+                <field name="reference"/>
+                <field name="display_name_computed"/>
+                <field name="tax_year"/>
+                <field name="form_type"/>
+                <field name="fiscal_year_start"/>
+                <field name="fiscal_year_end"/>
+                <field name="due_date"/>
+                <field name="state" widget="badge"
+                       decoration-success="state in ('filed','accepted')"
+                       decoration-info="state in ('in_review','approved')"
+                       decoration-muted="state == 'draft'"/>
+                <field name="revenue_total" sum="Total Revenue"/>
+                <field name="expense_total" sum="Total Expenses"/>
+                <field name="revenue_less_expenses" sum="Net"/>
+                <field name="date_filed"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         FORM 990 FORM VIEW
+    ═══════════════════════════════════════════════════════════════ -->
+    <record id="view_form990_form" model="ir.ui.view">
+        <field name="name">form.990.form</field>
+        <field name="model">form.990</field>
+        <field name="arch" type="xml">
+            <form string="Form 990 — Return of Organization Exempt from Income Tax">
+                <header>
+                    <button name="action_populate_from_accounting" type="object"
+                            string="Refresh from Accounting" icon="fa-refresh"
+                            class="btn-secondary"
+                            invisible="state not in ('draft','in_review')"/>
+                    <button name="action_populate_schedule_i" type="object"
+                            string="Auto-Populate Schedule I (Grants)" icon="fa-magic"
+                            class="btn-secondary"
+                            invisible="state not in ('draft','in_review')"/>
+                    <button name="action_submit_for_review" type="object"
+                            string="Submit for Board Review"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_board_approve" type="object"
+                            string="Board Approved"
+                            class="btn-success"
+                            invisible="state != 'in_review'"/>
+                    <button name="action_mark_filed" type="object"
+                            string="Mark as Filed with IRS"
+                            class="btn-primary"
+                            invisible="state != 'approved'"/>
+                    <button name="action_mark_accepted" type="object"
+                            string="IRS Accepted"
+                            class="btn-success"
+                            invisible="state != 'filed'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,in_review,approved,filed,accepted"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" icon="fa-file-text-o" type="object" name="action_view_schedule_i">
+                            <field name="schedule_i_total" widget="statinfo" string="Schedule I Total"/>
+                        </button>
+                    </div>
+
+                    <widget name="web_ribbon" text="Filed" bg_color="text-bg-success"
+                            invisible="state not in ('filed','accepted')"/>
+                    <widget name="web_ribbon" text="Overdue" bg_color="text-bg-danger"
+                            invisible="state != 'draft' or due_date == False"/>
+
+                    <div class="oe_title">
+                        <h2>
+                            <field name="reference" readonly="1"/>
+                            &#160;—&#160;
+                            <field name="form_type"/>
+                        </h2>
+                        <h1>
+                            <field name="tax_year" readonly="state != 'draft'"/>
+                            &#160;
+                            <span class="text-muted">Tax Year Return</span>
+                        </h1>
+                    </div>
+
+                    <!-- Organization Header Section -->
+                    <div class="alert alert-info" role="alert">
+                        <strong>IRS Form 990</strong> — Return of Organization Exempt From Income Tax.
+                        Due: <field name="due_date" readonly="1"/> &#160;|&#160;
+                        Fiscal Year: <field name="fiscal_year_start" readonly="state != 'draft'"/>
+                        to <field name="fiscal_year_end" readonly="state != 'draft'"/>
+                    </div>
+
+                    <group>
+                        <group string="Organization (Header)">
+                            <field name="company_id" readonly="state != 'draft'"/>
+                            <field name="org_legal_name" placeholder="Full legal name"/>
+                            <field name="org_dba" placeholder="Doing Business As (if different)"/>
+                            <field name="ein" placeholder="XX-XXXXXXX"/>
+                            <field name="org_type"/>
+                            <field name="form_type"/>
+                            <field name="org_phone" widget="phone"/>
+                            <field name="org_website" widget="url"/>
+                        </group>
+                        <group string="Filing Details">
+                            <field name="principal_officer_id"/>
+                            <field name="preparer_id"/>
+                            <field name="preparer_firm"/>
+                            <field name="due_date" readonly="1"/>
+                            <field name="extension_filed"/>
+                            <field name="extension_due_date" invisible="not extension_filed"/>
+                            <field name="date_filed"/>
+                            <field name="irs_confirmation_num"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+
+                        <!-- ─── PART I — SUMMARY ─────────────────────── -->
+                        <page string="Part I — Summary">
+                            <group string="Mission (Line 1)">
+                                <field name="mission_statement" nolabel="1"
+                                       placeholder="Briefly describe the organization's mission or most significant activities..."/>
+                            </group>
+                            <group string="Organization Stats (Lines 4-7)">
+                                <group>
+                                    <field name="num_voting_board_members"/>
+                                    <field name="num_independent_board_members"/>
+                                </group>
+                                <group>
+                                    <field name="num_employees_total"/>
+                                    <field name="num_volunteers_total"/>
+                                </group>
+                            </group>
+                            <div class="row">
+                                <div class="col-12">
+                                    <h4>Revenue Summary (Lines 8-12)</h4>
+                                </div>
+                            </div>
+                            <field name="currency_id" invisible="1"/>
+                            <group>
+                                <group string="Revenue">
+                                    <field name="revenue_contributions" readonly="1"/>
+                                    <field name="revenue_program_services" readonly="1"/>
+                                    <field name="revenue_investment" readonly="1"/>
+                                    <field name="revenue_other" readonly="1"/>
+                                    <field name="revenue_total" readonly="1" class="fw-bold"/>
+                                </group>
+                                <group string="Expenses &amp; Net Assets">
+                                    <field name="expense_program_services" readonly="1"/>
+                                    <field name="expense_management" readonly="1"/>
+                                    <field name="expense_fundraising" readonly="1"/>
+                                    <field name="expense_total" readonly="1" class="fw-bold"/>
+                                    <field name="revenue_less_expenses" readonly="1" class="fw-bold"/>
+                                    <field name="net_assets_beginning"/>
+                                    <field name="net_assets_end" readonly="1" class="fw-bold"/>
+                                </group>
+                            </group>
+                            <group string="Balance Sheet Snapshot (Lines 20-22)">
+                                <field name="total_assets"/>
+                                <field name="total_liabilities"/>
+                            </group>
+                        </page>
+
+                        <!-- ─── PART III — PROGRAMS ──────────────────── -->
+                        <page string="Part III — Program Accomplishments">
+                            <div class="alert alert-light" role="alert">
+                                Describe the organization's program service accomplishments for each
+                                of its three largest program services, as measured by expenses.
+                            </div>
+                            <field name="program_accomplishment_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="program_name"/>
+                                    <field name="description"/>
+                                    <field name="expense_amount" sum="Total"/>
+                                    <field name="grant_amount" sum="Grants"/>
+                                    <field name="revenue_amount" sum="Revenue"/>
+                                    <field name="is_new"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- ─── PART IV — CHECKLIST ──────────────────── -->
+                        <page string="Part IV — Checklist">
+                            <div class="alert alert-light" role="alert">
+                                Answer each question. "Yes" answers may require an attached Schedule.
+                            </div>
+                            <group string="Required Schedules">
+                                <group>
+                                    <field name="has_grants_to_orgs"
+                                           string="Did org make any grants to organizations or individuals? (Schedule I)"/>
+                                    <field name="has_grants_to_individuals"
+                                           string="Grants to individuals in the US?"/>
+                                    <field name="has_unrelated_business_income"
+                                           string="Unrelated business gross income &gt;$1,000? (Form 990-T)"/>
+                                    <field name="has_related_organizations"
+                                           string="Related tax-exempt organizations? (Schedule R)"/>
+                                    <field name="has_foreign_activities"
+                                           string="Foreign activities? (Schedule F)"/>
+                                </group>
+                                <group>
+                                    <field name="has_conservation_easements"/>
+                                    <field name="has_art_collections"/>
+                                    <field name="has_escrow_accounts"/>
+                                    <field name="has_endowment_funds"/>
+                                    <field name="has_land_buildings"/>
+                                    <field name="conducts_lobbying"
+                                           string="Lobbying activities? (Schedule C)"/>
+                                    <field name="is_school" string="Operates as a school? (Schedule E)"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- ─── PART VI — GOVERNANCE ─────────────────── -->
+                        <page string="Part VI — Governance">
+                            <group string="Governance Policies (Section B)">
+                                <group>
+                                    <field name="has_written_conflict_policy"/>
+                                    <field name="has_whistleblower_policy"/>
+                                    <field name="has_document_retention_policy"/>
+                                    <field name="board_reviews_form990"/>
+                                    <field name="uses_management_company"/>
+                                </group>
+                                <group>
+                                    <field name="copiable_to_public"/>
+                                    <field name="form990_how_available"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- ─── PART VIII — REVENUE DETAIL ───────────── -->
+                        <page string="Part VIII — Revenue Detail">
+                            <group string="Contributions &amp; Grants (Lines 1a-1h)">
+                                <field name="rev_federated_campaigns"/>
+                                <field name="rev_membership_dues"/>
+                                <field name="rev_fundraising_events"/>
+                                <field name="rev_related_orgs"/>
+                                <field name="rev_government_grants"/>
+                                <field name="rev_other_contributions"/>
+                            </group>
+                            <group string="Program Service Revenue (Line 2)">
+                                <field name="rev_program_service_a"/>
+                                <field name="rev_program_service_b"/>
+                                <field name="rev_program_service_other"/>
+                            </group>
+                            <group string="Other Revenue (Lines 3-11)">
+                                <field name="rev_interest"/>
+                                <field name="rev_dividends"/>
+                                <field name="rev_rental_income"/>
+                                <field name="rev_other_revenue"/>
+                            </group>
+                        </page>
+
+                        <!-- ─── PART IX — EXPENSES DETAIL ────────────── -->
+                        <page string="Part IX — Functional Expenses">
+                            <group string="Functional Allocation %">
+                                <field name="exp_pct_program"/>
+                                <field name="exp_pct_mgmt"/>
+                                <field name="exp_pct_fundraise"/>
+                            </group>
+                            <div class="alert alert-info" role="alert">
+                                Computed program / management / fundraising splits use the percentages above
+                                applied to the total expenses pulled from your accounting records.
+                            </div>
+                            <group string="Salaries &amp; Personnel (Lines 5-10)">
+                                <field name="exp_salaries_officers"/>
+                                <field name="exp_salaries_other"/>
+                                <field name="exp_pension_benefits"/>
+                                <field name="exp_other_employee_benefits"/>
+                                <field name="exp_payroll_taxes"/>
+                            </group>
+                            <group string="Professional Fees (Lines 11a-d)">
+                                <field name="exp_fees_contractors"/>
+                                <field name="exp_fees_legal"/>
+                                <field name="exp_fees_accounting"/>
+                            </group>
+                            <group string="Operational Expenses (Lines 12-24)">
+                                <group>
+                                    <field name="exp_advertising"/>
+                                    <field name="exp_office"/>
+                                    <field name="exp_it_technology"/>
+                                    <field name="exp_occupancy"/>
+                                    <field name="exp_travel"/>
+                                    <field name="exp_conferences"/>
+                                </group>
+                                <group>
+                                    <field name="exp_interest_expense"/>
+                                    <field name="exp_depreciation"/>
+                                    <field name="exp_insurance"/>
+                                    <field name="exp_grants_to_orgs"/>
+                                    <field name="exp_grants_to_individuals"/>
+                                    <field name="exp_other_expenses"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- ─── SCHEDULE I — GRANTS ───────────────────── -->
+                        <page string="Schedule I — Grants">
+                            <div class="alert alert-info" role="alert">
+                                <strong>Schedule I</strong> — Grants and Other Assistance to
+                                Organizations, Governments, and Individuals in the United States.
+                                Click <b>"Auto-Populate Schedule I (Grants)"</b> in the toolbar to
+                                pull from your Grant Management records automatically.
+                            </div>
+                            <field name="schedule_i_ids">
+                                <list editable="bottom">
+                                    <field name="recipient_name"/>
+                                    <field name="recipient_ein"/>
+                                    <field name="recipient_type"/>
+                                    <field name="purpose"/>
+                                    <field name="amount_cash" sum="Cash Total"/>
+                                    <field name="amount_noncash" sum="NonCash Total"/>
+                                    <field name="total" sum="Grand Total"/>
+                                    <field name="grant_id"/>
+                                    <field name="source" readonly="1" widget="badge"/>
+                                    <field name="recipient_address"/>
+                                    <field name="recipient_city"/>
+                                    <field name="recipient_state"/>
+                                </list>
+                            </field>
+                            <group>
+                                <field name="schedule_i_total" readonly="1" class="fw-bold"/>
+                            </group>
+                        </page>
+
+                        <!-- ─── NOTES ─────────────────────────────────── -->
+                        <page string="Preparer Notes">
+                            <field name="notes" placeholder="Internal notes, preparer instructions, audit findings..."/>
+                        </page>
+
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_form990_search" model="ir.ui.view">
+        <field name="name">form.990.search</field>
+        <field name="model">form.990</field>
+        <field name="arch" type="xml">
+            <search string="Search Form 990">
+                <field name="tax_year"/>
+                <field name="company_id"/>
+                <field name="state"/>
+                <filter string="Draft"    name="draft"    domain="[('state','=','draft')]"/>
+                <filter string="In Review" name="review"  domain="[('state','=','in_review')]"/>
+                <filter string="Approved" name="approved" domain="[('state','=','approved')]"/>
+                <filter string="Filed"    name="filed"    domain="[('state','in',['filed','accepted'])]"/>
+                <group string="Group By">
+                    <filter string="Tax Year" name="by_year" context="{'group_by':'tax_year'}"/>
+                    <filter string="Status"   name="by_state" context="{'group_by':'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_form_990" model="ir.actions.act_window">
+        <field name="name">Form 990</field>
+        <field name="res_model">form.990</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No Form 990 returns yet!</p>
+            <p>Create your first annual IRS Form 990 return. Data is pulled automatically
+               from Odoo Accounting and the Grant Management module.</p>
+        </field>
+    </record>
+
+</odoo>
+

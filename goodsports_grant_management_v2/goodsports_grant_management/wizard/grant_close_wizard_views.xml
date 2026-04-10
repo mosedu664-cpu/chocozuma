@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_grant_close_wizard_form" model="ir.ui.view">
+        <field name="name">grant.close.wizard.form</field>
+        <field name="model">grant.close.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Close Grant">
+                <sheet>
+                    <div class="alert alert-warning" role="alert">
+                        <strong>You are about to close this grant.</strong>
+                        Please confirm all post-award activities are complete.
+                    </div>
+                    <group string="Closure Details">
+                        <field name="grant_id" readonly="1"/>
+                        <field name="close_date"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="total_spent" readonly="1"/>
+                    </group>
+                    <group string="Post-Award Checklist">
+                        <field name="final_report_submitted"/>
+                        <field name="final_payment_received"/>
+                        <field name="all_milestones_complete"/>
+                    </group>
+                    <group string="Closure Summary">
+                        <field name="closure_notes"
+                               placeholder="Record lessons learned, outcomes achieved, relationship notes for future applications..."/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_close_grant" type="object"
+                            string="Confirm Close Grant"
+                            class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

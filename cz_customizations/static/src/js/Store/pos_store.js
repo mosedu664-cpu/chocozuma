@@ -14,6 +14,16 @@ patch(PosStore.prototype, {
     async pay() {
         if (this.config.module_pos_restaurant) {
             const currentOrder = this.get_order();
+            var ifAllRefund = false;
+            currentOrder.lines.forEach((line) => {
+                ifAllRefund = false
+                if(line.refunded_orderline_id){
+                    ifAllRefund = true
+                }
+            });
+            if(ifAllRefund){
+                return super.pay();
+            }
             if (currentOrder && !currentOrder.finalized) {
                 const changes = this.getOrderChanges();
                 const hasUnsent =

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Grant Report List -->
+    <record id="view_grant_report_list" model="ir.ui.view">
+        <field name="name">grant.report.list</field>
+        <field name="model">grant.report</field>
+        <field name="arch" type="xml">
+            <list string="Grant Reports"
+                  decoration-danger="is_overdue == True"
+                  decoration-success="state in ('submitted','accepted')">
+                <field name="grant_id"/>
+                <field name="name"/>
+                <field name="report_type"/>
+                <field name="due_date"/>
+                <field name="submitted_date"/>
+                <field name="period_start"/>
+                <field name="period_end"/>
+                <field name="state" widget="badge"
+                       decoration-success="state in ('submitted','accepted')"
+                       decoration-danger="state == 'revision_required'"
+                       decoration-warning="state == 'in_progress'"
+                       decoration-muted="state == 'pending'"/>
+                <field name="prepared_by_id"/>
+                <field name="is_overdue" column_invisible="1"/>
+                <button name="action_submit" type="object"
+                        string="Submit" icon="fa-paper-plane"
+                        invisible="state in ('submitted','accepted')"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Grant Report Form -->
+    <record id="view_grant_report_form" model="ir.ui.view">
+        <field name="name">grant.report.form</field>
+        <field name="model">grant.report</field>
+        <field name="arch" type="xml">
+            <form string="Grant Report">
+                <header>
+                    <button name="action_submit" type="object"
+                            string="Mark as Submitted"
+                            class="btn-primary"
+                            invisible="state in ('submitted','accepted')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,in_progress,submitted,accepted"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" text="Overdue" bg_color="text-bg-danger"
+                            invisible="not is_overdue"/>
+                    <widget name="web_ribbon" text="Revision Required" bg_color="text-bg-warning"
+                            invisible="state != 'revision_required'"/>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Report Name / Title"/></h1>
+                    </div>
+                    <group>
+                        <group string="Report Details">
+                            <field name="grant_id"/>
+                            <field name="report_type"/>
+                            <field name="prepared_by_id"/>
+                            <field name="approved_by_id"/>
+                        </group>
+                        <group string="Dates">
+                            <field name="due_date"/>
+                            <field name="submitted_date"/>
+                            <field name="period_start"/>
+                            <field name="period_end"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Program Narrative">
+                            <field name="narrative"
+                                   placeholder="Describe program activities, outcomes achieved, and progress toward goals..."/>
+                        </page>
+                        <page string="Financial Summary">
+                            <field name="financial_summary"
+                                   placeholder="Summarize expenditures vs. budget, explain any variances..."/>
+                        </page>
+                        <page string="Attachments">
+                            <field name="attachment_ids" widget="many2many_binary"/>
+                        </page>
+                        <page string="Internal Notes">
+                            <field name="notes"/>
+                        </page>
+                    </notebook>
+                    <field name="is_overdue" invisible="1"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Grant Report Action -->
+    <record id="action_grant_report" model="ir.actions.act_window">
+        <field name="name">Grant Reports</field>
+        <field name="res_model">grant.report</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No reports yet!</p>
+            <p>Track all compliance reports and submissions to funders.</p>
+        </field>
+    </record>
+
+    <!-- Overdue Reports Action -->
+    <record id="action_grant_report_overdue" model="ir.actions.act_window">
+        <field name="name">Overdue Reports</field>
+        <field name="res_model">grant.report</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('due_date', '&lt;', context_today().strftime('%Y-%m-%d')), ('state', 'not in', ['submitted', 'accepted'])]</field>
+        <field name="context">{'search_default_group_by_grant': 1}</field>
+    </record>
+
+    <!-- Dashboard / Summary Action (Pivot for reporting analytics) -->
+    <record id="view_grant_pivot" model="ir.ui.view">
+        <field name="name">grant.grant.pivot</field>
+        <field name="model">grant.grant</field>
+        <field name="arch" type="xml">
+            <pivot string="Grant Summary" disable_linking="False">
+                <field name="funder_id" type="row"/>
+                <field name="state" type="col"/>
+                <field name="awarded_amount" type="measure"/>
+                <field name="total_expenses" type="measure"/>
+                <field name="remaining_budget" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_grant_graph" model="ir.ui.view">
+        <field name="name">grant.grant.graph</field>
+        <field name="model">grant.grant</field>
+        <field name="arch" type="xml">
+            <graph string="Grants by Funder" type="bar">
+                <field name="funder_id" type="row"/>
+                <field name="awarded_amount" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_grant_dashboard" model="ir.actions.act_window">
+        <field name="name">Grant Dashboard</field>
+        <field name="res_model">grant.grant</field>
+        <field name="view_mode">graph,pivot,list</field>
+        <field name="context">{'search_default_active': 1}</field>
+    </record>
+
+    <!-- Search View for Grants -->
+    <record id="view_grant_search" model="ir.ui.view">
+        <field name="name">grant.grant.search</field>
+        <field name="model">grant.grant</field>
+        <field name="arch" type="xml">
+            <search string="Search Grants">
+                <field name="name" string="Grant"/>
+                <field name="funder_id"/>
+                <field name="program_manager_id"/>
+                <field name="reference"/>
+                <filter string="Active" name="active"
+                        domain="[('state', 'in', ['active','reporting'])]"/>
+                <filter string="Awarded" name="awarded"
+                        domain="[('state', '=', 'awarded')]"/>
+                <filter string="In Pipeline" name="pipeline"
+                        domain="[('state', 'in', ['draft','submitted','under_review'])]"/>
+                <filter string="Overdue" name="overdue"
+                        domain="[('project_end_date', '&lt;', context_today().strftime('%Y-%m-%d')), ('state', 'not in', ['closed', 'declined'])]"/>
+                <filter string="Closing Soon (30 days)" name="closing_soon"
+                        domain="[('project_end_date', '&lt;=', (context_today() + relativedelta(days=30)).strftime('%Y-%m-%d')), ('project_end_date', '&gt;=', context_today().strftime('%Y-%m-%d')), ('state', '=', 'active')]"/>
+                <filter string="Report Due This Month" name="report_due"
+                        domain="[('next_report_due', '&lt;=', (context_today() + relativedelta(months=1)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter string="Closed" name="closed"
+                        domain="[('state', 'in', ['closed','declined'])]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Funder" name="group_funder"
+                            context="{'group_by': 'funder_id'}"/>
+                    <filter string="Status" name="group_state"
+                            context="{'group_by': 'state'}"/>
+                    <filter string="Grant Type" name="group_type"
+                            context="{'group_by': 'grant_type'}"/>
+                    <filter string="Program Manager" name="group_pm"
+                            context="{'group_by': 'program_manager_id'}"/>
+                    <filter string="End Year" name="group_year"
+                            context="{'group_by': 'project_end_date:year'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+</odoo>

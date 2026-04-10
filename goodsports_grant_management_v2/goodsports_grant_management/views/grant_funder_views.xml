@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Funder List View -->
+    <record id="view_grant_funder_list" model="ir.ui.view">
+        <field name="name">grant.funder.list</field>
+        <field name="model">grant.funder</field>
+        <field name="arch" type="xml">
+            <list string="Funders" decoration-muted="relationship_status == 'blacklisted'">
+                <field name="name"/>
+                <field name="funder_type"/>
+                <field name="relationship_status" widget="badge"
+                       decoration-success="relationship_status == 'active'"
+                       decoration-warning="relationship_status == 'lapsed'"
+                       decoration-danger="relationship_status in ('declined','blacklisted')"
+                       decoration-info="relationship_status == 'prospect'"/>
+                <field name="relationship_manager_id"/>
+                <field name="active_grant_count"/>
+                <field name="total_awarded" sum="Total Awarded"/>
+                <field name="grant_count"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Funder Form View -->
+    <record id="view_grant_funder_form" model="ir.ui.view">
+        <field name="name">grant.funder.form</field>
+        <field name="model">grant.funder</field>
+        <field name="arch" type="xml">
+            <form string="Grant Funder">
+                <header>
+                    <field name="relationship_status" widget="statusbar"
+                           statusbar_visible="prospect,active,lapsed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="%(action_grant_grant)s" type="action"
+                                class="oe_stat_button" icon="fa-trophy"
+                                domain="[('funder_id', '=', active_id)]">
+                            <field name="grant_count" widget="statinfo" string="Grants"/>
+                        </button>
+                        <button class="oe_stat_button" icon="fa-usd" type="action" name="%(action_grant_grant)s" domain="[('funder_id', '=', active_id)]">
+                            <field name="total_awarded" widget="statinfo" string="Total Awarded"/>
+                        </button>
+                        <button class="oe_stat_button" icon="fa-bolt" type="action" name="%(action_grant_grant)s" domain="[('funder_id', '=', active_id)]">
+                            <field name="active_grant_count" widget="statinfo" string="Active"/>
+                        </button>
+                    </div>
+                    <field name="active" invisible="1"/>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Funder Organization Name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="funder_type"/>
+                            <field name="relationship_manager_id"/>
+                            <field name="program_officer_id"/>
+                            <field name="partner_id"/>
+                        </group>
+                        <group>
+                            <field name="email" widget="email"/>
+                            <field name="phone" widget="phone"/>
+                            <field name="website" widget="url"/>
+                            <field name="first_grant_date"/>
+                            <field name="last_grant_date"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Grant Eligibility">
+                            <group>
+                                <group string="Focus Areas">
+                                    <field name="focus_areas" widget="many2many_tags"/>
+                                    <field name="geographic_focus"/>
+                                    <field name="eligible_org_types"/>
+                                </group>
+                                <group string="Grant Range">
+                                    <field name="currency_id" invisible="1"/>
+                                    <field name="min_grant_amount"/>
+                                    <field name="max_grant_amount"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Grants">
+                            <field name="grant_ids">
+                                <list>
+                                    <field name="reference"/>
+                                    <field name="name"/>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state == 'active'"
+                                           decoration-info="state in ('awarded','reporting')"
+                                           decoration-muted="state == 'closed'"/>
+                                    <field name="awarded_amount"/>
+                                    <field name="project_end_date"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Strategy &amp; Notes">
+                            <field name="notes" placeholder="Strategic notes, relationship history, talking points..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Funder Action -->
+    <record id="action_grant_funder" model="ir.actions.act_window">
+        <field name="name">Funders</field>
+        <field name="res_model">grant.funder</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Add your first grant funder!</p>
+            <p>Track grantor organizations, their focus areas, and your relationship history.</p>
+        </field>
+    </record>
+
+    <!-- Focus Area Action (for Config menu) -->
+    <record id="action_grant_focus_area" model="ir.actions.act_window">
+        <field name="name">Focus Areas</field>
+        <field name="res_model">grant.focus.area</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Opportunity Stage Action (for Config menu) -->
+    <record id="action_grant_opportunity_stage" model="ir.actions.act_window">
+        <field name="name">Pipeline Stages</field>
+        <field name="res_model">grant.opportunity.stage</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

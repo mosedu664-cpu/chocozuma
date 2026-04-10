@@ -1,0 +1,583 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ─── Report Action ──────────────────────────────────────────── -->
+    <record id="action_report_form990" model="ir.actions.report">
+        <field name="name">IRS Form 990 Report</field>
+        <field name="model">form.990</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">goodsports_grant_management.report_form990_document</field>
+        <field name="report_file">goodsports_grant_management.report_form990_document</field>
+        <field name="print_report_name">'Form 990 - ' + object.display_name_computed + ' - ' + str(object.tax_year)</field>
+        <field name="binding_model_id" ref="model_form_990"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <!-- ─── Main Report Template ───────────────────────────────────── -->
+    <template id="report_form990_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="f">
+                <t t-call="web.external_layout">
+
+                    <!-- ══ COVER / HEADER PAGE ══════════════════════════ -->
+                    <div class="page">
+
+                        <!-- IRS-style header bar -->
+                        <table width="100%" style="border-collapse:collapse; margin-bottom:8px;">
+                            <tr>
+                                <td style="width:15%; border:1px solid #333; padding:4px; font-size:9px; text-align:center; vertical-align:middle;">
+                                    OMB No. 1545-0047
+                                </td>
+                                <td style="width:55%; text-align:center; padding:4px; vertical-align:middle;">
+                                    <div style="font-size:20px; font-weight:bold;">Form 990</div>
+                                    <div style="font-size:10px;">Return of Organization Exempt From Income Tax</div>
+                                    <div style="font-size:9px; color:#555;">Under section 501(c), 527, or 4947(a)(1) of the Internal Revenue Code</div>
+                                </td>
+                                <td style="width:30%; border:1px solid #333; padding:6px; font-size:9px; vertical-align:top;">
+                                    <div style="font-weight:bold;">Tax Year: <t t-esc="f.tax_year"/></div>
+                                    <div>From: <t t-esc="f.fiscal_year_start"/></div>
+                                    <div>To: &#160;&#160;<t t-esc="f.fiscal_year_end"/></div>
+                                    <div style="margin-top:4px; color:#875A7B; font-weight:bold;">
+                                        Status: <t t-esc="dict(f._fields['state'].selection).get(f.state)"/>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Organisation Info Block -->
+                        <table width="100%" style="border-collapse:collapse; border:1px solid #333; margin-bottom:10px; font-size:9px;">
+                            <tr style="background:#f0ebf3;">
+                                <td colspan="4" style="padding:4px; font-weight:bold; font-size:10px; color:#875A7B;">
+                                    A — Organization Information
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:25%; padding:4px; border:0.5px solid #ccc;"><b>Legal Name:</b></td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">
+                                    <t t-esc="f.org_legal_name or f.company_id.name"/>
+                                </td>
+                                <td style="width:15%; padding:4px; border:0.5px solid #ccc;"><b>EIN:</b></td>
+                                <td style="padding:4px; border:0.5px solid #ccc;"><t t-esc="f.ein or '—'"/></td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc;"><b>Address:</b></td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">
+                                    <t t-esc="f.org_address or ''"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc;"><b>Phone:</b></td>
+                                <td style="padding:4px; border:0.5px solid #ccc;"><t t-esc="f.org_phone or '—'"/></td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc;"><b>City / State / ZIP:</b></td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">
+                                    <t t-esc="(f.org_city or '') + ', ' + (f.org_state or '') + ' ' + (f.org_zip or '')"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc;"><b>Website:</b></td>
+                                <td style="padding:4px; border:0.5px solid #ccc;"><t t-esc="f.org_website or '—'"/></td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc;"><b>Org Type:</b></td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">
+                                    <t t-esc="dict(f._fields['org_type'].selection).get(f.org_type)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc;"><b>Form Type:</b></td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">
+                                    <t t-esc="dict(f._fields['form_type'].selection).get(f.form_type)"/>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- ══ PART I — SUMMARY ══════════════════════════ -->
+                        <div style="background:#875A7B; color:white; padding:5px 8px; font-weight:bold; font-size:10px; margin-bottom:4px;">
+                            Part I — Summary
+                        </div>
+
+                        <!-- Mission -->
+                        <table width="100%" style="border-collapse:collapse; font-size:9px; margin-bottom:8px;">
+                            <tr>
+                                <td style="width:5%; border:0.5px solid #999; padding:4px; text-align:center; vertical-align:top; color:#875A7B; font-weight:bold;">1</td>
+                                <td style="border:0.5px solid #999; padding:4px;">
+                                    <b>Briefly describe the organization's mission:</b><br/>
+                                    <t t-esc="f.mission_statement or '—'"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="border:0.5px solid #999; padding:4px; text-align:center; color:#875A7B; font-weight:bold;">3</td>
+                                <td style="border:0.5px solid #999; padding:4px;">
+                                    Number of voting members of governing body (Part VI, line 1a):
+                                    <b><t t-esc="f.num_voting_board_members"/></b>
+                                    &#160;&#160;&#160;
+                                    Independent members: <b><t t-esc="f.num_independent_board_members"/></b>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="border:0.5px solid #999; padding:4px; text-align:center; color:#875A7B; font-weight:bold;">5</td>
+                                <td style="border:0.5px solid #999; padding:4px;">
+                                    Total number of employees (Part V, line 2a): <b><t t-esc="f.num_employees_total"/></b>
+                                    &#160;&#160;&#160;
+                                    Volunteers: <b><t t-esc="f.num_volunteers_total"/></b>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Revenue/Expense Summary Table -->
+                        <table width="100%" style="border-collapse:collapse; font-size:9px; margin-bottom:8px;">
+                            <tr style="background:#f0ebf3;">
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold; width:5%; text-align:center;">Line</td>
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold;">Description</td>
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right; width:20%;">Current Year</td>
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right; width:20%;">Prior Year</td>
+                            </tr>
+                            <!-- Revenue Lines -->
+                            <tr style="background:#faf8fb;">
+                                <td colspan="4" style="padding:3px 8px; border:0.5px solid #ccc; color:#875A7B; font-weight:bold; font-size:8.5px;">REVENUE</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:center; color:#875A7B;">8</td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Contributions, gifts, grants, and similar amounts received</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right;">
+                                    $<t t-esc="'{:,.2f}'.format(f.revenue_contributions)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:center; color:#875A7B;">9</td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Program service revenue</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right;">
+                                    $<t t-esc="'{:,.2f}'.format(f.revenue_program_services)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:center; color:#875A7B;">10</td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Investment income</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right;">
+                                    $<t t-esc="'{:,.2f}'.format(f.revenue_investment)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:center; color:#875A7B;">12</td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Other revenue</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right;">
+                                    $<t t-esc="'{:,.2f}'.format(f.revenue_other)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <tr style="background:#f0ebf3; font-weight:bold;">
+                                <td style="padding:4px; border:0.5px solid #999; text-align:center; color:#875A7B;">12</td>
+                                <td style="padding:4px; border:0.5px solid #999;">Total revenue</td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right;">
+                                    $<t t-esc="'{:,.2f}'.format(f.revenue_total)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <!-- Expense Lines -->
+                            <tr style="background:#faf8fb;">
+                                <td colspan="4" style="padding:3px 8px; border:0.5px solid #ccc; color:#875A7B; font-weight:bold; font-size:8.5px;">EXPENSES</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:center; color:#875A7B;">13</td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Grants and similar amounts paid</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right;">
+                                    $<t t-esc="'{:,.2f}'.format(f.exp_grants_to_orgs + f.exp_grants_to_individuals)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:center; color:#875A7B;">14</td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Benefits paid to or for members</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right;">$0.00</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:center; color:#875A7B;">15</td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Salaries, other compensation, employee benefits</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right;">
+                                    $<t t-esc="'{:,.2f}'.format(f.exp_salaries_officers + f.exp_salaries_other + f.exp_other_employee_benefits)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:center; color:#875A7B;">17</td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Other expenses (Part IX, column (A), lines 11a–24e)</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right;">
+                                    $<t t-esc="'{:,.2f}'.format(f.expense_program_services + f.expense_management + f.expense_fundraising - (f.exp_salaries_officers + f.exp_salaries_other + f.exp_grants_to_orgs + f.exp_grants_to_individuals))"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <tr style="background:#f0ebf3; font-weight:bold;">
+                                <td style="padding:4px; border:0.5px solid #999; text-align:center; color:#875A7B;">18</td>
+                                <td style="padding:4px; border:0.5px solid #999;">Total expenses</td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right;">
+                                    $<t t-esc="'{:,.2f}'.format(f.expense_total)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <!-- Net Assets -->
+                            <tr style="background:#faf8fb;">
+                                <td colspan="4" style="padding:3px 8px; border:0.5px solid #ccc; color:#875A7B; font-weight:bold; font-size:8.5px;">NET ASSETS</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:center; color:#875A7B;">19</td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Revenue less expenses</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right;"
+                                    t-att-style="'color:red; font-weight:bold;' if f.revenue_less_expenses &lt; 0 else 'color:green; font-weight:bold;'">
+                                    $<t t-esc="'{:,.2f}'.format(f.revenue_less_expenses)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:center; color:#875A7B;">20</td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Total assets (Part X, line 16)</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right;">
+                                    $<t t-esc="'{:,.2f}'.format(f.total_assets)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:center; color:#875A7B;">21</td>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Total liabilities (Part X, line 26)</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right;">
+                                    $<t t-esc="'{:,.2f}'.format(f.total_liabilities)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #ccc; text-align:right; color:#aaa;">—</td>
+                            </tr>
+                            <tr style="background:#f0ebf3; font-weight:bold;">
+                                <td style="padding:4px; border:0.5px solid #999; text-align:center; color:#875A7B;">22</td>
+                                <td style="padding:4px; border:0.5px solid #999;">Net assets or fund balances (end of year)</td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right;">
+                                    $<t t-esc="'{:,.2f}'.format(f.net_assets_end)"/>
+                                </td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right; color:#aaa;">
+                                    $<t t-esc="'{:,.2f}'.format(f.net_assets_beginning)"/>
+                                </td>
+                            </tr>
+                        </table>
+
+                    </div><!-- end page 1 -->
+
+                    <!-- ══ PAGE 2 — PARTS III, VI, VIII ══════════════ -->
+                    <div class="page">
+
+                        <!-- Part III — Program Service Accomplishments -->
+                        <div style="background:#875A7B; color:white; padding:5px 8px; font-weight:bold; font-size:10px; margin-bottom:6px;">
+                            Part III — Statement of Program Service Accomplishments
+                        </div>
+                        <t t-if="f.program_accomplishment_ids">
+                            <table width="100%" style="border-collapse:collapse; font-size:9px; margin-bottom:10px;">
+                                <tr style="background:#f0ebf3;">
+                                    <td style="padding:4px; border:0.5px solid #999; font-weight:bold; width:30%;">Program Name</td>
+                                    <td style="padding:4px; border:0.5px solid #999; font-weight:bold;">Description &amp; Accomplishments</td>
+                                    <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right; width:15%;">Expenses</td>
+                                    <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right; width:15%;">Revenue</td>
+                                </tr>
+                                <t t-foreach="f.program_accomplishment_ids" t-as="prog">
+                                    <tr>
+                                        <td style="padding:4px; border:0.5px solid #ccc; vertical-align:top; font-weight:bold;">
+                                            <t t-esc="prog.program_name"/>
+                                            <t t-if="prog.is_new"><br/><span style="color:#875A7B; font-size:8px;">(NEW)</span></t>
+                                        </td>
+                                        <td style="padding:4px; border:0.5px solid #ccc; vertical-align:top; font-size:8.5px;">
+                                            <t t-esc="prog.description"/>
+                                        </td>
+                                        <td style="padding:4px; border:0.5px solid #ccc; text-align:right; vertical-align:top;">
+                                            $<t t-esc="'{:,.2f}'.format(prog.expense_amount)"/>
+                                        </td>
+                                        <td style="padding:4px; border:0.5px solid #ccc; text-align:right; vertical-align:top;">
+                                            $<t t-esc="'{:,.2f}'.format(prog.revenue_amount)"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </table>
+                        </t>
+                        <t t-else="">
+                            <p style="font-size:9px; color:#aaa; padding:6px; border:0.5px solid #ccc;">No program accomplishments entered.</p>
+                        </t>
+
+                        <!-- Part VI — Governance -->
+                        <div style="background:#875A7B; color:white; padding:5px 8px; font-weight:bold; font-size:10px; margin-bottom:6px; margin-top:12px;">
+                            Part VI — Governance, Management &amp; Disclosure
+                        </div>
+                        <table width="100%" style="border-collapse:collapse; font-size:9px; margin-bottom:10px;">
+                            <tr>
+                                <td style="width:75%; padding:4px; border:0.5px solid #ccc;">Written conflict of interest policy?</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; font-weight:bold;"
+                                    t-att-style="'color:green;' if f.has_written_conflict_policy else 'color:red;'">
+                                    <t t-esc="'Yes' if f.has_written_conflict_policy else 'No'"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Whistleblower protection policy?</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; font-weight:bold;"
+                                    t-att-style="'color:green;' if f.has_whistleblower_policy else 'color:red;'">
+                                    <t t-esc="'Yes' if f.has_whistleblower_policy else 'No'"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Document retention and destruction policy?</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; font-weight:bold;"
+                                    t-att-style="'color:green;' if f.has_document_retention_policy else 'color:red;'">
+                                    <t t-esc="'Yes' if f.has_document_retention_policy else 'No'"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Did the board review the Form 990 before filing?</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; font-weight:bold;"
+                                    t-att-style="'color:green;' if f.board_reviews_form990 else 'color:red;'">
+                                    <t t-esc="'Yes' if f.board_reviews_form990 else 'No'"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:4px; border:0.5px solid #ccc;">Is the Form 990 available to the public?</td>
+                                <td style="padding:4px; border:0.5px solid #ccc; font-weight:bold;">
+                                    <t t-esc="'Yes' if f.copiable_to_public else 'No'"/> —
+                                    <t t-esc="dict(f._fields['form990_how_available'].selection).get(f.form990_how_available) if f.form990_how_available else ''"/>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Part VIII — Statement of Revenue (detailed) -->
+                        <div style="background:#875A7B; color:white; padding:5px 8px; font-weight:bold; font-size:10px; margin-bottom:6px;">
+                            Part VIII — Statement of Revenue
+                        </div>
+                        <table width="100%" style="border-collapse:collapse; font-size:8.5px; margin-bottom:10px;">
+                            <tr style="background:#f0ebf3;">
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold; width:60%;">Revenue Source</td>
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right;">Total Revenue</td>
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right;">Related/Exempt</td>
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right;">Unrelated</td>
+                            </tr>
+                            <tr style="background:#faf8fb;"><td colspan="4" style="padding:3px 8px; border:0.5px solid #ccc; color:#875A7B; font-weight:bold; font-size:8px;">Contributions, Gifts, Grants</td></tr>
+                            <tr>
+                                <td style="padding:3px 16px; border:0.5px solid #ccc;">Federated campaigns</td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_federated_campaigns)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_federated_campaigns)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:3px 16px; border:0.5px solid #ccc;">Membership dues</td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_membership_dues)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_membership_dues)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:3px 16px; border:0.5px solid #ccc;">Government grants (contributions)</td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_government_grants)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_government_grants)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:3px 16px; border:0.5px solid #ccc;">All other contributions, gifts, grants</td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_other_contributions)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_other_contributions)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$0.00</td>
+                            </tr>
+                            <tr style="background:#faf8fb;"><td colspan="4" style="padding:3px 8px; border:0.5px solid #ccc; color:#875A7B; font-weight:bold; font-size:8px;">Program Service Revenue</td></tr>
+                            <tr>
+                                <td style="padding:3px 16px; border:0.5px solid #ccc;">Equipment loans / program services</td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_program_service_a)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_program_service_a)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:3px 16px; border:0.5px solid #ccc;">Sports events / program services</td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_program_service_b)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_program_service_b)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$0.00</td>
+                            </tr>
+                            <tr style="background:#faf8fb;"><td colspan="4" style="padding:3px 8px; border:0.5px solid #ccc; color:#875A7B; font-weight:bold; font-size:8px;">Other Revenue</td></tr>
+                            <tr>
+                                <td style="padding:3px 16px; border:0.5px solid #ccc;">Interest / Investment income</td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_interest + f.rev_dividends)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$0.00</td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_interest + f.rev_dividends)"/></td>
+                            </tr>
+                            <tr>
+                                <td style="padding:3px 16px; border:0.5px solid #ccc;">Other revenue (misc)</td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_other_revenue)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.rev_other_revenue)"/></td>
+                                <td style="padding:3px; border:0.5px solid #ccc; text-align:right;">$0.00</td>
+                            </tr>
+                            <tr style="background:#f0ebf3; font-weight:bold;">
+                                <td style="padding:4px; border:0.5px solid #999;">Total revenue</td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.revenue_total)"/></td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right;">—</td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right;">—</td>
+                            </tr>
+                        </table>
+
+                    </div><!-- end page 2 -->
+
+                    <!-- ══ PAGE 3 — PART IX + SCHEDULE I ════════════════ -->
+                    <div class="page">
+
+                        <!-- Part IX — Functional Expenses -->
+                        <div style="background:#875A7B; color:white; padding:5px 8px; font-weight:bold; font-size:10px; margin-bottom:6px;">
+                            Part IX — Statement of Functional Expenses
+                        </div>
+                        <p style="font-size:8.5px; color:#555; margin-bottom:4px;">
+                            Functional allocation basis: Program Services <b><t t-esc="f.exp_pct_program"/>%</b> |
+                            Management &amp; General <b><t t-esc="f.exp_pct_mgmt"/>%</b> |
+                            Fundraising <b><t t-esc="f.exp_pct_fundraise"/>%</b>
+                        </p>
+                        <table width="100%" style="border-collapse:collapse; font-size:8.5px; margin-bottom:10px;">
+                            <tr style="background:#f0ebf3;">
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold; width:38%;">Expense Line</td>
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right;">Total (A)</td>
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right;">Program Svcs (B)</td>
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right;">Mgmt &amp; Gen (C)</td>
+                                <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right;">Fundraising (D)</td>
+                            </tr>
+                            <t t-set="pct_p" t-value="f.exp_pct_program / 100.0"/>
+                            <t t-set="pct_m" t-value="f.exp_pct_mgmt / 100.0"/>
+                            <t t-set="pct_f" t-value="f.exp_pct_fundraise / 100.0"/>
+
+                            <!-- Expense rows macro -->
+                            <t t-foreach="[
+                                ('Grants to organizations (domestic)', f.exp_grants_to_orgs),
+                                ('Grants to individuals', f.exp_grants_to_individuals),
+                                ('Officer/director compensation', f.exp_salaries_officers),
+                                ('Other salaries and wages', f.exp_salaries_other),
+                                ('Pension plan contributions', f.exp_pension_benefits),
+                                ('Other employee benefits', f.exp_other_employee_benefits),
+                                ('Payroll taxes', f.exp_payroll_taxes),
+                                ('Fees for services — contractors', f.exp_fees_contractors),
+                                ('Fees for services — legal', f.exp_fees_legal),
+                                ('Fees for services — accounting', f.exp_fees_accounting),
+                                ('Advertising and promotion', f.exp_advertising),
+                                ('Office expenses', f.exp_office),
+                                ('Information technology', f.exp_it_technology),
+                                ('Occupancy (rent/utilities)', f.exp_occupancy),
+                                ('Travel', f.exp_travel),
+                                ('Conferences and meetings', f.exp_conferences),
+                                ('Interest expense', f.exp_interest_expense),
+                                ('Depreciation and amortization', f.exp_depreciation),
+                                ('Insurance', f.exp_insurance),
+                                ('Other expenses', f.exp_other_expenses),
+                            ]" t-as="exp_row">
+                                <tr t-att-style="'background:#fafafa;' if exp_row_index % 2 == 0 else ''">
+                                    <td style="padding:3px 8px; border:0.5px solid #ddd;"><t t-esc="exp_row[0]"/></td>
+                                    <td style="padding:3px; border:0.5px solid #ddd; text-align:right;">$<t t-esc="'{:,.2f}'.format(exp_row[1])"/></td>
+                                    <td style="padding:3px; border:0.5px solid #ddd; text-align:right;">$<t t-esc="'{:,.2f}'.format(exp_row[1] * pct_p)"/></td>
+                                    <td style="padding:3px; border:0.5px solid #ddd; text-align:right;">$<t t-esc="'{:,.2f}'.format(exp_row[1] * pct_m)"/></td>
+                                    <td style="padding:3px; border:0.5px solid #ddd; text-align:right;">$<t t-esc="'{:,.2f}'.format(exp_row[1] * pct_f)"/></td>
+                                </tr>
+                            </t>
+                            <tr style="background:#f0ebf3; font-weight:bold;">
+                                <td style="padding:4px; border:0.5px solid #999;">Total functional expenses</td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.expense_total)"/></td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.expense_program_services)"/></td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.expense_management)"/></td>
+                                <td style="padding:4px; border:0.5px solid #999; text-align:right;">$<t t-esc="'{:,.2f}'.format(f.expense_fundraising)"/></td>
+                            </tr>
+                        </table>
+
+                        <!-- Schedule I — Grants -->
+                        <div style="background:#875A7B; color:white; padding:5px 8px; font-weight:bold; font-size:10px; margin-bottom:6px; margin-top:12px;">
+                            Schedule I — Grants and Other Assistance to Organizations and Individuals
+                        </div>
+                        <p style="font-size:8.5px; color:#555; margin-bottom:4px;">
+                            Auto-populated from GoodSports Grant Management records.
+                            Total grants awarded this fiscal year: <b>$<t t-esc="'{:,.2f}'.format(f.schedule_i_total)"/></b>
+                        </p>
+                        <t t-if="f.schedule_i_ids">
+                            <table width="100%" style="border-collapse:collapse; font-size:8px; margin-bottom:10px;">
+                                <tr style="background:#f0ebf3;">
+                                    <td style="padding:4px; border:0.5px solid #999; font-weight:bold;">Recipient Name</td>
+                                    <td style="padding:4px; border:0.5px solid #999; font-weight:bold;">EIN</td>
+                                    <td style="padding:4px; border:0.5px solid #999; font-weight:bold;">Type</td>
+                                    <td style="padding:4px; border:0.5px solid #999; font-weight:bold;">Purpose</td>
+                                    <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right;">Cash</td>
+                                    <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right;">Non-Cash</td>
+                                    <td style="padding:4px; border:0.5px solid #999; font-weight:bold; text-align:right;">Total</td>
+                                </tr>
+                                <t t-foreach="f.schedule_i_ids" t-as="si">
+                                    <tr t-att-style="'background:#fafafa;' if si_index % 2 == 0 else ''">
+                                        <td style="padding:3px; border:0.5px solid #ddd;">
+                                            <t t-esc="si.recipient_name"/>
+                                            <t t-if="si.source == 'auto'">
+                                                <span style="font-size:7px; color:#875A7B;"> [auto]</span>
+                                            </t>
+                                        </td>
+                                        <td style="padding:3px; border:0.5px solid #ddd;"><t t-esc="si.recipient_ein or '—'"/></td>
+                                        <td style="padding:3px; border:0.5px solid #ddd;"><t t-esc="dict(si._fields['recipient_type'].selection).get(si.recipient_type)"/></td>
+                                        <td style="padding:3px; border:0.5px solid #ddd;"><t t-esc="si.purpose"/></td>
+                                        <td style="padding:3px; border:0.5px solid #ddd; text-align:right;">$<t t-esc="'{:,.2f}'.format(si.amount_cash)"/></td>
+                                        <td style="padding:3px; border:0.5px solid #ddd; text-align:right;">$<t t-esc="'{:,.2f}'.format(si.amount_noncash)"/></td>
+                                        <td style="padding:3px; border:0.5px solid #ddd; text-align:right; font-weight:bold;">$<t t-esc="'{:,.2f}'.format(si.total)"/></td>
+                                    </tr>
+                                </t>
+                                <tr style="background:#f0ebf3; font-weight:bold;">
+                                    <td colspan="4" style="padding:4px; border:0.5px solid #999;">Total Grants (Schedule I)</td>
+                                    <td style="padding:4px; border:0.5px solid #999; text-align:right;">
+                                        $<t t-esc="'{:,.2f}'.format(sum(f.schedule_i_ids.mapped('amount_cash')))"/>
+                                    </td>
+                                    <td style="padding:4px; border:0.5px solid #999; text-align:right;">
+                                        $<t t-esc="'{:,.2f}'.format(sum(f.schedule_i_ids.mapped('amount_noncash')))"/>
+                                    </td>
+                                    <td style="padding:4px; border:0.5px solid #999; text-align:right;">
+                                        $<t t-esc="'{:,.2f}'.format(f.schedule_i_total)"/>
+                                    </td>
+                                </tr>
+                            </table>
+                        </t>
+                        <t t-else="">
+                            <p style="font-size:9px; color:#aaa; padding:6px; border:0.5px solid #ccc;">
+                                No Schedule I entries. Click "Auto-populate Schedule I" on the Form 990 record to import from Grant Management.
+                            </p>
+                        </t>
+
+                        <!-- Signature Block -->
+                        <div style="background:#875A7B; color:white; padding:5px 8px; font-weight:bold; font-size:10px; margin-bottom:6px; margin-top:12px;">
+                            Part II — Signature Block
+                        </div>
+                        <table width="100%" style="border-collapse:collapse; font-size:9px; margin-bottom:8px;">
+                            <tr>
+                                <td style="padding:6px; border:0.5px solid #ccc; width:40%;">
+                                    <b>Principal Officer:</b><br/>
+                                    <t t-esc="f.principal_officer_id.name if f.principal_officer_id else '___________________________'"/>
+                                </td>
+                                <td style="padding:6px; border:0.5px solid #ccc; width:30%;">
+                                    <b>Date:</b><br/>
+                                    <t t-esc="f.date_filed or '_______________'"/>
+                                </td>
+                                <td style="padding:6px; border:0.5px solid #ccc; width:30%;">
+                                    <b>IRS Confirmation #:</b><br/>
+                                    <t t-esc="f.irs_confirmation_num or '___________________________'"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:6px; border:0.5px solid #ccc;">
+                                    <b>Preparer:</b><br/>
+                                    <t t-esc="f.preparer_id.name if f.preparer_id else '___________________________'"/>
+                                </td>
+                                <td style="padding:6px; border:0.5px solid #ccc;">
+                                    <b>Preparer Firm:</b><br/>
+                                    <t t-esc="f.preparer_firm or '___________________________'"/>
+                                </td>
+                                <td style="padding:6px; border:0.5px solid #ccc;">
+                                    <b>Due Date:</b><br/>
+                                    <t t-esc="f.due_date or '—'"/>
+                                    <t t-if="f.extension_filed"> (+ 6-mo extension filed)</t>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Auto-populated notice -->
+                        <div style="background:#FFF8E1; border:1px solid #FFC107; padding:8px; font-size:8.5px; margin-top:8px; border-radius:4px;">
+                            <b>⚠ Data Source Notice:</b> Revenue and expense figures are auto-computed from Odoo Accounting posted journal entries
+                            for the fiscal year <t t-esc="f.fiscal_year_start"/> to <t t-esc="f.fiscal_year_end"/>.
+                            Schedule I grant data is sourced from GoodSports Grant Management records.
+                            This document is a <b>working draft</b> for review by your CPA/accountant before official IRS submission.
+                            Reference: <b><t t-esc="f.reference"/></b> | Generated: <t t-esc="env.context_today()"/>
+                        </div>
+
+                    </div><!-- end page 3 -->
+
+                </t><!-- external_layout -->
+            </t><!-- foreach docs -->
+        </t><!-- html_container -->
+    </template>
+
+</odoo>

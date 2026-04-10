@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="point_of_sale.TicketScreen" t-inherit="point_of_sale.TicketScreen" t-inherit-mode="extension" owl="1">
+
+        <!-- Hide "Receipt Number" header column -->
+        <xpath expr="//div[hasclass('header-row')]/div[2]" position="attributes">
+            <attribute name="style">display: none;</attribute>
+        </xpath>
+
+        <!-- Hide "Receipt Number" data column in desktop view (pos_reference cell) -->
+        <xpath expr="//t[@t-if='!ui.isSmall']//div[hasclass('order-row')]/div[2]" position="attributes">
+            <attribute name="style">display: none;</attribute>
+        </xpath>
+
+    </t>
+
+</templates>

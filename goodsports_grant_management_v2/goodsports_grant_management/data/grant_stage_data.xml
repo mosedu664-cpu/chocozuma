@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Opportunity Pipeline Stages -->
+        <record id="stage_research" model="grant.opportunity.stage">
+            <field name="name">Research</field>
+            <field name="sequence">10</field>
+            <field name="description">Identified as a potential grant opportunity, conducting initial research.</field>
+        </record>
+
+        <record id="stage_eligibility" model="grant.opportunity.stage">
+            <field name="name">Eligibility Review</field>
+            <field name="sequence">20</field>
+            <field name="description">Reviewing eligibility requirements and organizational fit.</field>
+        </record>
+
+        <record id="stage_writing" model="grant.opportunity.stage">
+            <field name="name">Application Writing</field>
+            <field name="sequence">30</field>
+            <field name="description">Actively writing the grant application / proposal.</field>
+        </record>
+
+        <record id="stage_review" model="grant.opportunity.stage">
+            <field name="name">Internal Review</field>
+            <field name="sequence">40</field>
+            <field name="description">Application under internal review before submission.</field>
+        </record>
+
+        <record id="stage_submitted" model="grant.opportunity.stage">
+            <field name="name">Submitted</field>
+            <field name="sequence">50</field>
+            <field name="is_won">True</field>
+            <field name="description">Application submitted to funder, awaiting decision.</field>
+        </record>
+
+        <record id="stage_declined" model="grant.opportunity.stage">
+            <field name="name">Declined / Not Applied</field>
+            <field name="sequence">100</field>
+            <field name="is_lost">True</field>
+            <field name="fold">True</field>
+            <field name="description">Application declined by funder, or we decided not to apply.</field>
+        </record>
+
+        <!-- Focus Areas -->
+        <record id="focus_youth_sports" model="grant.focus.area">
+            <field name="name">Youth Sports Programs</field>
+            <field name="color">1</field>
+        </record>
+
+        <record id="focus_equipment" model="grant.focus.area">
+            <field name="name">Equipment Access &amp; Distribution</field>
+            <field name="color">2</field>
+        </record>
+
+        <record id="focus_community_health" model="grant.focus.area">
+            <field name="name">Community Health &amp; Wellness</field>
+            <field name="color">3</field>
+        </record>
+
+        <record id="focus_capacity_building" model="grant.focus.area">
+            <field name="name">Organizational Capacity Building</field>
+            <field name="color">4</field>
+        </record>
+
+        <record id="focus_general_ops" model="grant.focus.area">
+            <field name="name">General Operating Support</field>
+            <field name="color">5</field>
+        </record>
+
+    </data>
+</odoo>
