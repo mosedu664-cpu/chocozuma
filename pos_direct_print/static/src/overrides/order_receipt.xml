@@ -118,7 +118,6 @@
                 </t>
                 <t t-if='props.data.cashier'>
                     <div class='cashier'>
-                        <div>--------------------------------</div>
                         <h5 t-if="props.data.waiter_name">Waiter: <t t-esc="props.data.waiter_name"/></h5>
                         <h5 t-else="">Served by 
                             <t t-if="props.data.employee" t-esc='props.data.employee[1]' />
