@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="point_of_sale.ComboConfiguratorPopup" t-inherit-mode="extension" owl="1">
+        <xpath expr="//Dialog" position="attributes">
+            <attribute name="title">props.product.short_name || props.product.display_name</attribute>
+        </xpath>
+        <xpath expr="//ProductCard" position="attributes">
+            <attribute name="name">product.short_name || product.display_name</attribute>
+        </xpath>
+    </t>
+</templates>

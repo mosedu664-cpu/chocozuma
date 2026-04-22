@@ -1,6 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
-    <t t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension">
-        <xpath expr="//div[contains(text(), 'Powered by Odoo')] | //p[contains(text(), 'Powered by Odoo')]" position="replace"></xpath>
+    <!-- Extension for standard OrderReceipt to remove Powered by Odoo -->
+    <t t-inherit="point_of_sale.OrderReceipt" t-inherit-mode="extension" owl="1">
+        <xpath expr="//div[contains(text(), 'Powered by Odoo')] | //p[contains(text(), 'Powered by Odoo')]" position="replace"/>
+    </t>
+
+    <!-- Extension for ReceiptHeader to hide Company Name, Tax ID, Email, Website, Header and Cashier Divider -->
+    <t t-inherit="point_of_sale.ReceiptHeader" t-inherit-mode="extension" owl="1">
+        <!-- Hide Company Name -->
+        <xpath expr="//div[@t-if='props.data.company.name']" position="replace"/>
+        <!-- Hide VAT (Tax ID) -->
+        <xpath expr="//t[@t-if='props.data.company.vat']" position="replace"/>
+        <!-- Hide Email -->
+        <xpath expr="//div[@t-if='props.data.company.email']" position="replace"/>
+        <!-- Hide Website -->
+        <xpath expr="//div[@t-if='props.data.company.website']" position="replace"/>
+        <!-- Hide POS Header (e.g., Choco Zuma text) -->
+        <xpath expr="//div[@t-if='props.data.header']" position="replace"/>
     </t>
 </templates>

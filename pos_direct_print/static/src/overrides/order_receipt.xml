@@ -70,7 +70,7 @@
                     <!-- <h5 t-esc='props.data.footer' /> -->
                     <br/>
                 </t>
-                <div>Powered by Odoo</div>
+                <!-- <div>Powered by Odoo</div> -->
                 <div><t t-esc='props.data.name' /></div>
                 <div><t t-esc='props.data.date' /></div>
             </div>
@@ -95,14 +95,15 @@
 
     <t t-name="pos_direct_print.OrderReceipt">
         <receipt align='center' width='40' value-thousands-separator='' >
-            <!-- <br/> -->
-            <br/>
-            <h4><t t-esc='props.data.headerData.company.name' /></h4>
-            <br/>
             <div font='a'>
+                <!-- 
+                <h4><t t-esc='props.data.headerData.company.name' /></h4>
+                <br/>
+                -->
                 <t t-if='props.data.headerData.company.phone'>
                     <h5>Tel:<t t-esc='props.data.headerData.company.phone' /></h5>
                 </t>
+                <!-- 
                 <t t-if='props.data.headerData.company.vat'>
                     <h5>VAT:<t t-esc='props.data.headerData.company.vat' /></h5>
                 </t>
@@ -117,15 +118,14 @@
                 </t>
                 <t t-if='props.data.cashier'>
                     <div class='cashier'>
-                        <div>--------------------------------</div>
                         <h5 t-if="props.data.waiter_name">Waiter: <t t-esc="props.data.waiter_name"/></h5>
                         <h5 t-else="">Served by 
-                            <!--  employee: ba_pos_restaurant_extended (third party module)-->
                             <t t-if="props.data.employee" t-esc='props.data.employee[1]' />
                             <t t-else="" t-esc='props.data.cashier' />
                         </h5>
                     </div>
                 </t>
+                -->
                 <t t-if='props.data.headerData.table'>
                     <h5>at table: <t t-esc='props.data.headerData.table' /></h5>
                 </t>
