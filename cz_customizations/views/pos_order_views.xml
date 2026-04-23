@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List view: add Waiter column after user_id/employee_id -->
+    <record id="view_pos_order_tree_inherit_waiter" model="ir.ui.view">
+        <field name="name">pos.order.list.waiter</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="pos_hr.view_pos_order_tree_inherit"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='employee_id']" position="before">
+                <field name="opened_by_employee_id" string="Waiter" widget="many2one_avatar_employee" optional="show"
+                       readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Form view: add Waiter field next to user_id/employee_id -->
+    <record id="pos_order_form_inherit_waiter" model="ir.ui.view">
+        <field name="name">pos.order.form.waiter</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="pos_hr.pos_order_form_inherit"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='employee_id']" position="before">
+                <field name="opened_by_employee_id" string="Waiter / Order Taker" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
