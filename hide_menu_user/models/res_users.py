@@ -47,14 +47,12 @@ class ResUsers(models.Model):
     @api.depends('groups_id')
     def _compute_is_show_specific_menu(self):
         """ compute function of the field is show specific menu """
-        group_id = self.env.ref('base.group_user')
+        group_user = self.env.ref('base.group_user')
         for rec in self:
-            if group_id.name in rec.groups_id.mapped('name'):
+            # Check if user has internal user group
+            if group_user in rec.groups_id:
                 rec.is_show_specific_menu = False
             else:
-                for menu in rec.hide_menu_ids:
-                    menu.restrict_user_ids = [fields.Command.unlink(rec.id)]
-                rec.hide_menu_ids = [fields.Command.clear()]
                 rec.is_show_specific_menu = True
 
 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="pos_preparation_display.Order" t-inherit-mode="extension">
+        <!-- Add "Log Waste" button in the order card footer -->
+        <xpath expr="//div[hasclass('o_pdis_order_card_footer')]" position="inside">
+            <div class="d-flex pt-1">
+                <button class="btn btn-lg btn-warning flex-grow-1 border-end border-white rounded fw-bold"
+                        type="button"
+                        t-on-click.stop="logWaste">
+                    <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"/>
+                    <span>Log Waste</span>
+                </button>
+            </div>
+        </xpath>
+    </t>
+</templates>

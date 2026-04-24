@@ -1,0 +1,57 @@
+.cz_waste_log_popup {
+    .cz_product_dropdown {
+        .cz_product_item {
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+
+            &:hover {
+                background-color: #f0f4ff !important;
+            }
+
+            &:not(:last-child) {
+                border-bottom: 1px solid #eee;
+            }
+        }
+    }
+
+    .cz_waste_form {
+        .form-label {
+            color: #495057;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+
+            i {
+                color: #6c757d;
+            }
+        }
+
+        .form-control-lg,
+        .form-select-lg {
+            border-radius: 0.5rem;
+            border-color: #dee2e6;
+
+            &:focus {
+                border-color: #f0ad4e;
+                box-shadow: 0 0 0 0.2rem rgba(240, 173, 78, 0.25);
+            }
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+
+            &::-webkit-outer-spin-button,
+            &::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+        }
+    }
+
+    .alert {
+        border-radius: 0.5rem;
+    }
+
+    .img-thumbnail {
+        border-radius: 0.5rem;
+    }
+}

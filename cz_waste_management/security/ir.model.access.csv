@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_waste_log_pos_user,waste.log.pos.user,model_waste_log,point_of_sale.group_pos_user,1,1,1,0
+access_waste_log_waste_manager,waste.log.waste.manager,model_waste_log,cz_waste_management.group_waste_manager,1,1,1,1
+access_waste_reason_pos_user,waste.reason.pos.user,model_waste_reason,point_of_sale.group_pos_user,1,0,0,0
+access_waste_reason_waste_manager,waste.reason.waste.manager,model_waste_reason,cz_waste_management.group_waste_manager,1,1,1,1
+access_waste_report_pos_user,waste.report.pos.user,model_waste_report,point_of_sale.group_pos_user,1,0,0,0
+access_waste_report_manager,waste.report.manager,model_waste_report,cz_waste_management.group_waste_manager,1,0,0,0

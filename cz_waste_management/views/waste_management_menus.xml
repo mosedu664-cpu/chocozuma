@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ==================== Waste Management Menus ==================== -->
+
+    <!-- Waste Management menu under Point of Sale / Reporting -->
+    <menuitem id="menu_waste_management_root"
+              name="Waste Management"
+              parent="point_of_sale.menu_point_rep"
+              sequence="80"/>
+
+    <!-- Waste Logs -->
+    <menuitem id="menu_waste_log"
+              name="Waste Logs"
+              parent="menu_waste_management_root"
+              action="action_waste_log"
+              sequence="10"/>
+
+    <!-- Waste Report (tabular list/pivot/graph) -->
+    <menuitem id="menu_waste_report"
+              name="Waste Report"
+              parent="menu_waste_management_root"
+              action="action_waste_report"
+              sequence="20"/>
+
+    <!-- Waste Reasons under POS Configuration -->
+    <menuitem id="menu_waste_reason_pos"
+              name="Waste Reasons"
+              parent="point_of_sale.menu_point_config_product"
+              action="action_waste_reason"
+              sequence="95"/>
+
+</odoo>
