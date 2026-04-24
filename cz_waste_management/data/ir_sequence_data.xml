@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Sequence for Waste Logs -->
+        <record id="seq_waste_log" model="ir.sequence">
+            <field name="name">Waste Log</field>
+            <field name="code">waste.log</field>
+            <field name="prefix">WL/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

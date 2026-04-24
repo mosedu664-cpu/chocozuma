@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- Module Category -->
+        <record id="module_category_waste_management" model="ir.module.category">
+            <field name="name">Waste Management</field>
+            <field name="description">Access rights for Waste Management features.</field>
+            <field name="sequence">100</field>
+        </record>
+
+        <!-- Waste Manager Group (inherits POS Manager) -->
+        <record id="group_waste_manager" model="res.groups">
+            <field name="name">Waste Manager</field>
+            <field name="category_id" ref="module_category_waste_management"/>
+            <field name="implied_ids" eval="[(4, ref('point_of_sale.group_pos_manager'))]"/>
+            <field name="comment">Full access to waste management: create, edit, delete waste logs and configure waste reasons.</field>
+        </record>
+
+    </data>
+
+    <data noupdate="1">
+
+        <!-- Record Rules: Users can only see waste logs of their own company -->
+        <record id="waste_log_comp_rule" model="ir.rule">
+            <field name="name">Waste Log: Multi-Company</field>
+            <field name="model_id" ref="model_waste_log"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- Regular users can only see their own waste logs -->
+        <record id="waste_log_user_rule" model="ir.rule">
+            <field name="name">Waste Log: Personal Logs Only</field>
+            <field name="model_id" ref="model_waste_log"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('point_of_sale.group_pos_user'))]"/>
+        </record>
+
+        <!-- Managers can see all waste logs -->
+        <record id="waste_log_manager_rule" model="ir.rule">
+            <field name="name">Waste Log: All Logs for Managers</field>
+            <field name="model_id" ref="model_waste_log"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('cz_waste_management.group_waste_manager'))]"/>
+        </record>
+
+        <!-- Multi-Company Rule for Report -->
+        <record id="waste_report_comp_rule" model="ir.rule">
+            <field name="name">Waste Report: Multi-Company</field>
+            <field name="model_id" ref="model_waste_report"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <!-- Regular users can only see their own data in report -->
+        <record id="waste_report_user_rule" model="ir.rule">
+            <field name="name">Waste Report: Personal Data Only</field>
+            <field name="model_id" ref="model_waste_report"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('point_of_sale.group_pos_user'))]"/>
+        </record>
+
+        <!-- Managers can see all data in report -->
+        <record id="waste_report_manager_rule" model="ir.rule">
+            <field name="name">Waste Report: All Data for Managers</field>
+            <field name="model_id" ref="model_waste_report"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('cz_waste_management.group_waste_manager'))]"/>
+        </record>
+
+    </data>
+</odoo>
