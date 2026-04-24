@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pos_config_view_form_inherit_waste" model="ir.ui.view">
+        <field name="name">pos.config.form.inherit.waste</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <!-- In pos.config form, there isn't a preparation_display setting, but there are others -->
+            <xpath expr="//setting[@id='other_devices']" position="after">
+                <setting title="Waste Location" help="Dedicated location for wasted items from this POS.">
+                    <field name="waste_location_id"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- For res.config.settings where most POS settings are -->
+    <record id="res_config_settings_view_form_inherit_waste" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.waste</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="point_of_sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//setting[@id='preparation_display']" position="after">
+                <setting title="Waste Location" help="Dedicated location for wasted items from this POS.">
+                    <field name="pos_waste_location_id"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>

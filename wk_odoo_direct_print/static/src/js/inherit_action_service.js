@@ -838,6 +838,12 @@ export function makeActionManager(env, router = _router) {
                 useDebugCategory("action", { action });
                 useChildSubEnv({
                     config: controller.config,
+                    pushStateBeforeReload: () => {
+                        if (this.isMounted) {
+                            return;
+                        }
+                        pushState();
+                    },
                 });
                 if (action.target !== "new") {
                     this.__beforeLeave__ = new CallbackRecorder();

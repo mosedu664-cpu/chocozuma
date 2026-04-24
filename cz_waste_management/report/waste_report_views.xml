@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ==================== Waste Report Views ==================== -->
+
+    <!-- List View -->
+    <record id="waste_report_view_list" model="ir.ui.view">
+        <field name="name">waste.report.list</field>
+        <field name="model">waste.report</field>
+        <field name="arch" type="xml">
+            <list string="Waste Report" create="false" edit="false" delete="false">
+                <field name="timestamp"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="order_ref"/>
+                <field name="product_id"/>
+                <field name="quantity" sum="Total Quantity"/>
+                <field name="product_uom_id" groups="uom.group_uom"/>
+                <field name="unit_cost" widget="monetary"/>
+                <field name="total_cost" sum="Total Value (Cost)" widget="monetary"/>
+                <field name="reason_id"/>
+                <field name="location_id"/>
+                <field name="station" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Pivot View -->
+    <record id="waste_report_view_pivot" model="ir.ui.view">
+        <field name="name">waste.report.pivot</field>
+        <field name="model">waste.report</field>
+        <field name="arch" type="xml">
+            <pivot string="Waste Analysis" display_quantity="true" sample="1">
+                <field name="timestamp" type="row" interval="day"/>
+                <field name="product_id" type="row"/>
+                <field name="reason_id" type="col"/>
+                <field name="quantity" type="measure"/>
+                <field name="total_cost" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Graph View -->
+    <record id="waste_report_view_graph" model="ir.ui.view">
+        <field name="name">waste.report.graph</field>
+        <field name="model">waste.report</field>
+        <field name="arch" type="xml">
+            <graph string="Waste Analysis" type="bar" sample="1">
+                <field name="timestamp" interval="day" type="row"/>
+                <field name="total_cost" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="waste_report_view_search" model="ir.ui.view">
+        <field name="name">waste.report.search</field>
+        <field name="model">waste.report</field>
+        <field name="arch" type="xml">
+            <search string="Waste Analysis">
+                <field name="product_id"/>
+                <field name="user_id"/>
+                <field name="reason_id"/>
+                <field name="order_ref"/>
+                <field name="location_id"/>
+                <separator/>
+                <filter name="filter_today" string="Today"
+                        domain="[('timestamp', '&gt;=', (context_today()).strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_yesterday" string="Yesterday"
+                        domain="[('timestamp', '&gt;=', (context_today() - datetime.timedelta(days=1)).strftime('%Y-%m-%d')), ('timestamp', '&lt;', (context_today()).strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_last_7_days" string="Last 7 Days"
+                        domain="[('timestamp', '&gt;=', (context_today() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_last_30_days" string="Last 30 Days"
+                        domain="[('timestamp', '&gt;=', (context_today() - datetime.timedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <group expand="1" string="Group By">
+                    <filter name="groupby_date" string="Date"
+                            context="{'group_by': 'timestamp:day'}"/>
+                    <filter name="groupby_product" string="Product"
+                            context="{'group_by': 'product_id'}"/>
+                    <filter name="groupby_reason" string="Reason"
+                            context="{'group_by': 'reason_id'}"/>
+                    <filter name="groupby_location" string="Location"
+                            context="{'group_by': 'location_id'}"/>
+                    <filter name="groupby_user" string="User"
+                            context="{'group_by': 'user_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_waste_report" model="ir.actions.act_window">
+        <field name="name">Waste Report</field>
+        <field name="res_model">waste.report</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="search_view_id" ref="waste_report_view_search"/>
+        <field name="context">{'search_default_filter_today': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No waste data to report
+            </p>
+            <p>
+                Waste reports are automatically generated from confirmed waste logs.
+            </p>
+        </field>
+    </record>
+
+</odoo>

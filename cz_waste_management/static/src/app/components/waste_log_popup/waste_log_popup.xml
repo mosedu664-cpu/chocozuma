@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="cz_waste_management.WasteLogPopup">
+        <Dialog title="'Log Waste'" size="'md'">
+            <div class="cz_waste_log_popup">
+
+                <!-- Success Message -->
+                <div t-if="state.success" class="alert alert-success d-flex align-items-center mb-3" role="alert">
+                    <i class="fa fa-check-circle me-2 fs-4"/>
+                    <span t-esc="state.success"/>
+                </div>
+
+                <!-- Error Message -->
+                <div t-if="state.error" class="alert alert-danger d-flex align-items-center mb-3" role="alert">
+                    <i class="fa fa-exclamation-triangle me-2 fs-4"/>
+                    <span t-esc="state.error"/>
+                </div>
+
+                <div t-if="!state.success" class="cz_waste_form">
+
+                    <!-- Order Reference -->
+                    <div t-if="props.orderRef" class="mb-3">
+                        <label class="form-label fw-bold">Order Reference</label>
+                        <input type="text" class="form-control bg-light" t-att-value="props.orderRef" readonly="1"/>
+                    </div>
+
+                    <!-- Items Selection -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Items to Waste <span class="text-danger">*</span></label>
+                        <div class="cz_waste_items_list border rounded p-2 overflow-auto" style="max-height: 250px;">
+                            <t t-foreach="state.items" t-as="item" t-key="item.productId">
+                                <div class="cz_waste_item_row d-flex align-items-center gap-2 mb-2 p-2 border-bottom">
+                                    <input type="checkbox" class="form-check-input" 
+                                           t-att-checked="item.selected"
+                                           t-on-change="(ev) => { item.selected = ev.target.checked; }"/>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold" t-esc="item.name"/>
+                                        <div t-if="item.code" class="small text-muted" t-esc="item.code"/>
+                                        <div t-if="item.fromOrder" class="small text-info">Remaining: <t t-esc="item.orderedQty"/></div>
+                                    </div>
+                                    <div style="width: 100px;">
+                                        <input type="number" class="form-control form-control-sm text-center"
+                                               t-att-value="item.quantity"
+                                               t-on-input="(ev) => this.onItemQtyInput(item, ev)"
+                                               t-att-disabled="!item.selected"
+                                               min="0.01" step="0.01"/>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger border-0" 
+                                            t-if="!item.fromOrder"
+                                            t-on-click="() => { item.selected = false; this.state.items = this.state.items.filter(i => i.productId !== item.productId); }">
+                                        <i class="fa fa-trash"/>
+                                    </button>
+                                </div>
+                            </t>
+                            <div t-if="!state.items.length" class="text-center text-muted p-3">
+                                No items to waste.
+                            </div>
+                        </div>
+                        <div class="small text-muted mt-1">
+                            <i class="fa fa-info-circle me-1"/>Select items and enter quantity to waste.
+                        </div>
+                    </div>
+
+                    <!-- Add More Products -->
+                    <div class="mb-3 position-relative">
+                        <label class="form-label fw-bold small text-muted">Add other products...</label>
+                        <input type="text"
+                               class="form-control form-control-sm"
+                               placeholder="Search product to add..."
+                               t-att-value="state.productSearch"
+                               t-on-input="onProductSearchInput"
+                               t-on-focus="onProductSearchFocus"
+                               t-on-blur="onProductSearchBlur"/>
+                        <div t-if="state.showProductDropdown and filteredProducts.length"
+                             class="cz_product_dropdown position-absolute w-100 bg-white border rounded shadow-sm mt-1 overflow-auto"
+                             style="max-height: 200px; z-index: 1050;">
+                            <t t-foreach="filteredProducts" t-as="product" t-key="product.id">
+                                <div class="cz_product_item px-3 py-2 cursor-pointer d-flex align-items-center"
+                                     t-on-mousedown.prevent="() => this.selectProduct(product)">
+                                    <span t-esc="product.name"/>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <hr/>
+
+                    <!-- Waste Reason -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fa fa-tag me-1"/>Waste Reason <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select form-select-lg"
+                                t-on-change="(ev) => { this.state.reasonId = ev.target.value; }">
+                            <option value="">-- Select Reason --</option>
+                            <t t-foreach="props.reasons" t-as="reason" t-key="reason.id">
+                                <option t-att-value="reason.id"
+                                        t-att-selected="state.reasonId == reason.id"
+                                        t-esc="reason.name"/>
+                            </t>
+                        </select>
+                    </div>
+
+                    <!-- Other Reason -->
+                    <div t-if="selectedReason and selectedReason.name === 'Other'" class="mb-3">
+                        <label class="form-label fw-bold">Please specify <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control"
+                               placeholder="Specify other reason..."
+                               t-att-value="state.otherReason"
+                               t-on-input="(ev) => { this.state.otherReason = ev.target.value; }"/>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Station</label>
+                            <input type="text" class="form-control"
+                                   placeholder="e.g. Grill"
+                                   t-att-value="state.station"
+                                   t-on-input="(ev) => { this.state.station = ev.target.value; }"/>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Waste Location</label>
+                            <input type="text" class="form-control bg-light" 
+                                   t-if="props.defaultDestLocation"
+                                   t-att-value="props.defaultDestLocation.display_name" readonly="1"/>
+                            <div t-if="props.defaultLocation" class="small text-muted mt-1">
+                                Coming from: <t t-esc="props.defaultLocation.display_name"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Photo Upload -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Photo (optional)</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="file" class="form-control"
+                                   accept="image/*"
+                                   t-ref="photo-input"
+                                   t-on-change="onPhotoChange"/>
+                            <button t-if="state.photo" class="btn btn-outline-danger btn-sm"
+                                    t-on-click="removePhoto" title="Remove photo">
+                                <i class="fa fa-times"/>
+                            </button>
+                        </div>
+                        <div t-if="state.photoPreview" class="mt-2 text-center">
+                            <img t-att-src="state.photoPreview"
+                                 class="img-thumbnail" style="max-height: 150px;"
+                                 alt="Waste photo preview"/>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Notes</label>
+                        <textarea class="form-control" rows="2"
+                                  placeholder="Additional context..."
+                                  t-att-value="state.notes"
+                                  t-on-input="(ev) => { this.state.notes = ev.target.value; }"/>
+                    </div>
+
+                </div>
+
+                <!-- Footer Buttons -->
+                <div t-if="!state.success" class="d-flex justify-content-end gap-2 mt-3 pt-3 border-top">
+                    <button class="btn btn-lg btn-secondary" t-on-click="cancel"
+                            t-att-disabled="state.submitting">
+                        <i class="fa fa-times me-1"/>Cancel
+                    </button>
+                    <button class="btn btn-lg btn-warning fw-bold" t-on-click="submit"
+                            t-att-disabled="state.submitting">
+                        <t t-if="state.submitting">
+                            <i class="fa fa-spinner fa-spin me-1"/>Logging...
+                        </t>
+                        <t t-else="">
+                            <i class="fa fa-check me-1"/>Log Waste
+                        </t>
+                    </button>
+                </div>
+
+            </div>
+        </Dialog>
+    </t>
+</templates>
