@@ -16,11 +16,11 @@
               action="action_waste_log"
               sequence="10"/>
 
-    <!-- Waste Report (tabular list/pivot/graph) -->
+    <!-- Waste Report (Direct to XLSX Wizard) -->
     <menuitem id="menu_waste_report"
               name="Waste Report"
               parent="menu_waste_management_root"
-              action="action_waste_report"
+              action="action_waste_report_wizard"
               sequence="20"/>
 
     <!-- Waste Reasons under POS Configuration -->

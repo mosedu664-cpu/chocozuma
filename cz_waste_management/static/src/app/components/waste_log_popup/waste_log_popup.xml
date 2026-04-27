@@ -160,8 +160,9 @@
 
                 </div>
 
-                <!-- Footer Buttons -->
-                <div t-if="!state.success" class="d-flex justify-content-end gap-2 mt-3 pt-3 border-top">
+            </div>
+            <t t-set-slot="footer">
+                <div t-if="!state.success" class="d-flex justify-content-end gap-2 w-100">
                     <button class="btn btn-lg btn-secondary" t-on-click="cancel"
                             t-att-disabled="state.submitting">
                         <i class="fa fa-times me-1"/>Cancel
@@ -176,8 +177,10 @@
                         </t>
                     </button>
                 </div>
-
-            </div>
+                <div t-else="" class="d-flex justify-content-end w-100">
+                    <button class="btn btn-primary" t-on-click="cancel">Close</button>
+                </div>
+            </t>
         </Dialog>
     </t>
 </templates>
