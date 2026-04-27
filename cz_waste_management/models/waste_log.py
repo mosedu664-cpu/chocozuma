@@ -161,17 +161,22 @@ class WasteLog(models.Model):
         waste_loc = self.env.ref('cz_waste_management.stock_location_waste', raise_if_not_found=False)
         return waste_loc.id if waste_loc else False
 
-    @api.depends('product_id', 'quantity', 'product_id.standard_price')
+    @api.depends('product_id', 'quantity', 'company_id')
     def _compute_cost(self):
         for record in self:
-            record.cost = record.quantity * (record.product_id.standard_price or 0.0)
+            # Use with_company to ensure we get the cost for the record's company
+            product = record.product_id.with_company(record.company_id)
+            record.cost = record.quantity * (product.standard_price or 0.0)
 
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get('name', 'New') == 'New':
                 vals['name'] = self.env['ir.sequence'].next_by_code('waste.log') or 'New'
-        return super().create(vals_list)
+        res = super().create(vals_list)
+        # Ensure cost is computed after creation
+        res._compute_cost()
+        return res
 
     def action_confirm(self):
         """Confirm the waste log and create inventory move."""
@@ -193,29 +198,27 @@ class WasteLog(models.Model):
             if source_location.company_id and record.company_id != source_location.company_id:
                 record.company_id = source_location.company_id.id
 
-            # Create and validate stock move
-            move_vals = {
-                'name': _('Waste: %s - %s', record.name, record.product_id.display_name),
+            # Update cost one last time before confirmation to ensure it's captured
+            product = record.product_id.with_company(record.company_id)
+            record.cost = record.quantity * (product.standard_price or 0.0)
+
+            # Create and validate scrap record
+            product_display_name = record.product_id.short_name or record.product_id.display_name
+            scrap_vals = {
                 'product_id': record.product_id.id,
-                'product_uom_qty': record.quantity,
-                'product_uom': record.product_uom_id.id,
+                'scrap_qty': record.quantity,
+                'product_uom_id': record.product_uom_id.id,
                 'location_id': source_location.id,
-                'location_dest_id': waste_location.id,
-                'origin': record.name,
+                'scrap_location_id': waste_location.id,
+                'origin': _("Waste: %s - %s") % (record.name, product_display_name),
                 'company_id': record.company_id.id,
-                'move_line_ids': [(0, 0, {
-                    'product_id': record.product_id.id,
-                    'product_uom_id': record.product_uom_id.id,
-                    'quantity': record.quantity,
-                    'location_id': source_location.id,
-                    'location_dest_id': waste_location.id,
-                    'company_id': record.company_id.id,
-                })],
             }
-            stock_move = self.env['stock.move'].create(move_vals)
-            stock_move._action_confirm()
-            stock_move._action_assign()
-            stock_move._action_done()
+            scrap = self.env['stock.scrap'].with_company(record.company_id).create(scrap_vals)
+            scrap.action_validate()
+
+            # Link the move created by the scrap to the waste log
+            if scrap.move_ids:
+                record.stock_move_id = scrap.move_ids[0].id
 
             # Update KDS: Increase cancelled quantity so it disappears/decreases on screen
             if record.preparation_display_orderline_id:
@@ -243,10 +246,7 @@ class WasteLog(models.Model):
                         if order.pos_config_id in d.pos_config_ids or not d.pos_config_ids:
                             d._send_load_orders_message()
 
-            record.write({
-                'stock_move_id': stock_move.id,
-                'state': 'confirmed',
-            })
+            record.state = 'confirmed'
 
             _logger.info(
                 "Waste log %s confirmed: %s × %s %s → %s",
