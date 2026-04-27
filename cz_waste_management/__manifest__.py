@@ -10,7 +10,7 @@
         - Log Waste button on Kitchen Display Screen (KDS)
         - Popup form for waste logging with product, quantity, reason, photo
         - Automatic inventory deduction via configured Waste location
-        - Daily waste reporting with pivot and graph views
+        - XLSX waste reporting with custom filters
     """,
     'author': 'Axiom World | Burhan Ud Din',
     'website': 'https://axiomworld.net/',
@@ -23,11 +23,11 @@
         'security/waste_management_security.xml',
         'security/ir.model.access.csv',
         'data/ir_sequence_data.xml',
+        'wizard/waste_report_wizard_view.xml',
         'views/waste_log_views.xml',
         'views/waste_reason_views.xml',
         'views/pos_config_views.xml',
         'views/res_company_views.xml',
-        'report/waste_report_views.xml',
         'views/waste_management_menus.xml',
     ],
     'assets': {

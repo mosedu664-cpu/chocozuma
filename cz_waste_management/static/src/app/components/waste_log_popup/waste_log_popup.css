@@ -1,0 +1,17 @@
+/* Hide the Kit Product warning in the Waste Log Popup */
+.cz_waste_log_popup .alert {
+    /* We only want to hide the specific kit warning, not errors or success messages */
+    /* Usually these generic warnings don't have unique classes, so we can hide ones that aren't danger/success */
+}
+
+/* If the warning comes from standard Odoo notification service inside the dialog */
+.o_dialog .alert-info, 
+.o_dialog .alert-warning {
+    /* Only hide if it's related to the Kit warning text */
+}
+
+/* More targeted approach: Hide any alert in the popup that contains the specific warning text is hard via CSS, 
+   so we hide all alerts that aren't 'danger' or 'success' within our specific container */
+.cz_waste_log_popup .alert:not(.alert-danger):not(.alert-success) {
+    display: none !important;
+}

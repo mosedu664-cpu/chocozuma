@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="waste_report_wizard_view_form" model="ir.ui.view">
+        <field name="name">waste.report.wizard.form</field>
+        <field name="model">waste.report.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generate Waste Report (XLSX)">
+                <group>
+                    <group string="Time Period">
+                        <field name="from_date"/>
+                        <field name="to_date"/>
+                    </group>
+                    <group string="Filters">
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="user_id" options="{'no_create': True}"/>
+                        <field name="product_id" options="{'no_create': True}"/>
+                        <field name="reason_id" options="{'no_create': True}"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_generate_xlsx" string="Download XLSX" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_waste_report_wizard" model="ir.actions.act_window">
+        <field name="name">Waste Report (XLSX)</field>
+        <field name="res_model">waste.report.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>
