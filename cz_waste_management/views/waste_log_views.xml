@@ -68,7 +68,7 @@
                             <field name="reason_id"
                                    readonly="state != 'draft'"
                                    options="{'no_create': True}"/>
-                            <field name="other_reason" invisible="not other_reason or reason_id.name != 'Other'" readonly="state != 'draft'"/>
+                            <field name="other_reason" invisible="not other_reason and reason_id.name != 'Other'" readonly="state != 'draft'"/>
                             <field name="location_id"
                                    readonly="state != 'draft'"
                                    options="{'no_create': True}"/>

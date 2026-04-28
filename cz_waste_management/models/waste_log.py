@@ -192,7 +192,7 @@ class WasteLog(models.Model):
 
             waste_location = record.location_dest_id
             if not waste_location:
-                raise UserError(_("Please specify a waste destination location."))
+                raise UserError(_("Waste location is not configured. Please set a waste location in POS settings or Company settings."))
 
             # Ensure company matches source location to avoid "Incompatible companies on records"
             if source_location.company_id and record.company_id != source_location.company_id:
@@ -346,57 +346,58 @@ class WasteLog(models.Model):
             return {'success': False, 'error': 'Missing required field: reason_id'}
 
         try:
-            created_logs = self.env['waste.log']
-            for item in items:
-                vals = {
-                    'product_id': int(item['product_id']),
-                    'quantity': float(item['quantity']),
-                    'total_qty_ordered': float(item['total_qty_ordered'] or 0.0),
-                    'reason_id': int(reason_id),
-                    'other_reason': kwargs.get('other_reason', ''),
-                    'station': kwargs.get('station', ''),
-                    'notes': kwargs.get('notes', ''),
-                    'order_ref': kwargs.get('order_ref', ''),
+            with self.env.cr.savepoint():
+                created_logs = self.env['waste.log']
+                for item in items:
+                    vals = {
+                        'product_id': int(item['product_id']),
+                        'quantity': float(item['quantity']),
+                        'total_qty_ordered': float(item['total_qty_ordered'] or 0.0),
+                        'reason_id': int(reason_id),
+                        'other_reason': kwargs.get('other_reason', ''),
+                        'station': kwargs.get('station', ''),
+                        'notes': kwargs.get('notes', ''),
+                        'order_ref': kwargs.get('order_ref', ''),
+                    }
+
+                    if item.get('preparation_display_orderline_id'):
+                        vals['preparation_display_orderline_id'] = int(item['preparation_display_orderline_id'])
+
+                    # Optional photo
+                    if kwargs.get('photo'):
+                        vals['photo'] = kwargs['photo']
+                        vals['photo_filename'] = kwargs.get('photo_filename', 'waste_photo.jpg')
+
+                    # Optional POS order link
+                    if kwargs.get('pos_order_id'):
+                        vals['pos_order_id'] = int(kwargs['pos_order_id'])
+
+                    # Optional preparation display link
+                    if kwargs.get('preparation_display_id'):
+                        vals['preparation_display_id'] = int(kwargs['preparation_display_id'])
+
+                    # Source Location
+                    if kwargs.get('location_id'):
+                        vals['location_id'] = int(kwargs['location_id'])
+                    
+                    # Destination Location
+                    if kwargs.get('location_dest_id'):
+                        vals['location_dest_id'] = int(kwargs['location_dest_id'])
+
+                    waste_log = self.create(vals)
+                    waste_log.action_confirm()
+                    created_logs += waste_log
+
+                _logger.info(
+                    "%d Waste logs created from KDS by user %s",
+                    len(created_logs), self.env.user.name,
+                )
+
+                return {
+                    'success': True,
+                    'count': len(created_logs),
+                    'first_log_name': created_logs[0].name if created_logs else 'New',
                 }
-
-                if item.get('preparation_display_orderline_id'):
-                    vals['preparation_display_orderline_id'] = int(item['preparation_display_orderline_id'])
-
-                # Optional photo
-                if kwargs.get('photo'):
-                    vals['photo'] = kwargs['photo']
-                    vals['photo_filename'] = kwargs.get('photo_filename', 'waste_photo.jpg')
-
-                # Optional POS order link
-                if kwargs.get('pos_order_id'):
-                    vals['pos_order_id'] = int(kwargs['pos_order_id'])
-
-                # Optional preparation display link
-                if kwargs.get('preparation_display_id'):
-                    vals['preparation_display_id'] = int(kwargs['preparation_display_id'])
-
-                # Source Location
-                if kwargs.get('location_id'):
-                    vals['location_id'] = int(kwargs['location_id'])
-                
-                # Destination Location
-                if kwargs.get('location_dest_id'):
-                    vals['location_dest_id'] = int(kwargs['location_dest_id'])
-
-                waste_log = self.create(vals)
-                waste_log.action_confirm()
-                created_logs += waste_log
-
-            _logger.info(
-                "%d Waste logs created from KDS by user %s",
-                len(created_logs), self.env.user.name,
-            )
-
-            return {
-                'success': True,
-                'count': len(created_logs),
-                'first_log_name': created_logs[0].name if created_logs else 'New',
-            }
 
         except Exception as e:
             _logger.exception("Error creating waste logs from KDS")
