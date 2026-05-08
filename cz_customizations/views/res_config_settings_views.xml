@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_inherit_cz" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.cz</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='general_settings']" position="inside">
+                <block title="SMTP Settings" name="smtp_settings_block">
+                    <setting id="app_mail_smtp_timeout" string="SMTP Timeout" help="Setup SMTP Timeout, default 600s">
+                        <field name="app_mail_smtp_timeout"/>
+                        <span> Seconds</span>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>
