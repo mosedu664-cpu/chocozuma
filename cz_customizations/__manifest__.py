@@ -5,12 +5,13 @@
     'description': """Custom required for cocozoma""",
     'author': "Axiomworld",
     'website': "https://axiomworld.net/",
-    'depends': ['point_of_sale', 'pos_preparation_display'],
+    'depends': ['point_of_sale', 'pos_preparation_display', 'pos_hr'],
     'category': 'Uncategorized',
     'version': '0.1',
     'data': [
         'views/product_template_views.xml',
         'views/pos_order_views.xml',
+        'views/res_config_settings_views.xml',
     ],
     "assets": {
         "point_of_sale._assets_pos": [
