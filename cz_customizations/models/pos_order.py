@@ -25,13 +25,14 @@ class PosOrder(models.Model):
 
         for order in cancellable_orders:
             user_name = self.env.user.name
+            waiter_name = order.opened_by_employee_id.name or _('Unknown')
             reason_text = order.cancel_reason or _('No reason provided')
             order.message_post(
                 body=Markup(
                     "<b>Order Cancelled</b><br/>"
                     "<b>Reason:</b> {reason}<br/>"
-                    "<b>Cancelled by:</b> {user}"
-                ).format(reason=reason_text, user=user_name),
+                    "<b>Waiter:</b> {waiter}"
+                ).format(reason=reason_text, user=user_name, waiter=waiter_name),
                 message_type='comment',
                 subtype_xmlid='mail.mt_note',
             )
@@ -43,3 +44,21 @@ class PosOrder(models.Model):
                 self._load_pos_data_fields(self.config_id.ids[0]), load=False
             )
         }
+
+    def log_line_cancellation(self, line_data):
+        """Log a note in the chatter when an order line is removed after being sent to the kitchen."""
+        for order in self:
+            order.message_post(
+                body=Markup(
+                    "<b>Order Line Removed (Post-Kitchen)</b><br/>"
+                    "<b>Product:</b> {product}<br/>"
+                    "<b>Reason:</b> {reason}<br/>"
+                    "<b>Removed by:</b> {user}"
+                ).format(
+                    product=line_data.get('product_name', _('Unknown')),
+                    reason=line_data.get('reason', _('No reason provided')),
+                    user=line_data.get('user_name', self.env.user.name)
+                ),
+                message_type='comment',
+                subtype_xmlid='mail.mt_note',
+            )
