@@ -3,3 +3,4 @@ from . import product_template
 from . import pos_preparation_display_order
 from . import pos_order
 from . import res_config_settings
+from . import account_move_send
