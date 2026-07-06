@@ -4,3 +4,4 @@ from . import pos_preparation_display_order
 from . import pos_order
 from . import res_config_settings
 from . import account_move_send
+from . import res_partner_category
