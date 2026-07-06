@@ -10,4 +10,4 @@ class PartnerCategory(models.Model):
             record = self.env.ref(f"l10n_tr_nilvera_einvoice.{xml_id}", raise_if_not_found=False)
             if record is not None:
                 categories |= record
-        return categoriesgit 
+        return categories
