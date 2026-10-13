@@ -7,6 +7,18 @@ class PosOrder(models.Model):
     _inherit = 'pos.order'
 
     cancel_reason = fields.Char(string='Cancellation Reason', readonly=True, copy=False)
+    cancel_reason_code = fields.Selection([
+        ('KEY_ERR', 'Hatalı tuşlama (yanlış ürün/adet)'),
+        ('DUP', 'Mükerrer sipariş (iki kere girildi)'),
+        ('CUST_NP', 'Müşteri iptali – ürün hazırlanmadı'),
+        ('CUST_P', 'Müşteri iptali – ürün hazırlandı'),
+        ('STOCK', 'Stokta yok / ürün bitti'),
+        ('PLATFORM', 'Platform iptali (Getir/Yemeksepeti/Trendyol)'),
+        ('COURIER', 'Kurye sorunu (gecikme/rahatsızlık)'),
+        ('KITCHEN', 'Mutfak hatası – yeniden hazırlandı'),
+        ('SWAP', 'Ürün değişikliği (başka ürünle değişti)'),
+        ('OTHER', 'Diğer'),
+    ], string='Cancel Reason Code', readonly=True, copy=False, index=True)
     opened_by_employee_id = fields.Many2one('hr.employee', string='Waiter / Order Taker', readonly=True, copy=False,
                                             help='The employee who opened/created this order in the POS.', )
 

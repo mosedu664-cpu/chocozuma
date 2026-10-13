@@ -10,6 +10,26 @@
                 <field name="opened_by_employee_id" string="Waiter" widget="many2one_avatar_employee" optional="show"
                        readonly="1"/>
             </xpath>
+            <xpath expr="//field[@name='employee_id']" position="after">
+                <field name="cancel_reason_code" optional="show" readonly="1"/>
+                <field name="cancel_reason" optional="hide" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Search view: filter + group by cancellation reason -->
+    <record id="view_pos_order_filter_inherit_cancel" model="ir.ui.view">
+        <field name="name">pos.order.search.cancel.reason</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//search" position="inside">
+                <field name="cancel_reason_code"/>
+                <group expand="0" string="Group By">
+                    <filter string="Cancel Reason" name="groupby_cancel_reason"
+                            context="{'group_by': 'cancel_reason_code'}"/>
+                </group>
+            </xpath>
         </field>
     </record>
 
