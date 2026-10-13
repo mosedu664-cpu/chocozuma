@@ -7,7 +7,7 @@
     'website': "https://axiomworld.net/",
     'depends': ['point_of_sale', 'pos_discount', 'pos_preparation_display', 'pos_hr', 'account', 'l10n_tr_nilvera_einvoice'],
     'category': 'Uncategorized',
-    'version': '0.3',
+    'version': '0.4',
     'data': [
         'views/product_template_views.xml',
         'views/pos_order_views.xml',
