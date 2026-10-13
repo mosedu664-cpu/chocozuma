@@ -74,3 +74,26 @@ class PosOrder(models.Model):
                 message_type='comment',
                 subtype_xmlid='mail.mt_note',
             )
+
+
+class PosOrderLine(models.Model):
+    _inherit = 'pos.order.line'
+
+    discount_reason_code = fields.Selection([
+        ('SADAKAT', "Sadakat / Zuma's Family"),
+        ('SIKAYET', 'Müşteri şikayeti / telafi'),
+        ('IKRAM', 'Yönetim ikramı / misafir'),
+        ('PERSONEL', 'Personel indirimi'),
+        ('KAMPANYA', 'Kampanya / promosyon'),
+        ('PLATFORM', 'Platform fiyat farkı'),
+        ('DAIMI', 'Daimi müşteri'),
+        ('FIYAT', 'Fiyat düzeltme / menü hatası'),
+        ('OTHER', 'Diğer'),
+    ], string='Discount Reason Code', readonly=True, copy=False, index=True)
+    discount_reason = fields.Char(string='Discount Reason', readonly=True, copy=False)
+
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        result = super()._load_pos_data_fields(config_id)
+        result += ['discount_reason_code', 'discount_reason']
+        return result
