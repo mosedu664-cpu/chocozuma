@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="cz_customizations.CancelReasonPopup">
+        <Dialog title="props.title">
+            <div class="d-flex flex-wrap">
+                <t t-foreach="reasons" t-as="reason" t-key="reason.code">
+                    <button type="button"
+                            t-on-click="() => this.select(reason.code)"
+                            t-attf-class="btn btn-lg me-2 mb-2 lh-lg {{ state.code === reason.code ? (reason.danger ? 'btn-danger' : 'btn-primary') : (reason.danger ? 'btn-outline-danger' : 'btn-secondary') }}">
+                        <t t-esc="reason.label"/>
+                    </button>
+                </t>
+            </div>
+            <textarea rows="2"
+                      class="form-control form-control-lg mx-auto mt-2"
+                      t-model="state.note"
+                      t-att-placeholder="state.code === 'OTHER' ? 'Açıklama zorunlu...' : 'Not (opsiyonel)...'"/>
+            <t t-set-slot="footer">
+                <button class="btn btn-primary btn-lg lh-lg o-default-button"
+                        t-att-disabled="!canApply"
+                        t-on-click="confirm">Apply</button>
+                <button class="btn btn-secondary btn-lg lh-lg"
+                        t-on-click="close">Discard</button>
+            </t>
+        </Dialog>
+    </t>
+
+</templates>

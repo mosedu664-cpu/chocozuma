@@ -2,9 +2,9 @@
 
 import { OrderSummary } from "@point_of_sale/app/screens/product_screen/order_summary/order_summary";
 import { patch } from "@web/core/utils/patch";
-import { TextInputPopup } from "@point_of_sale/app/utils/input_popups/text_input_popup";
 import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
 import { _t } from "@web/core/l10n/translation";
+import { CancelReasonPopup } from "@cz_customizations/app/utils/cancel_reason_popup/cancel_reason_popup";
 
 patch(OrderSummary.prototype, {
     /**
@@ -14,28 +14,20 @@ patch(OrderSummary.prototype, {
     async _setValue(val) {
         if (this.pos.numpadMode === "quantity" && val === "remove") {
             const selectedLine = this.currentOrder.get_selected_orderline();
-            
+
             // Check if the line has been sent to the kitchen.
             // In Odoo Restaurant, sent lines are tracked in last_order_preparation_change.
             const sentLines = this.currentOrder.last_order_preparation_change?.lines || {};
             const isSent = selectedLine && sentLines[selectedLine.preparationKey];
 
             if (isSent) {
-                // 1. Ask for reason
-                const reason = await makeAwaitable(this.dialog, TextInputPopup, {
+                // 1. Ask for reason (fixed list + optional note)
+                const payload = await makeAwaitable(this.dialog, CancelReasonPopup, {
                     title: _t("Line Cancellation Reason"),
-                    placeholder: _t("Why is this line being removed?"),
-                    startingValue: "",
                 });
 
-                if (!reason) {
+                if (!payload) {
                     return; // Abort removal
-                }
-
-                const trimmedReason = reason.trim();
-                if (!trimmedReason) {
-                    // We could show an alert here, but for now we just abort.
-                    return;
                 }
 
                 // 2. Capture name of the person removing the line.
@@ -44,7 +36,7 @@ patch(OrderSummary.prototype, {
                 if (this.pos.selectCashier) {
                     cashier = await this.pos.selectCashier();
                 }
-                
+
                 if (!cashier) {
                     // Fallback to currently logged in cashier if selectCashier was cancelled or unavailable
                     cashier = this.pos.get_cashier();
@@ -59,7 +51,7 @@ patch(OrderSummary.prototype, {
                             [this.currentOrder.id],
                             {
                                 product_name: selectedLine.get_full_product_name(),
-                                reason: trimmedReason,
+                                reason: `[${payload.code}] ${payload.text}`,
                                 user_name: personName,
                             }
                         ]);
