@@ -8,10 +8,16 @@ patch(PosOrder.prototype, {
         super.setup(...arguments);
         // Handle the waiter field when loading from server or creating from JSON
         if (vals.opened_by_employee_id) {
-            const employeeId = Array.isArray(vals.opened_by_employee_id) 
-                ? vals.opened_by_employee_id[0] 
+            const employeeId = Array.isArray(vals.opened_by_employee_id)
+                ? vals.opened_by_employee_id[0]
                 : vals.opened_by_employee_id;
-            this.opened_by_employee_id = this.models["hr.employee"].get(employeeId);
+            const employeeModel = this.models && this.models["hr.employee"];
+            const employee = employeeModel && typeof employeeModel.get === "function"
+                ? employeeModel.get(employeeId)
+                : null;
+            if (employee) {
+                this.opened_by_employee_id = employee;
+            }
         }
     },
     serialize() {
