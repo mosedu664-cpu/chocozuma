@@ -14,14 +14,13 @@ patch(PosStore.prototype, {
     async pay() {
         if (this.config.module_pos_restaurant) {
             const currentOrder = this.get_order();
-            var ifAllRefund = false;
-            currentOrder.lines.forEach((line) => {
-                ifAllRefund = false
-                if(line.refunded_orderline_id){
-                    ifAllRefund = true
-                }
-            });
-            if(ifAllRefund){
+            // Refund orders are exempt: EVERY line must be a refund line.
+            // (The old loop only checked the LAST line, so any normal order
+            // whose last line was a refund bypassed the kitchen gate.)
+            const lines = (currentOrder && currentOrder.lines) || [];
+            const ifAllRefund =
+                lines.length > 0 && lines.every((line) => line.refunded_orderline_id);
+            if (ifAllRefund) {
                 return super.pay();
             }
             if (currentOrder && !currentOrder.finalized) {
