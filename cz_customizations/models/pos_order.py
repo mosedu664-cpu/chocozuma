@@ -19,6 +19,36 @@ class PosOrder(models.Model):
         ('SWAP', 'Ürün değişikliği (başka ürünle değişti)'),
         ('OTHER', 'Diğer'),
     ], string='Cancel Reason Code', readonly=True, copy=False, index=True)
+    discount_log_posted = fields.Boolean(
+        default=False, copy=False,
+        help='Technical: discount summary already posted to chatter.')
+
+    def _process_saved_order(self, draft):
+        """Post one chatter note summarizing all discounts (with reasons)
+        when the order is finalized. Posted once per order."""
+        res = super()._process_saved_order(draft)
+        if not draft and not self.discount_log_posted:
+            discount_lines = self.lines.filtered(lambda l: l.discount_reason_code)
+            if discount_lines:
+                rows = []
+                for line in discount_lines:
+                    if line.discount:
+                        amount = "%g%%" % line.discount
+                    else:
+                        amount = "%.2f" % line.price_subtotal_incl
+                    rows.append("%s: %s — [%s] %s" % (
+                        line.full_product_name or line.product_id.display_name,
+                        amount,
+                        line.discount_reason_code,
+                        line.discount_reason or '',
+                    ))
+                self.message_post(
+                    body=Markup("<b>Discounts</b><br/>%s") % Markup("<br/>").join(rows),
+                    message_type='comment',
+                    subtype_xmlid='mail.mt_note',
+                )
+                self.discount_log_posted = True
+        return res
     opened_by_employee_id = fields.Many2one('hr.employee', string='Waiter / Order Taker', readonly=True, copy=False,
                                             help='The employee who opened/created this order in the POS.', )
 
@@ -74,3 +104,26 @@ class PosOrder(models.Model):
                 message_type='comment',
                 subtype_xmlid='mail.mt_note',
             )
+
+
+class PosOrderLine(models.Model):
+    _inherit = 'pos.order.line'
+
+    discount_reason_code = fields.Selection([
+        ('SADAKAT', "Sadakat / Zuma's Family"),
+        ('SIKAYET', 'Müşteri şikayeti / telafi'),
+        ('IKRAM', 'Yönetim ikramı / misafir'),
+        ('PERSONEL', 'Personel indirimi'),
+        ('KAMPANYA', 'Kampanya / promosyon'),
+        ('PLATFORM', 'Platform fiyat farkı'),
+        ('DAIMI', 'Daimi müşteri'),
+        ('FIYAT', 'Fiyat düzeltme / menü hatası'),
+        ('OTHER', 'Diğer'),
+    ], string='Discount Reason Code', readonly=True, copy=False, index=True)
+    discount_reason = fields.Char(string='Discount Reason', readonly=True, copy=False)
+
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        result = super()._load_pos_data_fields(config_id)
+        result += ['discount_reason_code', 'discount_reason']
+        return result

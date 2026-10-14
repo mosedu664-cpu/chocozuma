@@ -17,6 +17,33 @@
         </field>
     </record>
 
+    <!-- Order form: discount reason columns in the order-lines list -->
+    <record id="view_pos_pos_form_inherit_discount_reason" model="ir.ui.view">
+        <field name="name">pos.order.form.discount.reason</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='lines']/list/field[@name='discount']" position="after">
+                <field name="discount_reason_code" optional="show" readonly="1"/>
+                <field name="discount_reason" optional="hide" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- All Sales Lines list: discount reason columns -->
+    <record id="view_pos_order_line_tree_inherit_discount_reason" model="ir.ui.view">
+        <field name="name">pos.order.line.tree.discount.reason</field>
+        <field name="model">pos.order.line</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_tree_all_sales_lines"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='price_unit']" position="after">
+                <field name="discount" optional="show"/>
+                <field name="discount_reason_code" optional="show" readonly="1"/>
+                <field name="discount_reason" optional="hide" readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
     <!-- Search view: filter + group by cancellation reason -->
     <record id="view_pos_order_filter_inherit_cancel" model="ir.ui.view">
         <field name="name">pos.order.search.cancel.reason</field>

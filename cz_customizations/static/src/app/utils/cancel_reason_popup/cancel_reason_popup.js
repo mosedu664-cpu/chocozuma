@@ -17,11 +17,24 @@ export const CANCEL_REASONS = [
     { code: "OTHER", label: "Diğer (açıklama zorunlu)", danger: false },
 ];
 
+export const DISCOUNT_REASONS = [
+    { code: "SADAKAT", label: "Sadakat / Zuma's Family", danger: false },
+    { code: "SIKAYET", label: "Müşteri şikayeti / telafi", danger: true },
+    { code: "IKRAM", label: "Yönetim ikramı / misafir", danger: false },
+    { code: "PERSONEL", label: "Personel indirimi", danger: false },
+    { code: "KAMPANYA", label: "Kampanya / promosyon", danger: false },
+    { code: "PLATFORM", label: "Platform fiyat farkı", danger: false },
+    { code: "DAIMI", label: "Daimi müşteri", danger: false },
+    { code: "FIYAT", label: "Fiyat düzeltme / menü hatası", danger: false },
+    { code: "OTHER", label: "Diğer (açıklama zorunlu)", danger: false },
+];
+
 export class CancelReasonPopup extends Component {
     static template = "cz_customizations.CancelReasonPopup";
     static components = { Dialog };
     static props = {
         title: { type: String, optional: true },
+        reasons: { type: Array, optional: true },
         getPayload: Function,
         close: Function,
     };
@@ -30,7 +43,7 @@ export class CancelReasonPopup extends Component {
     };
 
     setup() {
-        this.reasons = CANCEL_REASONS;
+        this.reasons = this.props.reasons || CANCEL_REASONS;
         this.state = useState({ code: "", note: "" });
     }
 

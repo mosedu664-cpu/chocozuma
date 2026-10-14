@@ -4,9 +4,54 @@ import { PosStore } from "@point_of_sale/app/store/pos_store";
 import { patch } from "@web/core/utils/patch";
 import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
 import { _t } from "@web/core/l10n/translation";
-import { CancelReasonPopup } from "@cz_customizations/app/utils/cancel_reason_popup/cancel_reason_popup";
+import { CancelReasonPopup, DISCOUNT_REASONS } from "@cz_customizations/app/utils/cancel_reason_popup/cancel_reason_popup";
 
 patch(PosStore.prototype, {
+    /**
+     * Intercept ALL manual line discounts (numpad % mode and the restricted
+     * NumberPopup flow both funnel through this method) and require a reason
+     * from a fixed list, once per line. Loyalty reward lines are never touched:
+     * they do not pass through this method, and are skipped explicitly anyway.
+     */
+    async setDiscountFromUI(line, val) {
+        const numeric =
+            typeof val === "number" ? val : parseFloat(String(val).replace(",", ".")) || 0;
+
+        // Never interfere with loyalty program reward lines
+        if (line && (line.is_reward_line || line.reward_id)) {
+            return super.setDiscountFromUI(...arguments);
+        }
+
+        if (line && numeric !== 0 && !line.discount_reason_code) {
+            if (line._czReasonAsking) {
+                return; // A reason popup is already open for this line
+            }
+            line._czReasonAsking = true;
+            let payload;
+            try {
+                payload = await makeAwaitable(this.dialog, CancelReasonPopup, {
+                    title: _t("Discount Reason"),
+                    reasons: DISCOUNT_REASONS,
+                });
+            } finally {
+                line._czReasonAsking = false;
+            }
+            if (!payload) {
+                return; // No reason, no discount
+            }
+            line.discount_reason_code = payload.code;
+            line.discount_reason = payload.text;
+        }
+
+        // Discount cleared back to 0 — clear the stored reason too
+        if (line && numeric === 0) {
+            line.discount_reason_code = false;
+            line.discount_reason = false;
+        }
+
+        return super.setDiscountFromUI(...arguments);
+    },
+
     /**
      * Override onDeleteOrder to prompt for a cancellation reason before proceeding.
      * The reason is chosen from a fixed list (plus optional note) and stored on the
