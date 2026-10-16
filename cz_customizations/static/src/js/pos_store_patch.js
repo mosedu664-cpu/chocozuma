@@ -149,7 +149,9 @@ patch(PosStore.prototype, {
                     cancel_reason_code: reason.code,
                 });
             }
-            await this.data.callRelated("pos.order", "action_pos_order_cancel", [orderIds]);
+            await this.data.callRelated("pos.order", "action_pos_order_cancel", [orderIds], {
+                context: { from_pos: true },
+            });
             return true;
         }
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from markupsafe import Markup
 from odoo import api, fields, models, _
+from odoo.exceptions import UserError
 
 
 class PosOrder(models.Model):
@@ -66,11 +67,25 @@ class PosOrder(models.Model):
         """Override to post a cancellation log note (reason already written via ormWrite)."""
         cancellable_orders = self.filtered(lambda o: o.state == 'draft')
 
-        # Server-side backstop: NO cancellation may ever be reason-less.
-        # Any path that reaches here without a reason (backoffice button,
-        # sync cleanup, unknown future paths) gets tagged EOD so it is
-        # visible and groupable instead of "No reason provided".
-        for order in cancellable_orders.filtered(lambda o: not o.cancel_reason):
+        draft_noreason = cancellable_orders.filtered(lambda o: not o.cancel_reason)
+
+        # Backend / interactive path without a reason: open the reason
+        # wizard instead of cancelling (the POS flags itself via context).
+        if draft_noreason and not self.env.context.get('from_pos'):
+            return {
+                'type': 'ir.actions.act_window',
+                'name': 'İptal Sebebi',
+                'res_model': 'cz.pos.cancel.reason.wizard',
+                'view_mode': 'form',
+                'views': [(False, 'form')],
+                'target': 'new',
+                'context': {'default_order_ids': [(6, 0, cancellable_orders.ids)]},
+            }
+
+        # POS backstop: reason-less cancellations from the POS itself
+        # (session-close serverIds, sync cleanup) get tagged EOD so
+        # "No reason provided" can never exist.
+        for order in draft_noreason:
             order.write({
                 'cancel_reason': 'Kapanış/sistem iptali – sebep girilmedi',
                 'cancel_reason_code': 'EOD',
@@ -138,3 +153,35 @@ class PosOrderLine(models.Model):
         result = super()._load_pos_data_fields(config_id)
         result += ['discount_reason_code', 'discount_reason']
         return result
+
+
+class CzPosCancelReasonWizard(models.TransientModel):
+    _name = 'cz.pos.cancel.reason.wizard'
+    _description = 'POS Cancel Reason Wizard (backend)'
+
+    order_ids = fields.Many2many('pos.order', string='Orders', required=True)
+    reason_code = fields.Selection([
+        ('KEY_ERR', 'Hatalı tuşlama (yanlış ürün/adet)'),
+        ('DUP', 'Mükerrer sipariş (iki kere girildi)'),
+        ('CUST_NP', 'Müşteri iptali – ürün hazırlanmadı'),
+        ('CUST_P', 'Müşteri iptali – ürün hazırlandı'),
+        ('STOCK', 'Stokta yok / ürün bitti'),
+        ('PLATFORM', 'Platform iptali'),
+        ('COURIER', 'Kurye sorunu'),
+        ('KITCHEN', 'Mutfak hatası – yeniden hazırlandı'),
+        ('SWAP', 'Ürün değişikliği'),
+        ('OTHER', 'Diğer (açıklama zorunlu)'),
+    ], string='İptal Sebebi', required=True)
+    note = fields.Char(string='Açıklama')
+
+    def action_confirm(self):
+        self.ensure_one()
+        if self.reason_code == 'OTHER' and not (self.note or '').strip():
+            raise UserError('"Diğer" için açıklama zorunludur.')
+        label = dict(self._fields['reason_code'].selection)[self.reason_code]
+        text = '%s — %s' % (label, self.note.strip()) if (self.note or '').strip() else label
+        self.order_ids.write({
+            'cancel_reason': text,
+            'cancel_reason_code': self.reason_code,
+        })
+        return self.order_ids.action_pos_order_cancel()
