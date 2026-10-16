@@ -18,6 +18,7 @@ class PosOrder(models.Model):
         ('KITCHEN', 'Mutfak hatası – yeniden hazırlandı'),
         ('SWAP', 'Ürün değişikliği (başka ürünle değişti)'),
         ('OTHER', 'Diğer'),
+        ('EOD', 'Kapanış/sistem – sebep girilmedi'),
     ], string='Cancel Reason Code', readonly=True, copy=False, index=True)
     discount_log_posted = fields.Boolean(
         default=False, copy=False,
@@ -64,6 +65,16 @@ class PosOrder(models.Model):
     def action_pos_order_cancel(self):
         """Override to post a cancellation log note (reason already written via ormWrite)."""
         cancellable_orders = self.filtered(lambda o: o.state == 'draft')
+
+        # Server-side backstop: NO cancellation may ever be reason-less.
+        # Any path that reaches here without a reason (backoffice button,
+        # sync cleanup, unknown future paths) gets tagged EOD so it is
+        # visible and groupable instead of "No reason provided".
+        for order in cancellable_orders.filtered(lambda o: not o.cancel_reason):
+            order.write({
+                'cancel_reason': 'Kapanış/sistem iptali – sebep girilmedi',
+                'cancel_reason_code': 'EOD',
+            })
 
         for order in cancellable_orders:
             user_name = self.env.user.name
