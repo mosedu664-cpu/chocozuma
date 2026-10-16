@@ -92,6 +92,26 @@ patch(PosStore.prototype, {
                     await this.checkPreparationStateAndSentOrderInPreparation(order, true);
                 }
 
+                // GAP FIX: paths that call deleteOrders directly (session
+                // closing bulk-cancel, etc.) bypass onDeleteOrder and its
+                // popup. Ask here, per order, for any synced order with
+                // lines that has no reason yet. Dismiss = abort everything.
+                if (
+                    typeof order.id === "number" &&
+                    !order._cancelReason &&
+                    order.lines &&
+                    order.lines.length > 0
+                ) {
+                    const payload = await makeAwaitable(this.dialog, CancelReasonPopup, {
+                        title: _t("İptal sebebi: %s", order.pos_reference || order.name || ""),
+                    });
+                    if (!payload) {
+                        return false;
+                    }
+                    order._cancelReason = payload.text;
+                    order._cancelReasonCode = payload.code;
+                }
+
                 const cancelled = this.removeOrder(order, false);
                 this.removePendingOrder(order);
                 if (!cancelled) {
@@ -121,15 +141,17 @@ patch(PosStore.prototype, {
 
         if (ids.size > 0) {
             const orderIds = Array.from(ids);
-            const cancelReason = Object.values(reasonMap)[0] || null;
-            // Write the reason onto the order record first, then cancel normally (no extra kwargs)
-            if (cancelReason) {
-                await this.data.ormWrite("pos.order", orderIds, {
-                    cancel_reason: cancelReason.text,
-                    cancel_reason_code: cancelReason.code,
+            // Write each order's OWN reason before cancelling (was: first
+            // reason applied to the whole batch).
+            for (const [orderId, reason] of Object.entries(reasonMap)) {
+                await this.data.ormWrite("pos.order", [parseInt(orderId)], {
+                    cancel_reason: reason.text,
+                    cancel_reason_code: reason.code,
                 });
             }
-            await this.data.callRelated("pos.order", "action_pos_order_cancel", [orderIds]);
+            await this.data.callRelated("pos.order", "action_pos_order_cancel", [orderIds], {
+                context: { from_pos: true },
+            });
             return true;
         }
 
