@@ -21,7 +21,7 @@ module, then add "Access to export feature" to the Default User
 template (Odoo pushes it to all internal users).
 """,
     'author': 'Choco Zuma',
-    'version': '18.0.1.0.0',
+    'version': '18.0.1.0.1',
     'category': 'Hidden/Tools',
     'depends': ['web', 'base', 'base_import', 'portal'],
     'data': [
@@ -32,6 +32,10 @@ template (Odoo pushes it to all internal users).
     'assets': {
         'web.assets_backend': [
             'cz_data_guard/static/src/import_records_patch.js',
+        ],
+        # Odoo 18 loads pivot/graph views lazily: the pivot patch must live
+        # in the same lazy bundle, otherwise its import cannot be resolved.
+        'web.assets_backend_lazy': [
             'cz_data_guard/static/src/pivot_download_patch.js',
             'cz_data_guard/static/src/pivot_download_patch.xml',
         ],
