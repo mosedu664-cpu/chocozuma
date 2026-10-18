@@ -6,7 +6,7 @@
         <field name="arch" type="xml">
             <list create="0" edit="0" delete="0" decoration-danger="not allowed">
                 <field name="create_date" string="Date"/>
-                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="user_id" widget="many2one_avatar"/>
                 <field name="model_label"/>
                 <field name="model" optional="hide"/>
                 <field name="record_count"/>

@@ -3,6 +3,7 @@ import json
 import logging
 
 from werkzeug.datastructures import FileStorage
+from werkzeug.exceptions import InternalServerError
 
 from odoo import _, api, http
 from odoo.exceptions import AccessError
@@ -27,14 +28,16 @@ def _log_export(fmt, data, allowed):
         elif data:
             params = json.loads(data)
         model = params.get('model') or ''
-        field_count = len(params.get('fields') or params.get('measures') or [])
+        field_count = len(params.get('fields') or []) or int(params.get('measure_count') or 0)
         ids = params.get('ids') or []
         with request.env.registry.cursor() as cr:
-            env = api.Environment(cr, request.env.uid, dict(request.env.context))
+            ctx = dict(request.env.context, **(params.get('context') or {}))
+            env = api.Environment(cr, request.env.uid, ctx)
             record_count = len(ids)
             if not record_count and model and model in env and fmt != 'pivot':
                 try:
-                    record_count = env[model].search_count(params.get('domain') or [])
+                    with cr.savepoint():
+                        record_count = env[model].search_count(params.get('domain') or [])
                 except Exception:
                     record_count = 0
             label = env['ir.model']._get(model).name if model else (params.get('title') or '')
@@ -55,7 +58,13 @@ def _guard(fmt, data):
     allowed = request.env.user.has_group('base.group_allow_export')
     _log_export(fmt, data, allowed)
     if not allowed:
-        raise AccessError(_("You are not allowed to export data."))
+        # Same error format as core export routes -> clean dialog in the UI.
+        exc = AccessError(_("You are not allowed to export data."))
+        raise InternalServerError(json.dumps({
+            'code': 200,
+            'message': "Odoo Server Error",
+            'data': http.serialize_exception(exc),
+        }))
 
 
 class CzExcelExport(ExcelExport):
