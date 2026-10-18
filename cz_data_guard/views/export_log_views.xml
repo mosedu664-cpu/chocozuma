@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cz_export_log_list" model="ir.ui.view">
+        <field name="name">cz.export.log.list</field>
+        <field name="model">cz.export.log</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0" decoration-danger="not allowed">
+                <field name="create_date" string="Date"/>
+                <field name="user_id" widget="many2one_avatar"/>
+                <field name="model_label"/>
+                <field name="model" optional="hide"/>
+                <field name="record_count"/>
+                <field name="field_count"/>
+                <field name="export_format"/>
+                <field name="allowed"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_cz_export_log_search" model="ir.ui.view">
+        <field name="name">cz.export.log.search</field>
+        <field name="model">cz.export.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="user_id"/>
+                <field name="model_label"/>
+                <filter string="Blocked attempts" name="blocked" domain="[('allowed', '=', False)]"/>
+                <group>
+                    <filter string="User" name="gb_user" context="{'group_by': 'user_id'}"/>
+                    <filter string="Data" name="gb_model" context="{'group_by': 'model_label'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_cz_export_log" model="ir.actions.act_window">
+        <field name="name">Export Log</field>
+        <field name="res_model">cz.export.log</field>
+        <field name="view_mode">list</field>
+    </record>
+    <menuitem id="menu_cz_export_log" name="Export Log"
+              parent="base.menu_users" action="action_cz_export_log"
+              groups="base.group_system" sequence="99"/>
+</odoo>
