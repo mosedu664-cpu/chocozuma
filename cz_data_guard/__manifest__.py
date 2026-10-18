@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'CZ Data Guard',
-    'summary': 'Server-side export lock, export audit log, API key lock',
+    'summary': 'Export/import lock (4 named users), audit log, API key lock',
     'description': """
 - Export (list export, CSV/XLSX, pivot XLSX) only for users with
   "Access to export feature"; enforced on the SERVER, not just by hiding
@@ -13,11 +13,16 @@
     'author': 'Choco Zuma',
     'version': '18.0.1.0.0',
     'category': 'Hidden/Tools',
-    'depends': ['web', 'base'],
+    'depends': ['web', 'base', 'base_import'],
     'data': [
         'security/ir.model.access.csv',
         'views/export_log_views.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'cz_data_guard/static/src/import_records_patch.js',
+        ],
+    },
     'post_init_hook': 'post_init_hook',
     'installable': True,
     'application': False,
