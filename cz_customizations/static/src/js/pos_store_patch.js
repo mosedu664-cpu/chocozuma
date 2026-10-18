@@ -8,6 +8,29 @@ import { CancelReasonPopup, DISCOUNT_REASONS } from "@cz_customizations/app/util
 
 patch(PosStore.prototype, {
     /**
+     * Skip the morning Opening Control popup: the previous closing balance
+     * is carried over automatically as the opening cash. Real cash
+     * counting stays where it matters — at session closing.
+     */
+    async openOpeningControl() {
+        if (this.session && this.session.state === "opening_control") {
+            try {
+                await this.data.call("pos.session", "set_opening_control", [
+                    this.session.id,
+                    0,
+                    "Otomatik açılış (0)",
+                ]);
+                this.session.state = "opened";
+                return;
+            } catch (e) {
+                // Offline or any failure: fall back to the standard popup.
+                return super.openOpeningControl(...arguments);
+            }
+        }
+        return super.openOpeningControl(...arguments);
+    },
+
+    /**
      * Intercept ALL manual line discounts (numpad % mode and the restricted
      * NumberPopup flow both funnel through this method) and require a reason
      * from a fixed list, once per line. Loyalty reward lines are never touched:
