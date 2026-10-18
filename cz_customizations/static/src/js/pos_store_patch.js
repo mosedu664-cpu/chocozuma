@@ -17,8 +17,8 @@ patch(PosStore.prototype, {
             try {
                 await this.data.call("pos.session", "set_opening_control", [
                     this.session.id,
-                    this.session.cash_register_balance_start || 0,
-                    "Otomatik açılış (devir bakiye)",
+                    0,
+                    "Otomatik açılış (0)",
                 ]);
                 this.session.state = "opened";
                 return;
