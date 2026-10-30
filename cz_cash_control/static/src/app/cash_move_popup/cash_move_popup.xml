@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="cz_cash_control.CashMovePopup" t-inherit="point_of_sale.CashMovePopup" t-inherit-mode="extension">
+        <!-- Category / staff / receipt block, only when Cash Control is on -->
+        <xpath expr="//div[hasclass('form-floating')]" position="before">
+            <t t-if="czEnabled">
+                <div class="cz-cash-move mb-2">
+                    <label class="form-label fw-bold mb-1">Kategori <span class="text-danger">*</span></label>
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <t t-foreach="czCategories" t-as="cat" t-key="cat.id">
+                            <button type="button"
+                                    t-attf-class="btn btn-lg lh-lg #{state.czCategoryId === cat.id ? 'btn-primary' : 'btn-secondary'}"
+                                    t-on-click="() => this.czSelectCategory(cat.id)">
+                                <t t-esc="cat.name"/>
+                                <i t-if="cat.requires_pin" class="fa fa-lock ms-1 small" title="Yönetici PIN gerekli"/>
+                            </button>
+                        </t>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-12 col-md-6" t-if="czNeedsEmployee or czCategory">
+                            <label class="form-label mb-1">Personel <span t-if="czNeedsEmployee" class="text-danger">*</span></label>
+                            <select class="form-select form-select-lg" t-model.number="state.czEmployeeId">
+                                <option value="">—</option>
+                                <t t-foreach="czEmployees" t-as="emp" t-key="emp.id">
+                                    <option t-att-value="emp.id" t-esc="emp.name"/>
+                                </t>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6" t-if="czCategory">
+                            <label class="form-label mb-1">Fiş / Fatura No <span t-if="czNeedsReceipt" class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-lg" t-model="state.czReceiptRef"
+                                   placeholder="Fiş numarası"/>
+                        </div>
+                    </div>
+                    <div t-if="czOverMax" class="alert alert-danger py-1 mt-2 mb-0">
+                        Bu kategori için tek işlem limiti <t t-esc="env.utils.formatCurrency(czCategory.max_amount)"/>.
+                    </div>
+                    <div t-elif="czNeedsPin" class="alert alert-warning py-1 mt-2 mb-0">
+                        <i class="fa fa-lock me-1"/> Bu işlem için yönetici PIN'i istenecek.
+                    </div>
+                    <div t-elif="czNeedsReceipt and !state.czReceiptRef.trim()" class="alert alert-warning py-1 mt-2 mb-0">
+                        Bu tutar için fiş numarası zorunlu.
+                    </div>
+                </div>
+            </t>
+        </xpath>
+        <!-- Reason becomes optional when a category is chosen -->
+        <xpath expr="//textarea[hasclass('cash-reason')]" position="attributes">
+            <attribute name="placeholder">Açıklama (isteğe bağlı)</attribute>
+            <attribute name="style">height:60px;</attribute>
+        </xpath>
+    </t>
+
+</templates>

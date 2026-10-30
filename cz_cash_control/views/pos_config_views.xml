@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pos_config_view_form_cz_cash" model="ir.ui.view">
+        <field name="name">pos.config.form.cz.cash.control</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Choco Zuma Cash Control" name="cz_cash_control" col="2">
+                    <group>
+                        <field name="cz_cash_control"/>
+                        <field name="cz_safe_id" invisible="not cz_cash_control" required="cz_cash_control"/>
+                        <field name="cz_opening_float" invisible="not cz_cash_control"/>
+                        <field name="cz_blind_count" invisible="not cz_cash_control"/>
+                    </group>
+                    <group>
+                        <field name="cz_zero_count_pin" invisible="not cz_cash_control"/>
+                        <field name="cz_diff_pin_above" invisible="not cz_cash_control"/>
+                        <field name="cz_cash_out_pin_above" invisible="not cz_cash_control"/>
+                        <field name="cz_accountant_ids" widget="many2many_tags" invisible="not cz_cash_control"/>
+                        <field name="cz_manager_ids" widget="many2many_tags" invisible="not cz_cash_control"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>
