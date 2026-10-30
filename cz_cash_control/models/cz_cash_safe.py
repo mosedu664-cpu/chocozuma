@@ -26,8 +26,8 @@ class CzCashSafe(models.Model):
         help="Cash journal that represents the physical safe.")
     account_id = fields.Many2one(related='journal_id.default_account_id', string='Safe Account')
     transfer_account_id = fields.Many2one(
-        'account.account', string='Transfer Clearing Account', required=True, check_company=True,
-        domain="[('company_ids', 'in', company_id), ('deprecated', '=', False)]",
+        'account.account', string='Transfer Clearing Account', required=True,
+        domain="[('company_ids', 'parent_of', company_id), ('deprecated', '=', False)]",
         help="Both legs of a drawer→safe transfer hit this account so it always nets to zero.")
     responsible_id = fields.Many2one('res.users', string='Responsible (Manager)', required=True, tracking=True)
     pos_config_ids = fields.One2many('pos.config', 'cz_safe_id', string='Fed by POS')

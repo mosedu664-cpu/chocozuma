@@ -65,8 +65,8 @@ class CzCashDay(models.Model):
         ('to_safe', 'Cash was moved to the safe without a cash-out'),
         ('reclass', 'Post to another account'),
     ], default='keep', required=True)
-    difference_account_id = fields.Many2one('account.account', check_company=True,
-                                            domain="[('company_ids', 'in', company_id), ('deprecated', '=', False)]")
+    difference_account_id = fields.Many2one('account.account',
+                                            domain="[('company_ids', 'parent_of', company_id), ('deprecated', '=', False)]")
     difference_note = fields.Char()
     accountant_note = fields.Text()
 

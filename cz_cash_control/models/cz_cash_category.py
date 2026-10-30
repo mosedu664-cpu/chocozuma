@@ -38,8 +38,8 @@ class CzCashCategory(models.Model):
     ], required=True, default='out', help="Which POS cash movement types this category may be used with.")
 
     account_id = fields.Many2one(
-        'account.account', string='Counterpart Account', check_company=True,
-        domain="[('company_ids', 'in', company_id), ('deprecated', '=', False)]",
+        'account.account', string='Counterpart Account',
+        domain="[('company_ids', 'parent_of', company_id), ('deprecated', '=', False)]",
         help="Account debited (cash out) / credited (cash in) when the accountant approves the day. "
              "For 'Transfer to branch safe' use the internal transfer clearing account.")
     requires_employee = fields.Boolean(string='Employee required', default=False,
