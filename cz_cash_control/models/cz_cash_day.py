@@ -314,7 +314,8 @@ class CzCashDay(models.Model):
     def _post_counterparts(self):
         self.ensure_one()
         safe = self.safe_id
-        safe_transfer_total = 0.0
+        safe_in_total = 0.0      # drawer → safe
+        safe_out = {}            # safe → drawer (change / float), per category
         for line in self.statement_line_ids.sudo():
             if self._is_diff_line(line) or self._is_system_line(line):
                 continue
@@ -323,21 +324,32 @@ class CzCashDay(models.Model):
                 if not safe:
                     raise UserError(_("No branch safe is configured on %s.", self.config_id.name))
                 account = safe.transfer_account_id
-                safe_transfer_total += -line.amount
+                safe_in_total += -line.amount
+            elif cat.kind == 'cash_in' and safe and cat.account_id == safe.transfer_account_id:
+                account = safe.transfer_account_id
+                safe_out[cat] = safe_out.get(cat, 0.0) + line.amount
             else:
                 account = cat.account_id
             line._cz_set_counterpart(account, label=line.payment_ref)
-        if safe and not float_is_zero(safe_transfer_total, precision_rounding=self.currency_id.rounding):
-            self._create_safe_in(safe_transfer_total, _("Drawer → safe transfer (%s)", self.name))
+        rounding = self.currency_id.rounding
+        if safe and not float_is_zero(safe_in_total, precision_rounding=rounding):
+            self._create_safe_in(safe_in_total, _("Drawer → safe transfer (%s)", self.name))
+        for cat, amount in safe_out.items():
+            if not float_is_zero(amount, precision_rounding=rounding):
+                self._create_safe_move('out', amount, _("Safe → drawer: %(cat)s (%(day)s)", cat=cat.name, day=self.name), category=cat)
 
     def _create_safe_in(self, amount, note):
+        return self._create_safe_move('in', amount, note)
+
+    def _create_safe_move(self, move_type, amount, note, category=None):
         self.ensure_one()
         move = self.env['cz.cash.safe.move'].sudo().create({
             'safe_id': self.safe_id.id,
             'date': self.date,
-            'move_type': 'in',
+            'move_type': move_type,
             'amount': amount,
             'note': note,
+            'category_id': category.id if category else False,
             'origin_day_id': self.id,
         })
         move.action_approve()
