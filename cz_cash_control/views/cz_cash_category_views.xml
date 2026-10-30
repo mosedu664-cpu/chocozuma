@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cz_cash_category_list" model="ir.ui.view">
+        <field name="name">cz.cash.category.list</field>
+        <field name="model">cz.cash.category</field>
+        <field name="arch" type="xml">
+            <list editable="bottom" default_order="sequence">
+                <field name="sequence" widget="handle"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="kind"/>
+                <field name="direction"/>
+                <field name="account_id"/>
+                <field name="requires_employee"/>
+                <field name="requires_receipt_above"/>
+                <field name="requires_pin"/>
+                <field name="pin_above"/>
+                <field name="max_amount"/>
+                <field name="typical_amount"/>
+                <field name="pos_available"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cz_cash_category_form" model="ir.ui.view">
+        <field name="name">cz.cash.category.form</field>
+        <field name="model">cz.cash.category</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger" invisible="active"/>
+                    <group>
+                        <group string="Shown to the cashier">
+                            <field name="name"/>
+                            <field name="code"/>
+                            <field name="kind"/>
+                            <field name="direction"/>
+                            <field name="pos_available"/>
+                            <field name="sequence"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group string="Accounting">
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="account_id"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group string="Controls">
+                            <field name="requires_employee"/>
+                            <field name="requires_receipt_above"/>
+                            <field name="requires_pin"/>
+                            <field name="pin_above"/>
+                            <field name="max_amount"/>
+                            <field name="typical_amount"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Internal note for the accountant..."/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cz_cash_category" model="ir.actions.act_window">
+        <field name="name">Cash Categories</field>
+        <field name="res_model">cz.cash.category</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_pos_available': 1}</field>
+    </record>
+</odoo>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="cz_cash_control.Navbar" t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
+        <!-- One-tap "Masraf / Nakit Çıkışı" button for the cashier -->
+        <xpath expr="//CashierName" position="before">
+            <button t-if="pos.config.cz_cash_control and pos.config.cash_control"
+                    class="btn btn-warning btn-lg lh-lg fw-bold"
+                    t-on-click="() => this.pos.cashMove()" title="Kasadan masraf / küçük kasaya aktarım">
+                <i class="fa fa-fw fa-money"/><span t-if="!ui.isSmall" class="ms-1">Masraf</span>
+            </button>
+        </xpath>
+    </t>
+
+</templates>

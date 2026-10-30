@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cz_cash_day_list" model="ir.ui.view">
+        <field name="name">cz.cash.day.list</field>
+        <field name="model">cz.cash.day</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="alert_level == 'danger'" decoration-warning="alert_level == 'warning' and state != 'approved'"
+                  decoration-success="state == 'approved'" default_order="date desc">
+                <field name="date"/>
+                <field name="config_id"/>
+                <field name="cash_sales" sum="Total"/>
+                <field name="expense_total" sum="Total"/>
+                <field name="safe_transfer_total" sum="Total"/>
+                <field name="expected_cash"/>
+                <field name="counted_cash"/>
+                <field name="difference" sum="Total"/>
+                <field name="uncategorised_count" optional="hide"/>
+                <field name="excel_cash_sales" optional="hide"/>
+                <field name="excel_diff" optional="hide"/>
+                <field name="alert_count" string="⚠"/>
+                <field name="state" widget="badge" decoration-success="state == 'approved'"
+                       decoration-warning="state == 'to_approve'" decoration-info="state == 'open'"/>
+                <field name="approved_by" optional="hide"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="alert_level" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cz_cash_day_form" model="ir.ui.view">
+        <field name="name">cz.cash.day.form</field>
+        <field name="model">cz.cash.day</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_approve" type="object" string="Approve &amp; Post" class="btn-primary"
+                            invisible="state != 'to_approve'" groups="cz_cash_control.group_cz_cash_accountant"
+                            confirm="Post all counterparts for this day? Approved movements can no longer be edited."/>
+                    <button name="action_refresh" type="object" string="Refresh from POS" invisible="state == 'approved'"/>
+                    <button name="action_open_statement_lines" type="object" string="Open journal lines"/>
+                    <field name="state" widget="statusbar" statusbar_visible="open,to_approve,approved"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger mb-3" role="alert" invisible="alert_level != 'danger'">
+                        <field name="alert_html" nolabel="1"/>
+                    </div>
+                    <div class="alert alert-warning mb-3" role="alert" invisible="alert_level != 'warning'">
+                        <field name="alert_html" nolabel="1"/>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                        <div class="text-muted">Cashiers: <field name="cashier_names" readonly="1" class="d-inline"/></div>
+                    </div>
+                    <group>
+                        <group string="Drawer">
+                            <field name="config_id" readonly="state != 'open'"/>
+                            <field name="date" readonly="state != 'open'"/>
+                            <field name="opening_cash"/>
+                            <field name="cash_sales"/>
+                            <field name="cash_in_total" invisible="not cash_in_total"/>
+                            <field name="expense_total"/>
+                            <field name="refund_total" invisible="not refund_total"/>
+                            <field name="safe_transfer_total"/>
+                            <field name="uncategorised_total" invisible="not uncategorised_count" decoration-danger="1"/>
+                            <field name="expected_cash" class="fw-bold"/>
+                            <field name="counted_cash" class="fw-bold"/>
+                            <field name="difference" class="fw-bold" decoration-danger="difference != 0"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="company_id" invisible="1"/>
+                            <field name="alert_level" invisible="1"/>
+                            <field name="uncategorised_count" invisible="1"/>
+                        </group>
+                        <group string="Day">
+                            <field name="total_sales"/>
+                            <field name="non_cash_total"/>
+                            <field name="session_count"/>
+                            <field name="all_sessions_closed"/>
+                            <field name="safe_id"/>
+                            <field name="cash_journal_id"/>
+                            <field name="closing_notes"/>
+                            <field name="approved_by" invisible="state != 'approved'"/>
+                            <field name="approved_at" invisible="state != 'approved'"/>
+                        </group>
+                    </group>
+                    <group string="Difference handling" invisible="difference == 0" col="4">
+                        <field name="difference_action" readonly="state == 'approved'" colspan="2"/>
+                        <field name="difference_account_id" invisible="difference_action != 'reclass'" required="difference_action == 'reclass'" readonly="state == 'approved'"/>
+                        <field name="difference_note" readonly="state == 'approved'" colspan="2"/>
+                    </group>
+                    <group string="Parallel run — legacy Excel" col="4">
+                        <field name="excel_cash_sales" readonly="state == 'approved'"/>
+                        <field name="excel_expenses" readonly="state == 'approved'"/>
+                        <field name="excel_diff"/>
+                    </group>
+                    <notebook>
+                        <page string="Cash movements" name="lines">
+                            <field name="statement_line_ids" readonly="state == 'approved'"
+                                   context="{'list_view_ref': 'cz_cash_control.view_cz_statement_line_in_day'}"/>
+                        </page>
+                        <page string="By category" name="summary">
+                            <field name="summary_line_ids" readonly="1">
+                                <list>
+                                    <field name="category_id"/>
+                                    <field name="kind"/>
+                                    <field name="count" sum="Count"/>
+                                    <field name="amount" sum="Total"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="POS sessions" name="sessions">
+                            <field name="session_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="user_id"/>
+                                    <field name="start_at"/>
+                                    <field name="stop_at"/>
+                                    <field name="cash_register_balance_start"/>
+                                    <field name="cash_register_balance_end"/>
+                                    <field name="cash_register_balance_end_real"/>
+                                    <field name="cash_register_difference"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Safe movements" name="safe" invisible="not safe_move_ids">
+                            <field name="safe_move_ids" readonly="1"/>
+                        </page>
+                        <page string="Accountant note" name="note">
+                            <field name="accountant_note" placeholder="Anything the manager should know about this day..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_cz_cash_day_search" model="ir.ui.view">
+        <field name="name">cz.cash.day.search</field>
+        <field name="model">cz.cash.day</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="config_id"/>
+                <field name="date"/>
+                <filter name="to_approve" string="To approve" domain="[('state', '=', 'to_approve')]"/>
+                <filter name="open" string="Open" domain="[('state', '=', 'open')]"/>
+                <filter name="approved" string="Approved" domain="[('state', '=', 'approved')]"/>
+                <separator/>
+                <filter name="alerts" string="With alerts" domain="[('alert_count', '>', 0)]"/>
+                <filter name="with_diff" string="With difference" domain="[('difference', '!=', 0)]"/>
+                <separator/>
+                <filter name="this_month" string="This month" date="date" default_period="month"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_pos" string="Point of Sale" context="{'group_by': 'config_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by': 'state'}"/>
+                    <filter name="group_month" string="Month" context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_cz_cash_day_pivot" model="ir.ui.view">
+        <field name="name">cz.cash.day.pivot</field>
+        <field name="model">cz.cash.day</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="config_id" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="cash_sales" type="measure"/>
+                <field name="expense_total" type="measure"/>
+                <field name="safe_transfer_total" type="measure"/>
+                <field name="difference" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_cz_cash_day_graph" model="ir.ui.view">
+        <field name="name">cz.cash.day.graph</field>
+        <field name="model">cz.cash.day</field>
+        <field name="arch" type="xml">
+            <graph type="bar" stacked="0">
+                <field name="date" interval="day"/>
+                <field name="cash_sales" type="measure"/>
+                <field name="expense_total" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_cz_cash_day" model="ir.actions.act_window">
+        <field name="name">Daily Cash Sheets</field>
+        <field name="res_model">cz.cash.day</field>
+        <field name="view_mode">list,form,pivot,graph</field>
+        <field name="context">{'search_default_to_approve': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No daily cash sheet yet</p>
+            <p>Sheets are created automatically when a POS session with Cash Control is opened.</p>
+        </field>
+    </record>
+
+    <record id="view_cz_cash_day_line_pivot" model="ir.ui.view">
+        <field name="name">cz.cash.day.line.pivot</field>
+        <field name="model">cz.cash.day.line</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="category_id" type="row"/>
+                <field name="date" interval="month" type="col"/>
+                <field name="amount" type="measure"/>
+                <field name="count" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_cz_cash_day_line" model="ir.actions.act_window">
+        <field name="name">Drawer Expenses by Category</field>
+        <field name="res_model">cz.cash.day.line</field>
+        <field name="view_mode">pivot,graph,list</field>
+    </record>
+</odoo>

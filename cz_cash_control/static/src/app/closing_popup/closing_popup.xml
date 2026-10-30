@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="cz_cash_control.ClosePosPopup" t-inherit="point_of_sale.ClosePosPopup" t-inherit-mode="extension">
+        <!-- Blind count: hide the expected cash figure, opening, the cash in/out breakdown and the difference -->
+        <xpath expr="//div[hasclass('payment-methods-overview')]/div[1]/div[1]/span[2]" position="attributes">
+            <attribute name="t-if">!czBlind</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('payment-methods-overview')]/div[1]/div[2]" position="attributes">
+            <attribute name="t-if">!czBlind</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('payment-methods-overview')]/div[1]/div[3]" position="attributes">
+            <attribute name="t-if">!czBlind and props.default_cash_details.payment_amount</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('payment-methods-overview')]/div[1]//PaymentMethodBreakdown" position="attributes">
+            <attribute name="t-if">!czBlind</attribute>
+        </xpath>
+        <xpath expr="//span[hasclass('cash-difference')]/.." position="attributes">
+            <attribute name="t-if">!czBlind</attribute>
+        </xpath>
+        <!-- No "copy expected amount" button in blind mode -->
+        <xpath expr="//button[hasclass('fa-clone')]" position="attributes">
+            <attribute name="t-if">!czBlind</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('payment-methods-overview')]" position="before">
+            <div t-if="czBlind" class="alert alert-info py-2 mb-2">
+                <i class="fa fa-eye-slash me-1"/>
+                <b>Kör sayım:</b> çekmecedeki tüm nakdi sayın ve tutarı yazın. Beklenen tutar gösterilmez.
+                Masraflar ve küçük kasaya aktarımlar <b>Nakit Giriş/Çıkış</b> ile kaydedilmiş olmalı.
+            </div>
+        </xpath>
+    </t>
+
+</templates>

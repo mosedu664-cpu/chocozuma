@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_cz_cash" model="ir.module.category">
+        <field name="name">Cash Control</field>
+        <field name="sequence">60</field>
+    </record>
+
+    <!-- Branch manager: sees own branch sheets, manages the safe, cannot approve -->
+    <record id="group_cz_cash_manager" model="res.groups">
+        <field name="name">Branch Manager (Safe)</field>
+        <field name="category_id" ref="module_category_cz_cash"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Accountant: approves days, configures categories -->
+    <record id="group_cz_cash_accountant" model="res.groups">
+        <field name="name">Cash Accountant (Approve)</field>
+        <field name="category_id" ref="module_category_cz_cash"/>
+        <field name="implied_ids" eval="[(4, ref('group_cz_cash_manager'))]"/>
+    </record>
+
+    <!-- Administrator -->
+    <record id="group_cz_cash_admin" model="res.groups">
+        <field name="name">Cash Control Administrator</field>
+        <field name="category_id" ref="module_category_cz_cash"/>
+        <field name="implied_ids" eval="[(4, ref('group_cz_cash_accountant'))]"/>
+        <field name="users" eval="[(4, ref('base.user_admin'))]"/>
+    </record>
+
+    <!-- Multi-company rules -->
+    <record id="rule_cz_cash_day_company" model="ir.rule">
+        <field name="name">Daily cash sheet: multi-company</field>
+        <field name="model_id" ref="model_cz_cash_day"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_cz_cash_safe_company" model="ir.rule">
+        <field name="name">Safe: multi-company</field>
+        <field name="model_id" ref="model_cz_cash_safe"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_cz_cash_safe_move_company" model="ir.rule">
+        <field name="name">Safe movement: multi-company</field>
+        <field name="model_id" ref="model_cz_cash_safe_move"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_cz_cash_category_company" model="ir.rule">
+        <field name="name">Cash category: multi-company</field>
+        <field name="model_id" ref="model_cz_cash_category"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <!-- Branch manager only sees/edits the safes he is responsible for -->
+    <record id="rule_cz_cash_safe_manager_own" model="ir.rule">
+        <field name="name">Safe: manager sees own safes</field>
+        <field name="model_id" ref="model_cz_cash_safe"/>
+        <field name="domain_force">[('responsible_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('group_cz_cash_manager'))]"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_cz_cash_safe_move_manager_own" model="ir.rule">
+        <field name="name">Safe movement: manager on own safes</field>
+        <field name="model_id" ref="model_cz_cash_safe_move"/>
+        <field name="domain_force">[('safe_id.responsible_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('group_cz_cash_manager'))]"/>
+    </record>
+    <record id="rule_cz_cash_safe_accountant_all" model="ir.rule">
+        <field name="name">Safe: accountant sees all</field>
+        <field name="model_id" ref="model_cz_cash_safe"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_cz_cash_accountant'))]"/>
+    </record>
+    <record id="rule_cz_cash_safe_move_accountant_all" model="ir.rule">
+        <field name="name">Safe movement: accountant sees all</field>
+        <field name="model_id" ref="model_cz_cash_safe_move"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_cz_cash_accountant'))]"/>
+    </record>
+</odoo>

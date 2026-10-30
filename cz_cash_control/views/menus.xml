@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_cz_cash_root" name="Cash Control" sequence="35"
+              web_icon="cz_cash_control,static/description/icon.png"
+              groups="cz_cash_control.group_cz_cash_manager"/>
+
+    <menuitem id="menu_cz_cash_days" name="Daily Cash Sheets" parent="menu_cz_cash_root"
+              action="action_cz_cash_day" sequence="10"/>
+    <menuitem id="menu_cz_cash_safes" name="Branch Safes" parent="menu_cz_cash_root"
+              action="action_cz_cash_safe" sequence="20"/>
+    <menuitem id="menu_cz_cash_safe_moves" name="Safe Movements" parent="menu_cz_cash_root"
+              action="action_cz_cash_safe_move" sequence="30"/>
+
+    <menuitem id="menu_cz_cash_reporting" name="Reporting" parent="menu_cz_cash_root" sequence="80"/>
+    <menuitem id="menu_cz_cash_day_lines" name="Expenses by Category" parent="menu_cz_cash_reporting"
+              action="action_cz_cash_day_line" sequence="10"/>
+
+    <menuitem id="menu_cz_cash_config" name="Configuration" parent="menu_cz_cash_root" sequence="90"
+              groups="cz_cash_control.group_cz_cash_accountant"/>
+    <menuitem id="menu_cz_cash_categories" name="Cash Categories" parent="menu_cz_cash_config"
+              action="action_cz_cash_category" sequence="10"/>
+</odoo>
