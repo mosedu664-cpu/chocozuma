@@ -5,3 +5,4 @@ from . import pos_order
 from . import res_config_settings
 from . import account_move_send
 from . import res_partner_category
+from . import nilvera_fetch
