@@ -26,6 +26,8 @@ class CzCashCategory(models.Model):
         ('safe_transfer', 'Transfer to branch safe'),
         ('refund', 'Customer refund'),
         ('advance', 'Staff advance / loan'),
+        ('bank_deposit', 'Bank deposit (from safe)'),
+        ('salary', 'Salary / wage payment (from safe)'),
         ('cash_in', 'Cash in (float / change)'),
         ('other', 'Other'),
     ], required=True, default='expense')

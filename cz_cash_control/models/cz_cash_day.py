@@ -119,12 +119,24 @@ class CzCashDay(models.Model):
         j = self.cash_journal_id
         return (j.profit_account_id | j.loss_account_id)
 
+    def _counterparts(self, line):
+        return line.move_id.line_ids.filtered(lambda l: l.account_id != line.journal_id.default_account_id)
+
     def _is_diff_line(self, line):
         """Statement line auto-created by Odoo at closing for the count difference."""
         if line.cz_category_id:
             return False
-        counterparts = line.move_id.line_ids.filtered(lambda l: l.account_id != line.journal_id.default_account_id)
+        counterparts = self._counterparts(line)
         return bool(counterparts) and counterparts.account_id <= self._diff_accounts()
+
+    def _is_system_line(self, line):
+        """Statement line Odoo itself created and already booked at closing
+        (the session's cash payments line, counterpart POS receivable). Not a drawer movement."""
+        if line.cz_category_id:
+            return False
+        counterparts = self._counterparts(line)
+        return bool(counterparts) and line.journal_id.suspense_account_id not in counterparts.account_id \
+            and not self._is_diff_line(line)
 
     def _compute_all(self):
         """Rebuild the snapshot from the sessions. Safe to call any time before approval."""
@@ -147,9 +159,13 @@ class CzCashDay(models.Model):
             uncategorised = 0.0
             uncategorised_count = 0
             diff_lines_total = 0.0
+            system_total = 0.0
             for line in lines:
                 if day._is_diff_line(line):
                     diff_lines_total += line.amount
+                    continue
+                if day._is_system_line(line):
+                    system_total += line.amount
                     continue
                 cat = line.cz_category_id
                 if cat:
@@ -163,7 +179,7 @@ class CzCashDay(models.Model):
             first = sessions.sorted('start_at')[:1]
             opening = first.cash_register_balance_start if first else 0.0
             # Expected = what Odoo expected at the last closing (before its own diff line)
-            expected = opening + cash_sales + sum(lines.mapped('amount')) - diff_lines_total
+            expected = opening + cash_sales + sum(lines.mapped('amount')) - diff_lines_total - system_total
             closed = sessions.filtered(lambda s: s.state == 'closed').sorted('stop_at')
             # several sessions in one day: each closing counted its own drawer; the last count is the drawer
             counted = closed[-1].cash_register_balance_end_real if closed else 0.0
@@ -175,7 +191,8 @@ class CzCashDay(models.Model):
                 'non_cash_total': non_cash,
                 'total_sales': cash_sales + non_cash,
                 'cash_in_total': totals.get('cash_in', 0.0),
-                'expense_total': -(totals.get('expense', 0.0) + totals.get('advance', 0.0) + totals.get('other', 0.0)),
+                'expense_total': -(totals.get('expense', 0.0) + totals.get('advance', 0.0) + totals.get('salary', 0.0)
+                                   + totals.get('bank_deposit', 0.0) + totals.get('other', 0.0)),
                 'safe_transfer_total': -totals.get('safe_transfer', 0.0),
                 'refund_total': -totals.get('refund', 0.0),
                 'uncategorised_total': uncategorised,
@@ -294,7 +311,7 @@ class CzCashDay(models.Model):
         safe = self.safe_id
         safe_transfer_total = 0.0
         for line in self.statement_line_ids.sudo():
-            if self._is_diff_line(line):
+            if self._is_diff_line(line) or self._is_system_line(line):
                 continue
             cat = line.cz_category_id
             if cat.kind == 'safe_transfer':

@@ -29,7 +29,7 @@ class CzCashSafeMove(models.Model):
                              help="For a count: the amount physically found in the safe.")
     category_id = fields.Many2one(
         'cz.cash.category', check_company=True,
-        domain="[('company_id', '=', company_id), ('kind', 'in', ('expense', 'advance', 'other', 'cash_in'))]")
+        domain="[('company_id', '=', company_id), ('kind', 'in', ('expense', 'advance', 'bank_deposit', 'salary', 'other', 'cash_in'))]")
     partner_id = fields.Many2one('res.partner', string='Paid to / received from')
     employee_id = fields.Many2one('hr.employee', string='Employee')
     note = fields.Char(string='Description', required=True)
