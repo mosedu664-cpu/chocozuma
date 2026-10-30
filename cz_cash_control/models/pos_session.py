@@ -86,9 +86,12 @@ class PosSession(models.Model):
         if self.cz_day_id:
             return self.cz_day_id
         Day = self.env['cz.cash.day'].sudo()
-        day = Day.search([('config_id', '=', self.config_id.id), ('date', '=', self._cz_business_date())], limit=1)
-        if not day:
-            day = Day.create({'config_id': self.config_id.id, 'date': self._cz_business_date()})
+        bdate = self._cz_business_date()
+        days = Day.search([('config_id', '=', self.config_id.id), ('date', '=', bdate)], order='seq desc')
+        day = days[:1]
+        if not day or day.state == 'approved':
+            # never touch an approved sheet: a late session gets its own sheet (2), (3)...
+            day = Day.create({'config_id': self.config_id.id, 'date': bdate, 'seq': (day.seq + 1) if day else 1})
         self.cz_day_id = day
         return day
 

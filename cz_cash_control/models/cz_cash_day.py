@@ -28,6 +28,8 @@ class CzCashDay(models.Model):
     safe_id = fields.Many2one(related='config_id.cz_safe_id', string='Branch Safe')
     cash_journal_id = fields.Many2one('account.journal', compute='_compute_cash_journal', store=True)
     date = fields.Date(required=True, index=True)
+    seq = fields.Integer(string='Sheet no.', default=1, required=True,
+                         help="2, 3... when a new session is opened after the day's sheet was already approved.")
     session_ids = fields.One2many('pos.session', 'cz_day_id', string='POS Sessions')
     session_count = fields.Integer(compute='_compute_sessions')
     all_sessions_closed = fields.Boolean(compute='_compute_sessions')
@@ -82,14 +84,17 @@ class CzCashDay(models.Model):
     safe_move_ids = fields.One2many('cz.cash.safe.move', 'origin_day_id', string='Safe movements created')
 
     _sql_constraints = [
-        ('config_date_uniq', 'unique(config_id, date)', 'There is already a cash sheet for this POS and day.'),
+        ('config_date_seq_uniq', 'unique(config_id, date, seq)', 'There is already a cash sheet for this POS, day and sheet number.'),
     ]
 
     # ------------------------------------------------------------------ computes
-    @api.depends('config_id', 'date')
+    @api.depends('config_id', 'date', 'seq')
     def _compute_name(self):
         for day in self:
-            day.name = f"{day.config_id.name} — {day.date}" if day.config_id and day.date else _('New')
+            if not (day.config_id and day.date):
+                day.name = _('New')
+                continue
+            day.name = f"{day.config_id.name} — {day.date}" + (f" ({day.seq})" if day.seq > 1 else "")
 
     @api.depends('config_id.payment_method_ids')
     def _compute_cash_journal(self):
