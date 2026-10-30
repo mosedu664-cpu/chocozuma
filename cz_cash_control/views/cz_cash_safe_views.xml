@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cz_cash_safe_kanban" model="ir.ui.view">
+        <field name="name">cz.cash.safe.kanban</field>
+        <field name="model">cz.cash.safe</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_dashboard" create="0">
+                <field name="name"/>
+                <field name="balance"/>
+                <field name="currency_id"/>
+                <field name="responsible_id"/>
+                <field name="last_count_date"/>
+                <field name="pending_move_count"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="p-2">
+                            <div class="d-flex justify-content-between">
+                                <strong class="fs-5"><field name="name"/></strong>
+                                <span t-if="record.pending_move_count.raw_value" class="badge text-bg-warning">
+                                    <field name="pending_move_count"/> to approve
+                                </span>
+                            </div>
+                            <div class="fs-2 fw-bold mt-2"><field name="balance" widget="monetary"/></div>
+                            <div class="text-muted small">
+                                Responsible: <field name="responsible_id"/><br/>
+                                Last count: <field name="last_count_date"/>
+                            </div>
+                            <div class="mt-2 d-flex gap-2">
+                                <button type="object" name="action_open_moves" class="btn btn-sm btn-primary">Movements</button>
+                                <button type="object" name="action_count" class="btn btn-sm btn-secondary">Count</button>
+                                <button type="object" name="action_open_ledger" class="btn btn-sm btn-link">Ledger</button>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_cz_cash_safe_list" model="ir.ui.view">
+        <field name="name">cz.cash.safe.list</field>
+        <field name="model">cz.cash.safe</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="journal_id"/>
+                <field name="responsible_id"/>
+                <field name="balance" sum="Total"/>
+                <field name="last_count_date"/>
+                <field name="last_count_difference"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cz_cash_safe_form" model="ir.ui.view">
+        <field name="name">cz.cash.safe.form</field>
+        <field name="model">cz.cash.safe</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_count" type="object" string="Count Safe" class="btn-primary"/>
+                    <button name="action_open_moves" type="object" string="Movements"/>
+                    <button name="action_open_ledger" type="object" string="Ledger"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. Metrokent Küçük Kasa"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="journal_id"/>
+                            <field name="account_id"/>
+                            <field name="transfer_account_id"/>
+                            <field name="responsible_id"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="balance"/>
+                            <field name="last_count_date"/>
+                            <field name="last_count_amount"/>
+                            <field name="last_count_difference"/>
+                            <field name="max_balance_alert"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Fed by POS">
+                            <field name="pos_config_ids" readonly="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cz_cash_safe" model="ir.actions.act_window">
+        <field name="name">Branch Safes</field>
+        <field name="res_model">cz.cash.safe</field>
+        <field name="view_mode">kanban,list,form</field>
+    </record>
+</odoo>

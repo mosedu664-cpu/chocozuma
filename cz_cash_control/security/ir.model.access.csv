@@ -1,0 +1,16 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_cz_cash_category_pos_user,cz.cash.category pos user,model_cz_cash_category,point_of_sale.group_pos_user,1,0,0,0
+access_cz_cash_category_manager,cz.cash.category manager,model_cz_cash_category,group_cz_cash_manager,1,0,0,0
+access_cz_cash_category_accountant,cz.cash.category accountant,model_cz_cash_category,group_cz_cash_accountant,1,1,1,0
+access_cz_cash_category_admin,cz.cash.category admin,model_cz_cash_category,group_cz_cash_admin,1,1,1,1
+access_cz_cash_safe_manager,cz.cash.safe manager,model_cz_cash_safe,group_cz_cash_manager,1,1,0,0
+access_cz_cash_safe_accountant,cz.cash.safe accountant,model_cz_cash_safe,group_cz_cash_accountant,1,1,1,0
+access_cz_cash_safe_admin,cz.cash.safe admin,model_cz_cash_safe,group_cz_cash_admin,1,1,1,1
+access_cz_cash_safe_move_manager,cz.cash.safe.move manager,model_cz_cash_safe_move,group_cz_cash_manager,1,1,1,1
+access_cz_cash_safe_move_accountant,cz.cash.safe.move accountant,model_cz_cash_safe_move,group_cz_cash_accountant,1,1,1,1
+access_cz_cash_day_pos_user,cz.cash.day pos user,model_cz_cash_day,point_of_sale.group_pos_user,1,0,0,0
+access_cz_cash_day_manager,cz.cash.day manager,model_cz_cash_day,group_cz_cash_manager,1,0,0,0
+access_cz_cash_day_accountant,cz.cash.day accountant,model_cz_cash_day,group_cz_cash_accountant,1,1,1,1
+access_cz_cash_day_line_pos_user,cz.cash.day.line pos user,model_cz_cash_day_line,point_of_sale.group_pos_user,1,0,0,0
+access_cz_cash_day_line_manager,cz.cash.day.line manager,model_cz_cash_day_line,group_cz_cash_manager,1,0,0,0
+access_cz_cash_day_line_accountant,cz.cash.day.line accountant,model_cz_cash_day_line,group_cz_cash_accountant,1,1,1,1

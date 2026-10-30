@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Embedded in the daily sheet: accountant can fix the category before approval -->
+    <record id="view_cz_statement_line_in_day" model="ir.ui.view">
+        <field name="name">account.bank.statement.line.cz.day</field>
+        <field name="model">account.bank.statement.line</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <list editable="bottom" create="0" delete="0" decoration-danger="not cz_category_id and not cz_approved"
+                  decoration-muted="cz_approved">
+                <field name="date" readonly="1"/>
+                <field name="payment_ref" readonly="1"/>
+                <field name="cz_category_id" readonly="cz_approved"
+                       domain="[('company_id', '=', company_id)]"/>
+                <field name="cz_employee_id" readonly="cz_approved"/>
+                <field name="cz_receipt_ref" readonly="cz_approved"/>
+                <field name="cz_pos_cashier" readonly="1" optional="show"/>
+                <field name="cz_manager_pin_ok" readonly="1" optional="hide"/>
+                <field name="amount" readonly="1" sum="Total"/>
+                <field name="cz_approved" readonly="1"/>
+                <field name="company_id" column_invisible="1"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="journal_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+</odoo>
