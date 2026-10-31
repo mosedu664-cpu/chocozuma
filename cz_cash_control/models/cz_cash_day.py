@@ -43,6 +43,8 @@ class CzCashDay(models.Model):
     cash_in_total = fields.Monetary(string='Cash In', currency_field='currency_id', readonly=True)
     expense_total = fields.Monetary(string='Expenses from Drawer', currency_field='currency_id', readonly=True)
     safe_transfer_total = fields.Monetary(string='Transferred to Safe', currency_field='currency_id', readonly=True)
+    eod_transfer_total = fields.Monetary(string='End-of-day drawer → safe', currency_field='currency_id', readonly=True,
+                                         help="Part of 'Transferred to Safe': the whole counted drawer moved to the safe at closing.")
     refund_total = fields.Monetary(string='Refunds', currency_field='currency_id', readonly=True)
     uncategorised_total = fields.Monetary(string='Uncategorised', currency_field='currency_id', readonly=True)
     uncategorised_count = fields.Integer(readonly=True)
@@ -189,6 +191,11 @@ class CzCashDay(models.Model):
             # several sessions in one day: each closing counted its own drawer; the last count is the drawer
             counted = closed[-1].cash_register_balance_end_real if closed else 0.0
             difference = sum(sessions.mapped('cash_register_difference'))
+            # End-of-day transfer: show the figures as they were *before* the drawer was emptied
+            # (expected vs physically counted); the difference is identical either way.
+            eod_total = -sum(lines.filtered('cz_end_of_day').mapped('amount'))
+            expected += eod_total
+            counted += eod_total
 
             day.write({
                 'opening_cash': opening,
@@ -199,6 +206,7 @@ class CzCashDay(models.Model):
                 'expense_total': -(totals.get('expense', 0.0) + totals.get('advance', 0.0) + totals.get('salary', 0.0)
                                    + totals.get('bank_deposit', 0.0) + totals.get('other', 0.0)),
                 'safe_transfer_total': -totals.get('safe_transfer', 0.0),
+                'eod_transfer_total': eod_total,
                 'refund_total': -totals.get('refund', 0.0),
                 'uncategorised_total': uncategorised,
                 'uncategorised_count': uncategorised_count,
@@ -223,7 +231,8 @@ class CzCashDay(models.Model):
             cur = day.currency_id
             cfg = day.config_id
             closed = day.session_ids.filtered(lambda s: s.state == 'closed')
-            if closed and float_is_zero(day.counted_cash, precision_rounding=cur.rounding) and day.cash_sales > 0:
+            emptied = any(day.statement_line_ids.mapped('cz_end_of_day'))
+            if closed and float_is_zero(day.counted_cash, precision_rounding=cur.rounding) and day.cash_sales > 0 and not emptied:
                 alerts.append(('danger', _("Counted cash is 0 although cash sales were %s — cashier skipped the count.",
                                            cur.format(day.cash_sales))))
             if abs(day.difference) > (cfg.cz_diff_pin_above or 50.0):

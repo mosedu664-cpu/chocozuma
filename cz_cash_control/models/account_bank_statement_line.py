@@ -14,6 +14,8 @@ class AccountBankStatementLine(models.Model):
     cz_approved = fields.Boolean(string='Approved by accountant', copy=False, default=False)
     cz_pos_cashier = fields.Char(string='Cashier', copy=False, help="Employee logged in the POS when the movement was made.")
     cz_manager_pin_ok = fields.Boolean(string='Manager PIN given', copy=False)
+    cz_end_of_day = fields.Boolean(string='End-of-day drawer transfer', copy=False,
+                                   help="The whole counted drawer was moved to the safe at closing (drawer closes at 0).")
 
     def _cz_set_counterpart(self, account, label=None):
         """Replace the suspense leg of a posted statement line with the given account.

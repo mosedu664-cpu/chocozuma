@@ -16,6 +16,7 @@
                 <field name="cz_receipt_ref" readonly="cz_approved"/>
                 <field name="cz_pos_cashier" readonly="1" optional="show"/>
                 <field name="cz_manager_pin_ok" readonly="1" optional="hide"/>
+                <field name="cz_end_of_day" readonly="1" optional="hide"/>
                 <field name="amount" readonly="1" sum="Total"/>
                 <field name="cz_approved" readonly="1"/>
                 <field name="company_id" column_invisible="1"/>

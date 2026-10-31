@@ -22,6 +22,14 @@
         <xpath expr="//button[hasclass('fa-clone')]" position="attributes">
             <attribute name="t-if">!czBlind</attribute>
         </xpath>
+        <!-- One-PIN end of day: whole counted drawer → safe, close at 0 -->
+        <xpath expr="//button[contains(text(), 'Close Register')]" position="before">
+            <button t-if="czShowEndOfDay" class="button btn btn-warning fw-bold" t-att-disabled="!canConfirm()"
+                    t-on-click="() => this.czEndOfDay()" t-att-class="this.ui.isSmall ? 'w-100' : 'btn-lg'"
+                    title="Sayılan nakdin tamamı küçük kasaya aktarılır, çekmece 0 ile kapanır">
+                <i class="fa fa-lock me-1"/>Gün Sonu: Boşalt &amp; Kapat
+            </button>
+        </xpath>
         <xpath expr="//div[hasclass('payment-methods-overview')]" position="before">
             <div t-if="czBlind" class="alert alert-info py-2 mb-2">
                 <i class="fa fa-eye-slash me-1"/>
