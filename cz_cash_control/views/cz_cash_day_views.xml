@@ -61,6 +61,7 @@
                             <field name="expense_total"/>
                             <field name="refund_total" invisible="not refund_total"/>
                             <field name="safe_transfer_total"/>
+                            <field name="eod_transfer_total" invisible="not eod_transfer_total"/>
                             <field name="uncategorised_total" invisible="not uncategorised_count" decoration-danger="1"/>
                             <field name="expected_cash" class="fw-bold"/>
                             <field name="counted_cash" class="fw-bold"/>

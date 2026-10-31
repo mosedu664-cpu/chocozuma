@@ -100,6 +100,90 @@ patch(ClosePosPopup.prototype, {
         return super.confirm(...arguments);
     },
 
+    /** Category of kind safe_transfer usable for the end-of-day transfer */
+    get czEodCategory() {
+        const model = this.pos.models["cz.cash.category"];
+        if (!model) {
+            return null;
+        }
+        return (
+            model
+                .getAll()
+                .filter((c) => c.kind === "safe_transfer" && ["out", "both"].includes(c.direction))
+                .sort((a, b) => a.sequence - b.sequence)[0] || null
+        );
+    },
+
+    get czShowEndOfDay() {
+        return (
+            this.czEnabled &&
+            this.pos.config.cash_control &&
+            Boolean(this.pos.config.cz_safe_id) &&
+            Boolean(this.czEodCategory)
+        );
+    },
+
+    /**
+     * End of day: the cashier counts the drawer (blind), the whole counted amount is
+     * moved to the safe with one manager PIN, the drawer closes at 0 and Odoo's
+     * difference is still exactly (counted - expected).
+     */
+    async czEndOfDay() {
+        const counted = this.czCountedCash();
+        if (counted === null || counted < 0) {
+            this.notification.add(_t("Önce çekmecedeki nakdi sayıp tutarı yazın."), { type: "warning" });
+            return;
+        }
+        const cat = this.czEodCategory;
+        const ok = await ask(this.dialog, {
+            title: _t("Gün sonu"),
+            body: _t(
+                "Sayılan %s küçük kasaya aktarılacak ve çekmece 0 ile kapatılacak. Devam edilsin mi?",
+                this.env.utils.formatCurrency(counted)
+            ),
+            confirmLabel: _t("Evet, aktar ve kapat"),
+            cancelLabel: _t("Vazgeç"),
+        });
+        if (!ok) {
+            return;
+        }
+        const manager = await askManagerPin(this.pos, this.dialog, this.notification, _t("Yönetici PIN — gün sonu"));
+        if (!manager) {
+            return;
+        }
+        if (counted > 0) {
+            const cashier = this.pos.get_cashier?.();
+            const formattedAmount = this.env.utils.formatCurrency(counted);
+            await this.pos.data.call(
+                "pos.session",
+                "try_cash_in_out",
+                [
+                    [this.pos.session.id],
+                    "out",
+                    counted,
+                    _t("Gün sonu — çekmece boşaltıldı"),
+                    {
+                        formattedAmount,
+                        translatedType: _t("out"),
+                        cz_category_id: cat.id,
+                        cz_employee_id: false,
+                        cz_receipt_ref: "",
+                        cz_pin_ok: true,
+                        cz_manager_name: manager.name,
+                        cz_cashier_name: cashier ? cashier.name : this.pos.user?.name || "",
+                        cz_end_of_day: true,
+                    },
+                ],
+                {},
+                true
+            );
+        }
+        this.czPinOk = true;
+        this.state.payments[this.props.default_cash_details.id].counted = "0";
+        this.state.notes = `${this.state.notes || ""}\n[Gün sonu: ${this.env.utils.formatCurrency(counted)} küçük kasaya — onay ${manager.name}]`.trim();
+        await this.closeSession();
+    },
+
     autoFillCashCount() {
         // never let the cashier copy the expected amount in blind mode
         if (this.czBlind) {
