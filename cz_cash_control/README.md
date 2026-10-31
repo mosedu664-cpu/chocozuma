@@ -16,7 +16,10 @@ Replaces the branch "kasa" Excel sheets with a controlled, auditable flow inside
    Rules per category: staff required, receipt no. above X, manager PIN, max amount.
    The movement is a normal `account.bank.statement.line` on the POS cash journal
    (so Odoo's expected cash at closing is always right) with `cz_category_id`.
-2. **Closing** – blind count (expected hidden). Count = 0 with cash sales, or
+2. **Closing** – blind count (expected hidden). *Gün Sonu* button: the whole counted
+   drawer is moved to the safe with one manager PIN and the register closes at 0;
+   the difference stays exactly counted − expected and the sheet shows the
+   pre-transfer figures. Otherwise standard close. Count = 0 with cash sales, or
    |difference| > threshold → closing note + manager PIN. Odoo posts its own
    difference line as usual.
 3. **Daily Cash Sheet** (`cz.cash.day`) – auto-created per POS per business day

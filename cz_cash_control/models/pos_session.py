@@ -44,6 +44,7 @@ class PosSession(models.Model):
         vals.update({
             'cz_pos_cashier': extras.get('cz_cashier_name') or False,
             'cz_manager_pin_ok': bool(extras.get('cz_pin_ok')),
+            'cz_end_of_day': bool(extras.get('cz_end_of_day')),
         })
         return vals
 
