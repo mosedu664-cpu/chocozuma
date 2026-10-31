@@ -149,7 +149,7 @@
             <graph type="bar" stacked="1" string="Drawer expenses by category">
                 <field name="date" interval="day"/>
                 <field name="category_id"/>
-                <field name="amount" type="measure"/>
+                <field name="spent" type="measure"/>
             </graph>
         </field>
     </record>

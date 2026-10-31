@@ -206,7 +206,7 @@
             <pivot>
                 <field name="category_id" type="row"/>
                 <field name="date" interval="month" type="col"/>
-                <field name="amount" type="measure"/>
+                <field name="spent" type="measure"/>
                 <field name="count" type="measure"/>
             </pivot>
         </field>

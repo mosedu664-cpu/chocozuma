@@ -50,11 +50,10 @@ class PosConfig(models.Model):
         today = fields.Date.context_today(self)
         since = today - timedelta(days=30)
         for cfg in self:
-            days_today = Day.search([('config_id', '=', cfg.id), ('date', '=', today)], order='seq desc')
-            day = days_today[:1]
-            # the business day may still be the previous one (sessions opened before 04:00)
-            if not day:
-                day = Day.search([('config_id', '=', cfg.id), ('state', '=', 'open')], order='date desc, seq desc', limit=1)
+            # "today" = today's sheet, or the latest sheet still open / waiting for approval
+            # (the business day may be yesterday: sessions opened before 04:00, late closings)
+            day = Day.search(['&', ('config_id', '=', cfg.id), '|', ('date', '=', today), ('state', 'in', ('open', 'to_approve'))],
+                             order='date desc, seq desc', limit=1)
             pending = Day.search([('config_id', '=', cfg.id), ('state', 'in', ('open', 'to_approve'))])
             last_closed = Day.search([('config_id', '=', cfg.id), ('state', 'in', ('to_approve', 'approved'))],
                                      order='date desc, seq desc', limit=1)
