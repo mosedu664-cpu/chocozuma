@@ -132,6 +132,7 @@ patch(ClosePosPopup.prototype, {
     get czShowEndOfDay() {
         return (
             this.czEnabled &&
+            Boolean(this.pos.config.cz_enable_eod) &&
             this.pos.config.cash_control &&
             Boolean(this.czSafeId) &&
             Boolean(this.czEodCategory)

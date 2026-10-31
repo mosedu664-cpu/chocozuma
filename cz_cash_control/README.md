@@ -53,6 +53,8 @@ Replaces the branch "kasa" Excel sheets with a controlled, auditable flow inside
   picture is downscaled in the browser (≤1280 px JPEG) and stored in
   `account.bank.statement.line.cz_receipt_image`; a photo satisfies the "receipt above X"
   rule. The accountant opens it from the daily sheet (camera icon on the line).
+* **Gün Sonu** is optional per POS (`cz_enable_eod`, off by default — Mo's choice: the
+  cashier only counts, transfers go through *Masraf → Küçük Kasaya Aktar*).
 * **Gün Sonu slip** – after the manager PIN the cashier types the envelope / bag number
   (optional, stored in `cz_envelope_ref` and in the closing note); the slip
   (`CzEodReceipt`, data from `pos.session.cz_eod_summary`) prints opening, cash sales,

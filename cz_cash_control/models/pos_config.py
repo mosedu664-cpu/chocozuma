@@ -19,6 +19,10 @@ class PosConfig(models.Model):
                                      help="Closing with a bigger difference requires a manager PIN and a closing note.")
     cz_cash_out_pin_above = fields.Float(string='Manager PIN for any cash out above', default=5000.0,
                                          help="Independent of the category rules. 0 = off.")
+    cz_enable_eod = fields.Boolean(string='"Gün Sonu" button at closing', default=False,
+                                   help="Show the one-PIN 'empty the whole drawer into the safe and close at 0' button in the "
+                                        "closing popup. Off: the cashier only counts; transfers to the safe are recorded with "
+                                        "Masraf → 'Küçük Kasaya Aktar'.")
     cz_opening_float = fields.Float(string='Standard opening float', default=2000.0,
                                     help="Expected cash left in the drawer at closing (devir).")
     cz_accountant_ids = fields.Many2many('res.users', 'cz_pos_config_accountant_rel', 'config_id', 'user_id',
