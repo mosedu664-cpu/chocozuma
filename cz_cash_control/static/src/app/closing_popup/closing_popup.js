@@ -8,6 +8,7 @@ import { TextInputPopup } from "@point_of_sale/app/utils/input_popups/text_input
 import { formatDateTime } from "@web/core/l10n/dates";
 import { askManagerPin } from "@cz_cash_control/app/manager_pin/manager_pin";
 import { CzEodReceipt } from "@cz_cash_control/app/eod_receipt/eod_receipt";
+import { czPrint } from "@cz_cash_control/app/printing/cz_print";
 
 const { DateTime } = luxon;
 
@@ -120,11 +121,19 @@ patch(ClosePosPopup.prototype, {
         );
     },
 
+    /** cz.cash.safe is not a POS model, so the many2one is only reliable in the raw data */
+    get czSafeId() {
+        const cfg = this.pos.config;
+        const raw = cfg.raw?.cz_safe_id;
+        const val = raw !== undefined ? raw : cfg.cz_safe_id;
+        return Array.isArray(val) ? val[0] : val?.id || val || false;
+    },
+
     get czShowEndOfDay() {
         return (
             this.czEnabled &&
             this.pos.config.cash_control &&
-            Boolean(this.pos.config.cz_safe_id) &&
+            Boolean(this.czSafeId) &&
             Boolean(this.czEodCategory)
         );
     },
@@ -212,18 +221,16 @@ patch(ClosePosPopup.prototype, {
 
         // printed slip for the envelope; a printer problem must never block the closing
         if (summary) {
-            try {
-                await this.printer.print(CzEodReceipt, {
-                    summary,
-                    headerData: this.pos.getReceiptHeaderData(),
-                    cashier: cashierName,
-                    manager: manager.name,
-                    envelope,
-                    posName: this.pos.config.name,
-                    date: formatDateTime(DateTime.now()),
-                });
-            } catch (e) {
-                console.error("EOD slip could not be printed", e);
+            const printed = await czPrint(this.pos, this.printer, CzEodReceipt, {
+                summary,
+                headerData: this.pos.getReceiptHeaderData(),
+                cashier: cashierName,
+                manager: manager.name,
+                envelope,
+                posName: this.pos.config.name,
+                date: formatDateTime(DateTime.now()),
+            });
+            if (!printed) {
                 this.notification.add(_t("Gün sonu fişi yazdırılamadı (kapanış devam ediyor)."), { type: "warning" });
             }
         }

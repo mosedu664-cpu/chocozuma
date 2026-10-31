@@ -4,6 +4,7 @@ import { parseFloat } from "@web/views/fields/parsers";
 import { onWillStart, useRef } from "@odoo/owl";
 import { CashMovePopup } from "@point_of_sale/app/navbar/cash_move_popup/cash_move_popup";
 import { askManagerPin } from "@cz_cash_control/app/manager_pin/manager_pin";
+import { czPrint } from "@cz_cash_control/app/printing/cz_print";
 
 const TILE_LIMIT = 8;
 const PHOTO_MAX_SIDE = 1280;
@@ -32,6 +33,11 @@ patch(CashMovePopup.prototype, {
         this.czPinOk = false;
         this.czManagerName = "";
         this.czPhotoInput = useRef("czPhotoInput");
+        // route the cash-move receipt to the real printer (direct print / IoT), never a browser dialog
+        if (this.czEnabled) {
+            const printerService = this.printer;
+            this.printer = { print: (component, props) => czPrint(this.pos, printerService, component, props) };
+        }
         onWillStart(async () => {
             if (!this.czEnabled) {
                 return;
@@ -174,7 +180,8 @@ patch(CashMovePopup.prototype, {
             this.onClickButton(r.type);
         }
         this.czSelectCategory(r.category_id);
-        this.state.czEmployeeId = r.employee_id || false;
+        const emp = r.employee_id ? this.pos.models["hr.employee"]?.get(r.employee_id) : null;
+        this.state.czEmployeeId = emp ? r.employee_id : false;
         this.state.amount = String(r.amount);
         this.state.reason = r.reason || "";
         this.state.czReceiptRef = "";

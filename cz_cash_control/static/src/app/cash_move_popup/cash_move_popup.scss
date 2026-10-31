@@ -111,3 +111,24 @@ $cz-colors: (
         object-fit: cover;
     }
 }
+
+// Reason box: clearly visible on every POS theme (was white on white)
+.modal .form-floating > textarea.cash-reason {
+    background: #fff8e1;
+    border: 2px solid #f0ad4e;
+    color: #212529;
+    font-size: 1.05rem;
+
+    &::placeholder {
+        color: #8a6d3b;
+        opacity: 1;
+    }
+    &:focus {
+        background: #fffdf5;
+        border-color: #e0931e;
+        box-shadow: 0 0 0 0.2rem rgba(240, 173, 78, 0.35);
+    }
+}
+.modal .form-floating > textarea.cash-reason ~ label {
+    color: #8a6d3b;
+}
