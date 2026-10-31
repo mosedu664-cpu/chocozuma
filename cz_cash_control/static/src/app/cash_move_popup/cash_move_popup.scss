@@ -1,0 +1,113 @@
+// Choco Zuma Cash Control — category tiles in the POS cash in/out popup
+$cz-colors: (
+    0: #8f8f8f,
+    1: #f06050,
+    2: #f4a460,
+    3: #f7cd1f,
+    4: #6cc1ed,
+    5: #814968,
+    6: #eb7e7f,
+    7: #2c8397,
+    8: #475577,
+    9: #d6145f,
+    10: #30c381,
+    11: #9365b8,
+);
+
+.cz-cash-move {
+    .cz-tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .cz-tile {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        min-height: 74px;
+        padding: 0.5rem 0.4rem;
+        border: 2px solid transparent;
+        border-radius: 0.75rem;
+        background: var(--cz-tile-bg, #8f8f8f);
+        color: #fff;
+        font-weight: 600;
+        line-height: 1.15;
+        text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+        cursor: pointer;
+        transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.08s ease;
+
+        > .fa {
+            font-size: 1.5rem;
+        }
+        .cz-tile-name {
+            font-size: 0.85rem;
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+        .cz-tile-lock {
+            position: absolute;
+            top: 4px;
+            right: 6px;
+            font-size: 0.8rem;
+            color: #fff;
+            background: #dc3545;
+            border-radius: 50%;
+            width: 1.3rem;
+            height: 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        &:hover {
+            filter: brightness(1.07);
+        }
+        &:active {
+            transform: scale(0.97);
+        }
+        &.cz-tile-locked {
+            border-color: #dc3545;
+        }
+        &.cz-tile-selected {
+            border-color: #212529;
+            box-shadow: 0 0 0 3px rgba(33, 37, 41, 0.35), 0 2px 6px rgba(0, 0, 0, 0.25);
+            transform: scale(1.03);
+        }
+        &.cz-tile-more {
+            background: #fff;
+            color: #495057;
+            border: 2px dashed #adb5bd;
+            text-shadow: none;
+            box-shadow: none;
+        }
+    }
+
+    @each $index, $color in $cz-colors {
+        .cz-color-#{$index} {
+            --cz-tile-bg: #{$color};
+        }
+    }
+    // light tiles need dark text
+    .cz-color-3 {
+        color: #212529;
+        text-shadow: none;
+    }
+
+    .cz-recent-chip {
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .cz-receipt-thumb {
+        height: 64px;
+        width: auto;
+        object-fit: cover;
+    }
+}

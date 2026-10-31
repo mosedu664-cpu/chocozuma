@@ -8,6 +8,9 @@
                 <field name="sequence" widget="handle"/>
                 <field name="code"/>
                 <field name="name"/>
+                <field name="icon" optional="show"/>
+                <field name="color" widget="color_picker" optional="show"/>
+                <field name="usage_count" optional="show"/>
                 <field name="kind"/>
                 <field name="direction"/>
                 <field name="account_id"/>
@@ -39,6 +42,9 @@
                             <field name="direction"/>
                             <field name="pos_available"/>
                             <field name="sequence"/>
+                            <field name="icon" placeholder="fa-taxi"/>
+                            <field name="color" widget="color_picker"/>
+                            <field name="usage_count"/>
                             <field name="active" invisible="1"/>
                         </group>
                         <group string="Accounting">

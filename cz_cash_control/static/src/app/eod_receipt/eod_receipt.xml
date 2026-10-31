@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="cz_cash_control.CzEodReceipt">
+        <div class="pos-receipt cz-eod-receipt">
+            <ReceiptHeader data="props.headerData" />
+            <div class="pos-receipt-center-align fw-bold" style="font-size:1.2em;">GÜN SONU KASA FİŞİ</div>
+            <div class="pos-receipt-center-align"><t t-esc="props.posName"/> — <t t-esc="props.date"/></div>
+            <div class="pos-receipt-center-align small"><t t-esc="props.summary.session_name"/></div>
+            <br/>
+
+            <div>Açılış (devir)<span class="pos-receipt-right-align" t-esc="props.summary.opening"/></div>
+            <div>Nakit satış (<t t-esc="props.summary.order_count"/> sipariş)<span class="pos-receipt-right-align" t-esc="props.summary.cash_sales"/></div>
+            <div>Kart / online satış<span class="pos-receipt-right-align" t-esc="props.summary.non_cash"/></div>
+            <div>Nakit giriş<span class="pos-receipt-right-align" t-esc="props.summary.cash_in"/></div>
+            <br/>
+
+            <div class="fw-bold">MASRAFLAR (çekmeceden)</div>
+            <t t-if="props.summary.expenses.length">
+                <t t-foreach="props.summary.expenses" t-as="e" t-key="e_index">
+                    <div>
+                        <t t-esc="e.name"/> <span class="small">(<t t-esc="e.count"/>)</span>
+                        <span class="pos-receipt-right-align">-<t t-esc="e.amount"/></span>
+                    </div>
+                </t>
+            </t>
+            <div t-else="" class="small">— yok —</div>
+            <div class="fw-bold">Masraf toplamı<span class="pos-receipt-right-align">-<t t-esc="props.summary.expenses_total"/></span></div>
+            <div>Gün içi küçük kasaya<span class="pos-receipt-right-align">-<t t-esc="props.summary.safe_transfers"/></span></div>
+            <br/>
+
+            <div>Beklenen çekmece<span class="pos-receipt-right-align" t-esc="props.summary.expected"/></div>
+            <div class="fw-bold" style="font-size:1.15em;">SAYILAN<span class="pos-receipt-right-align" t-esc="props.summary.counted"/></div>
+            <div class="fw-bold">Fark<span class="pos-receipt-right-align" t-esc="props.summary.difference"/></div>
+            <br/>
+
+            <div class="pos-receipt-center-align fw-bold" style="font-size:1.15em;">
+                KÜÇÜK KASAYA AKTARILAN: <t t-esc="props.summary.counted"/>
+            </div>
+            <div class="pos-receipt-center-align" t-if="props.summary.safe_name">(<t t-esc="props.summary.safe_name"/>)</div>
+            <div class="pos-receipt-center-align" t-if="props.envelope">Zarf / Poşet No: <b t-esc="props.envelope"/></div>
+            <br/>
+
+            <div>Kasiyer: <t t-esc="props.cashier"/></div>
+            <div>Onaylayan yönetici: <t t-esc="props.manager"/></div>
+            <br/>
+            <div>İmza kasiyer: ____________________</div>
+            <br/>
+            <div>İmza yönetici: ____________________</div>
+            <br/>
+            <div class="pos-receipt-center-align small">Çekmece 0 ile kapatıldı. Bu fiş zarfın içine konur.</div>
+        </div>
+    </t>
+
+</templates>

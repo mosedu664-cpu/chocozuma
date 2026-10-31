@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from datetime import timedelta
+
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
@@ -56,7 +58,10 @@ class CzCashCategory(models.Model):
     typical_amount = fields.Monetary(string='Typical amount', currency_field='currency_id', default=0.0,
                                      help="Used for the 'unusual expense' alert (2x typical). 0 = no alert.")
     pos_available = fields.Boolean(string='Show in POS', default=True)
-    color = fields.Integer()
+    color = fields.Integer(default=0, help="Tile colour in the POS (0-11, Odoo colour palette).")
+    icon = fields.Char(default='fa-tag', help="FontAwesome 4 icon class shown on the POS tile, e.g. fa-taxi, fa-cutlery, fa-lock.")
+    usage_count = fields.Integer(compute='_compute_usage_count', string='Used (30 days)',
+                                 help="Number of POS cash movements with this category in the last 30 days — drives the tile order in the POS.")
     currency_id = fields.Many2one(related='company_id.currency_id')
     note = fields.Text()
 
@@ -70,6 +75,27 @@ class CzCashCategory(models.Model):
             if cat.kind != 'other' and not cat.account_id:
                 raise ValidationError(_("Category %s needs a counterpart account.", cat.name))
 
+    @api.depends('company_id')
+    def _compute_usage_count(self):
+        since = fields.Date.today() - timedelta(days=30)
+        groups = self.env['account.bank.statement.line'].sudo()._read_group(
+            [('cz_category_id', 'in', self.ids), ('date', '>=', since)],
+            ['cz_category_id'], ['__count'])
+        counts = {cat.id: count for cat, count in groups}
+        for cat in self:
+            cat.usage_count = counts.get(cat.id, 0)
+
+    @api.onchange('kind')
+    def _onchange_kind_icon(self):
+        default_icons = {
+            'expense': 'fa-shopping-basket', 'safe_transfer': 'fa-archive', 'refund': 'fa-undo',
+            'advance': 'fa-hand-paper-o', 'bank_deposit': 'fa-university', 'salary': 'fa-money',
+            'cash_in': 'fa-plus-circle', 'other': 'fa-tag',
+        }
+        for cat in self:
+            if cat.kind and (not cat.icon or cat.icon == 'fa-tag'):
+                cat.icon = default_icons.get(cat.kind, 'fa-tag')
+
     @api.model
     def _load_pos_data_domain(self, data):
         company_id = data['pos.config']['data'][0]['company_id']
@@ -78,4 +104,5 @@ class CzCashCategory(models.Model):
     @api.model
     def _load_pos_data_fields(self, config_id):
         return ['name', 'code', 'sequence', 'kind', 'direction', 'requires_employee',
-                'requires_receipt_above', 'requires_pin', 'pin_above', 'max_amount', 'color']
+                'requires_receipt_above', 'requires_pin', 'pin_above', 'max_amount', 'color',
+                'icon', 'usage_count']
