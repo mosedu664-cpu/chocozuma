@@ -66,9 +66,21 @@ class PosSession(models.Model):
             raise UserError(_("A manager PIN is required for this movement."))
 
     def try_cash_in_out(self, _type, amount, reason, extras):
-        res = super().try_cash_in_out(_type, amount, reason, extras)
+        """Cashiers have no accounting rights (the standard POS hides Cash In/Out from them).
+        With Cash Control the guard is the category rules + manager PIN (validated server-side
+        in _prepare_account_bank_statement_line_vals), so the statement line itself is written
+        with elevated rights on their behalf."""
+        controlled = self.filtered(lambda s: s.config_id.cz_cash_control)
+        if controlled and not self.env.su and not self.env.user.has_group('account.group_account_invoice'):
+            if controlled != self:
+                raise UserError(_("Mixed sessions are not supported."))
+            cashier = extras.get('cz_cashier_name') or self.env.user.name
+            extras = dict(extras, cz_cashier_name=cashier)
+            res = super(PosSession, self.sudo()).try_cash_in_out(_type, amount, reason, extras)
+        else:
+            res = super().try_cash_in_out(_type, amount, reason, extras)
         # keep the open day sheet in sync so the accountant sees movements live
-        for session in self.filtered(lambda s: s.config_id.cz_cash_control):
+        for session in controlled:
             session.sudo()._cz_get_or_create_day()._compute_all()
         return res
 
