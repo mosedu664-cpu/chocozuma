@@ -116,6 +116,14 @@ patch(CashMovePopup.prototype, {
         return Boolean(this.czCategory?.requires_employee);
     },
 
+    get czNeedsReason() {
+        return Boolean(this.czCategory?.requires_reason);
+    },
+
+    get czHasReason() {
+        return (this.state.reason || "").trim().length >= 3;
+    },
+
     get czNeedsReceipt() {
         const c = this.czCategory;
         return Boolean(c && c.requires_receipt_above && this.czAmount > c.requires_receipt_above);
@@ -274,6 +282,9 @@ patch(CashMovePopup.prototype, {
             return false;
         }
         if (this.czNeedsEmployee && !this.state.czEmployeeId) {
+            return false;
+        }
+        if (this.czNeedsReason && !this.czHasReason) {
             return false;
         }
         if (this.czNeedsReceipt && !this.czHasReceipt) {

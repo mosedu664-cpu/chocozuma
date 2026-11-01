@@ -80,6 +80,9 @@
                         </div>
                     </div>
 
+                    <div t-if="czNeedsReason and !czHasReason" class="alert alert-warning py-1 mt-2 mb-0">
+                        <i class="fa fa-pencil me-1" title="Açıklama"/> Bu kategori için açıklama zorunlu: paranın nereden geldiğini ve kimin getirdiğini yazın.
+                    </div>
                     <div t-if="czOverMax" class="alert alert-danger py-1 mt-2 mb-0">
                         Bu kategori için tek işlem limiti <t t-esc="env.utils.formatCurrency(czCategory.max_amount)"/>.
                     </div>
@@ -101,7 +104,8 @@
         </xpath>
         <!-- Reason becomes optional when a category is chosen -->
         <xpath expr="//textarea[hasclass('cash-reason')]" position="attributes">
-            <attribute name="placeholder">Açıklama (isteğe bağlı)</attribute>
+            <attribute name="t-att-placeholder">czNeedsReason ? 'Açıklama (zorunlu) — örn: müdür getirdi, bozuk para için' : 'Açıklama (isteğe bağlı)'</attribute>
+            <attribute name="placeholder"/>
             <attribute name="style">height:60px;</attribute>
         </xpath>
     </t>

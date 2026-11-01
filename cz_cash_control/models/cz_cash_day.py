@@ -183,7 +183,12 @@ class CzCashDay(models.Model):
                     continue
                 cat = line.cz_category_id
                 if cat:
-                    totals[cat.kind] += line.amount
+                    kind = cat.kind
+                    # 'Other' works both ways: money coming in is cash in, not a negative expense
+                    # (a POS correction is classified like the movement it cancels)
+                    if kind == 'other' and (line.cz_reversal_of_id or line).amount > 0:
+                        kind = 'cash_in'
+                    totals[kind] += line.amount
                     per_cat[cat.id]['count'] += 1
                     per_cat[cat.id]['amount'] += line.amount
                 else:
