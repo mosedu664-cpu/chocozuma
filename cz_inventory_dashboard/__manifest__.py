@@ -22,7 +22,7 @@ the transfers Odoo already lets them see.
     'author': 'Choco Zuma Yönetim',
     'website': 'https://chocozuma.com',
     'category': 'Inventory/Inventory',
-    'version': '18.0.1.0.5',
+    'version': '18.0.1.1.1',
     'license': 'LGPL-3',
     'depends': ['stock', 'web'],
     'data': [
@@ -33,6 +33,7 @@ the transfers Odoo already lets them see.
             'cz_inventory_dashboard/static/src/dashboard/**/*',
         ],
     },
+    'uninstall_hook': 'uninstall_hook',
     'installable': True,
     'application': False,
 }

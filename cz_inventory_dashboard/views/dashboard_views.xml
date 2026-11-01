@@ -12,4 +12,13 @@
               action="action_cz_inventory_dashboard"
               sequence="0"
               groups="stock.group_stock_user"/>
+
+    <!-- Inventory opens on the board: the app's root menu points straight at it,
+         and the standard "Overview" moves to second place (restored by the uninstall hook). -->
+    <record id="stock.menu_stock_root" model="ir.ui.menu">
+        <field name="action" ref="action_cz_inventory_dashboard"/>
+    </record>
+    <record id="stock.stock_picking_type_menu" model="ir.ui.menu">
+        <field name="sequence">1</field>
+    </record>
 </odoo>

@@ -69,7 +69,6 @@
                 <td class="cz_state"><span class="cz_state_pill" t-att-class="'st_' + p.state" t-esc="stateLabel(p.state)"/></td>
                 <td class="cz_actions">
                   <button t-if="p.state!=='assigned'" class="btn btn-sm btn-outline-secondary" t-att-disabled="state.busy[p.id]" t-on-click="() => this.act(p,'check')">Stok kontrol</button>
-                  <button t-if="p.state==='assigned' and state.data.can_validate" class="btn btn-sm btn-success" t-att-disabled="state.busy[p.id]" t-on-click="() => this.act(p,'validate')"><i class="fa fa-check me-1"/>Teslim et</button>
                   <button class="btn btn-sm btn-light" t-on-click="() => this.openPicking(p.id)">Aç</button>
                 </td>
               </tr>
