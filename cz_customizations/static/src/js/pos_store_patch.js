@@ -15,10 +15,13 @@ patch(PosStore.prototype, {
     async openOpeningControl() {
         if (this.session && this.session.state === "opening_control") {
             try {
+                // carry over what Odoo expects in the drawer (last closing count): opening at 0
+                // used to drop the cash left in the drawer and book a fake opening difference
+                const carryOver = this.session.cash_register_balance_start || 0;
                 await this.data.call("pos.session", "set_opening_control", [
                     this.session.id,
-                    0,
-                    "Otomatik açılış (0)",
+                    carryOver,
+                    `Otomatik açılış (devir ${this.env.utils.formatCurrency(carryOver)})`,
                 ]);
                 this.session.state = "opened";
                 return;

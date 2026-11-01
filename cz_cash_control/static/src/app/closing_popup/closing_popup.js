@@ -31,8 +31,44 @@ patch(ClosePosPopup.prototype, {
         return Boolean(this.pos.config.cz_cash_control);
     },
 
+    /** Blind count is active (expected / difference hidden) until a mismatching count is committed. */
     get czBlind() {
+        return this.czBlindMode && !this.state.czRevealed;
+    },
+
+    /** Config flag: the expected amount can never be copied, revealed or not. */
+    get czBlindMode() {
         return this.czEnabled && Boolean(this.pos.config.cz_blind_count);
+    },
+
+    getInitialState() {
+        const st = super.getInitialState(...arguments);
+        st.czRevealed = false;
+        return st;
+    },
+
+    /**
+     * Reveal once: after a count that does not match beyond the threshold, show expected /
+     * counted / difference and the per-employee breakdown so the mistake can be traced,
+     * and freeze the counted amount. Then closing note + manager PIN are required.
+     */
+    async czRevealDifference(counted, diff) {
+        this.state.czRevealed = true;
+        this.state.czFrozenCount = this.state.payments[this.props.default_cash_details.id].counted;
+        const expected = this.props.default_cash_details.amount;
+        const fmt = (v) => this.env.utils.formatCurrency(v);
+        await ask(this.dialog, {
+            title: _t("Kasada fark var"),
+            body: _t(
+                "Sayılan: %(counted)s\nSistemde beklenen: %(expected)s\nFark: %(diff)s\n\n" +
+                    "Beklenen tutar ve hareket detayları artık kapanış ekranında görünüyor. Masrafları ve aktarımları " +
+                    "kontrol edin (bu ekrandaki Cash in/out ve Payments satırlarını açın), sonra farkın sebebini kapanış notuna yazın ve yönetici PIN'ini girin. " +
+                    "Sayılan tutar kilitlendi, değiştirilemez.",
+                { counted: fmt(counted), expected: fmt(expected), diff: fmt(diff) }
+            ),
+            confirmLabel: _t("Anladım, kontrol et"),
+            cancelLabel: _t("Kapat"),
+        });
     },
 
     czCountedCash() {
@@ -50,6 +86,10 @@ patch(ClosePosPopup.prototype, {
     async confirm() {
         if (!this.czEnabled || !this.pos.config.cash_control) {
             return super.confirm(...arguments);
+        }
+        if (this.state.czRevealed && this.state.czFrozenCount !== undefined) {
+            // the counted amount is frozen once the difference was revealed
+            this.state.payments[this.props.default_cash_details.id].counted = this.state.czFrozenCount;
         }
         const counted = this.czCountedCash();
         const details = this.props.default_cash_details;
@@ -86,8 +126,12 @@ patch(ClosePosPopup.prototype, {
             }
         }
 
-        // 2. big difference: note + manager PIN
+        // 2. big difference: reveal once, then note + manager PIN
         if (threshold && Math.abs(diff) > threshold) {
+            if (this.czBlindMode && !this.state.czRevealed) {
+                await this.czRevealDifference(counted, diff);
+                return;
+            }
             if (!(this.state.notes || "").trim()) {
                 this.notification.add(
                     _t("Kasa farkı var. Lütfen kapanış notuna farkın sebebini yazın."),
@@ -239,8 +283,8 @@ patch(ClosePosPopup.prototype, {
     },
 
     autoFillCashCount() {
-        // never let the cashier copy the expected amount in blind mode
-        if (this.czBlind) {
+        // never let the cashier copy the expected amount in blind mode (revealed or not)
+        if (this.czBlindMode) {
             this.notification.add(_t("Kör sayım: beklenen tutar kopyalanamaz. Lütfen parayı sayın."), {
                 type: "warning",
             });

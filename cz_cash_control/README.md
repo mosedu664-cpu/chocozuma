@@ -61,6 +61,29 @@ Replaces the branch "kasa" Excel sheets with a controlled, auditable flow inside
   expenses by category, in-day safe transfers, expected, counted, difference,
   transferred amount, cashier, manager, signatures. A printer problem never blocks the closing.
 
+## Drawer control (18.0.1.3.0)
+
+* **Sayım — mid-day drawer check (X-count).** POS button next to *Masraf*: reason (Vardiya devri /
+  Ani sayım) → manager PIN → blind count → pending orders synced (offline is refused) →
+  `pos.session.cz_drawer_check` re-verifies the PIN server-side (manager = POS Administrator user
+  or Advanced rights), computes the expected drawer with Odoo's closing formula (opening + cash of
+  closed orders + cash in/out) and stores an immutable `cz.cash.check`. The result is shown only
+  after it is saved; nothing is posted, the session stays open, every recount is a new record.
+  Shown on the daily sheet (tab, chatter, alert above the difference threshold) and in
+  *Cash Control → Drawer Checks*.
+* **Reveal after the count.** Closing stays blind until the count is committed; when the
+  difference exceeds the threshold the popup reveals expected / counted / difference and the
+  per-employee breakdown, freezes the counted amount, then asks for the closing note + PIN.
+  Copying the expected amount is never possible.
+* **Business date.** A session opened before 04:00 belongs to the previous day — unless the
+  previous day's register was already closed after midnight (then it is the new day's).
+* **Authorised by.** Every PIN-approved movement stores the manager's name (`cz_manager_name`).
+* **Sheet at opening.** The daily sheet is created when the register opens.
+* **Overnight drawer alert** (`cz_drawer_alert_above`, default 10,000): warns when more than that
+  stays in the drawer after closing.
+* **Silent opening carries over** the last counted drawer (cz_customizations) instead of forcing 0,
+  which used to book a fake opening difference and drop the cash left in the drawer.
+
 ## Back office (18.0.1.2.0)
 
 * **Cash Control → Dashboard** – one tile per POS: today's cash sales / drawer expenses /

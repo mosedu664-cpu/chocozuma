@@ -19,6 +19,7 @@
                         <field name="cz_zero_count_pin" invisible="not cz_cash_control"/>
                         <field name="cz_diff_pin_above" invisible="not cz_cash_control"/>
                         <field name="cz_cash_out_pin_above" invisible="not cz_cash_control"/>
+                        <field name="cz_drawer_alert_above" invisible="not cz_cash_control"/>
                         <field name="cz_accountant_ids" widget="many2many_tags" invisible="not cz_cash_control"/>
                         <field name="cz_manager_ids" widget="many2many_tags" invisible="not cz_cash_control"/>
                     </group>

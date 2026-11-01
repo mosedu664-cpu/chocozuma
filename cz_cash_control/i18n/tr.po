@@ -1,0 +1,1979 @@
+# Turkish translation of cz_cash_control (Choco Zuma Cash Control / Kasa Köprüsü)
+# Generated from an Odoo 18 export (base.language.export) of 18.0.1.3.0.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0+e\n"
+"Language: tr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_enable_eod
+msgid "\"Gün Sonu\" button at closing"
+msgstr "Kapanışta \"Gün Sonu\" düğmesi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_show_recent
+msgid "\"Recent movements\" chips in the cash popup"
+msgstr "Nakit penceresinde \"Son hareketler\" kısayolları"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "%(amt)s left in the drawer overnight (limit %(limit)s) — move it to the safe."
+msgstr "Gece çekmecede %(amt)s kaldı (limit %(limit)s) — küçük kasaya aktarın."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "%(n)s cash movement(s) have no category. Set a category on each line before approving."
+msgstr "%(n)s nakit hareketinin kategorisi yok. Onaylamadan önce her satıra kategori girin."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "%(n)s cash movement(s) without category (%(amt)s)."
+msgstr "Kategorisiz %(n)s nakit hareketi (%(amt)s)."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "%(type)s %(ref)s — cashier %(cashier)s, authorised by %(manager)s: counted %(counted)s, expected %(expected)s, difference %(diff)s."
+msgstr "%(type)s %(ref)s — kasiyer %(cashier)s, onaylayan %(manager)s: sayılan %(counted)s, beklenen %(expected)s, fark %(diff)s."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "%s is not a manager on this point of sale."
+msgstr "%s bu kasada yönetici değil."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_day__seq
+msgid "2, 3... when a new session is opened after the day's sheet was already approved."
+msgstr "Günün sayfası onaylandıktan sonra yeni oturum açılırsa 2, 3..."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "30 days expenses:"
+msgstr "30 günlük masraf:"
+
+#. module: cz_cash_control
+#: model:ir.ui.menu,name:cz_cash_control.menu_cz_cash_day_lines_graph
+msgid "30-day Graph"
+msgstr "30 Günlük Grafik"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "<b>%(pos)s — %(date)s</b> closed by %(user)s.<br/>Cash sales: %(sales)s · Expenses: %(exp)s · To safe: %(safe)s · Expected: %(expected)s · Counted: %(counted)s · <b>Difference: %(diff)s</b>"
+msgstr "<b>%(pos)s — %(date)s</b> kapatan: %(user)s.<br/>Nakit satış: %(sales)s · Masraf: %(exp)s · Küçük kasaya: %(safe)s · Beklenen: %(expected)s · Sayılan: %(counted)s · <b>Fark: %(diff)s</b>"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_kanban
+msgid ""
+"<br/>\n"
+"                                Last count:"
+msgstr ""
+"<br/>\n"
+"                                Son sayım:"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "<i class=\"fa fa-archive me-1\" title=\"Branch safe\"/>"
+msgstr "<i class=\"fa fa-archive me-1\" title=\"Şube küçük kasası\"/>"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "<i class=\"fa fa-archive me-1\"/>Safe"
+msgstr "<i class=\"fa fa-archive me-1\"/>Küçük kasa"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "<i class=\"fa fa-bar-chart me-1\"/>30-day graph"
+msgstr "<i class=\"fa fa-bar-chart me-1\"/>30 günlük grafik"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "<i class=\"fa fa-check-square-o me-1\"/>To approve"
+msgstr "<i class=\"fa fa-check-square-o me-1\"/>Onay bekleyen"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "<i class=\"fa fa-circle me-1\"/>Open"
+msgstr "<i class=\"fa fa-circle me-1\"/>Açık"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "<i class=\"fa fa-exclamation-triangle me-1\" title=\"Alerts\"/>"
+msgstr "<i class=\"fa fa-exclamation-triangle me-1\" title=\"Uyarılar\"/>"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "<i class=\"fa fa-file-text-o me-1\"/>Today's sheet"
+msgstr "<i class=\"fa fa-file-text-o me-1\"/>Bugünün sayfası"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "<i class=\"fa fa-hourglass-half me-1 text-warning\" title=\"Waiting for approval\"/>"
+msgstr "<i class=\"fa fa-hourglass-half me-1 text-warning\" title=\"Onay bekliyor\"/>"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe_move.py:0
+msgid "A category is required for a cash out from the safe."
+msgstr "Küçük kasadan çıkış için kategori zorunludur."
+
+#. module: cz_cash_control
+#: model:ir.model.constraint,message:cz_cash_control.constraint_cz_cash_safe_journal_uniq
+msgid "A journal can only be one safe."
+msgstr "Bir yevmiye yalnızca bir küçük kasaya bağlanabilir."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__requires_pin
+msgid "A manager PIN (pos_hr) is requested in the POS before this movement is accepted."
+msgstr "Bu hareket kabul edilmeden önce POS'ta yönetici PIN'i (pos_hr) istenir."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "A manager PIN is required for this movement."
+msgstr "Bu hareket için yönetici PIN'i gerekli."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "A receipt number or receipt photo is required above %s."
+msgstr "%s üzerindeki tutarlarda fiş numarası veya fiş fotoğrafı zorunludur."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__requires_receipt_above
+msgid "Above this amount the cashier must type the receipt / fiş number. 0 = never."
+msgstr "Bu tutarın üzerinde kasiyer fiş numarasını yazmak zorundadır. 0 = hiçbir zaman."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__account_id
+msgid "Account debited (cash out) / credited (cash in) when the accountant approves the day. For 'Transfer to branch safe' use the internal transfer clearing account."
+msgstr "Muhasebeci günü onayladığında borçlandırılan (çıkış) / alacaklandırılan (giriş) hesap. 'Küçük kasaya aktarım' için iç transfer ara hesabını kullanın."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__accountant_note
+msgid "Accountant Note"
+msgstr "Muhasebe Notu"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Accountant note"
+msgstr "Muhasebe notu"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_accountant_ids
+msgid "Accountants to notify"
+msgstr "Bildirilecek muhasebeciler"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_category_form
+msgid "Accounting"
+msgstr "Muhasebe"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__active
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__active
+msgid "Active"
+msgstr "Aktif"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__alert_count
+msgid "Alert Count"
+msgstr "Uyarı Sayısı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__alert_html
+msgid "Alert Html"
+msgstr "Uyarılar"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__alert_level
+msgid "Alert Level"
+msgstr "Uyarı Seviyesi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__max_balance_alert
+msgid "Alert above"
+msgstr "Uyarı limiti"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_safe__max_balance_alert
+msgid "Alert the responsible when the safe holds more than this (bank deposit due). 0 = off."
+msgstr "Kasada bundan fazla para varsa sorumluyu uyar (bankaya yatırma zamanı). 0 = kapalı."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_drawer_alert_above
+msgid "Alert when drawer holds more than overnight"
+msgstr "Gece çekmecede bundan fazlası kalırsa uyar"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "All POS sessions of %s must be closed first."
+msgstr "Önce %s için tüm POS oturumları kapatılmalı."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__all_sessions_closed
+msgid "All Sessions Closed"
+msgstr "Tüm Oturumlar Kapalı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day_line__amount
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__amount
+msgid "Amount"
+msgstr "Tutar"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe_move.py:0
+msgid "Amount must be positive."
+msgstr "Tutar pozitif olmalı."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe_move.py:0
+msgid "An approved safe movement cannot be modified. Cancel it and create a new one."
+msgstr "Onaylanmış kasa hareketi değiştirilemez. İptal edip yenisini oluşturun."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Anything the manager should know about this day..."
+msgstr "Yöneticinin bu gün hakkında bilmesi gerekenler..."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_form
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_list
+msgid "Approve"
+msgstr "Onayla"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Approve & Post"
+msgstr "Onayla ve Kaydet"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Approve daily cash sheet"
+msgstr "Günlük kasa sayfasını onayla"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_day__state__approved
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_safe_move__state__approved
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__pos_config__cz_today_state__approved
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_search
+msgid "Approved"
+msgstr "Onaylandı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__approved_at
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__approved_at
+msgid "Approved At"
+msgstr "Onay Zamanı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__approved_by
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__approved_by
+msgid "Approved By"
+msgstr "Onaylayan"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_approved
+msgid "Approved by accountant"
+msgstr "Muhasebe onaylı"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/account_bank_statement_line.py:0
+msgid "Approved cash movements cannot be deleted."
+msgstr "Onaylanmış nakit hareketleri silinemez."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Approved daily cash sheets cannot be deleted."
+msgstr "Onaylanmış günlük kasa sayfaları silinemez."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe_move.py:0
+msgid "Approved safe movements cannot be deleted."
+msgstr "Onaylanmış kasa hareketleri silinemez."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_category_form
+msgid "Archived"
+msgstr "Arşivlendi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_manager_name
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__manager_id
+msgid "Authorised by"
+msgstr "Onaylayan yönetici"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__balance_date
+msgid "Balance Date"
+msgstr "Bakiye Tarihi"
+
+#. module: cz_cash_control
+#: model:ir.model,name:cz_cash_control.model_account_bank_statement_line
+msgid "Bank Statement Line"
+msgstr "Banka Hesap Özeti Satırı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_category__kind__bank_deposit
+msgid "Bank deposit (from safe)"
+msgstr "Bankaya yatırma (küçük kasadan)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_blind_count
+msgid "Blind cash count at closing"
+msgstr "Kapanışta kör sayım"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__balance
+msgid "Book Balance"
+msgstr "Defter Bakiyesi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_category__direction__both
+msgid "Both"
+msgstr "Her ikisi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_safe__transfer_account_id
+msgid "Both legs of a drawer→safe transfer hit this account so it always nets to zero."
+msgstr "Çekmece→kasa aktarımının iki bacağı da bu hesaba işlenir; bakiyesi her zaman sıfırlanır."
+
+#. module: cz_cash_control
+#: model:res.groups,name:cz_cash_control.group_cz_cash_manager
+msgid "Branch Manager (Safe)"
+msgstr "Şube Yöneticisi (Küçük Kasa)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__safe_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_safe_id
+msgid "Branch Safe"
+msgstr "Şube Küçük Kasası"
+
+#. module: cz_cash_control
+#: model:ir.model,name:cz_cash_control.model_cz_cash_safe
+msgid "Branch Safe (Küçük Kasa)"
+msgstr "Şube Küçük Kasası"
+
+#. module: cz_cash_control
+#: model:ir.actions.act_window,name:cz_cash_control.action_cz_cash_safe
+#: model:ir.ui.menu,name:cz_cash_control.menu_cz_cash_safes
+msgid "Branch Safes"
+msgstr "Şube Küçük Kasaları"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "By category"
+msgstr "Kategoriye göre"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_form
+msgid "Cancel"
+msgstr "İptal"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_form
+msgid "Cancel this safe movement?"
+msgstr "Bu kasa hareketi iptal edilsin mi?"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_safe_move__state__cancelled
+msgid "Cancelled"
+msgstr "İptal edildi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__non_cash_total
+msgid "Card / Online"
+msgstr "Kart / Online"
+
+#. module: cz_cash_control
+#: model:res.groups,name:cz_cash_control.group_cz_cash_accountant
+msgid "Cash Accountant (Approve)"
+msgstr "Kasa Muhasebecisi (Onay)"
+
+#. module: cz_cash_control
+#: model:ir.actions.act_window,name:cz_cash_control.action_cz_cash_category
+#: model:ir.ui.menu,name:cz_cash_control.menu_cz_cash_categories
+msgid "Cash Categories"
+msgstr "Nakit Kategorileri"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_category_id
+msgid "Cash Category"
+msgstr "Nakit Kategorisi"
+
+#. module: cz_cash_control
+#: model:ir.module.category,name:cz_cash_control.module_category_cz_cash
+#: model:ir.ui.menu,name:cz_cash_control.menu_cz_cash_root
+msgid "Cash Control"
+msgstr "Kasa Kontrol"
+
+#. module: cz_cash_control
+#: model:res.groups,name:cz_cash_control.group_cz_cash_admin
+msgid "Cash Control Administrator"
+msgstr "Kasa Kontrol Yöneticisi"
+
+#. module: cz_cash_control
+#: model:ir.actions.act_window,name:cz_cash_control.action_cz_dashboard
+msgid "Cash Control Dashboard"
+msgstr "Kasa Kontrol Paneli"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Cash Control is not enabled on this point of sale."
+msgstr "Bu kasada Kasa Kontrol etkin değil."
+
+#. module: cz_cash_control
+#: model:ir.actions.server,name:cz_cash_control.cron_cz_cash_daily_ir_actions_server
+msgid "Cash Control: daily refresh, reminders and safe alerts"
+msgstr "Kasa Kontrol: günlük yenileme, hatırlatmalar ve kasa uyarıları"
+
+#. module: cz_cash_control
+#: model:ir.model,name:cz_cash_control.model_cz_cash_category
+msgid "Cash Drawer Category"
+msgstr "Çekmece Nakit Kategorisi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__cash_in_total
+msgid "Cash In"
+msgstr "Nakit Giriş"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__cash_journal_id
+msgid "Cash Journal"
+msgstr "Nakit Yevmiyesi"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/account_bank_statement_line.py:0
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_statement_line_form
+msgid "Cash Movement"
+msgstr "Nakit Hareketi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__statement_line_ids
+msgid "Cash Movements"
+msgstr "Nakit Hareketleri"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Cash Movements — %s"
+msgstr "Nakit Hareketleri — %s"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Cash difference of %s at closing."
+msgstr "Kapanışta %s kasa farkı."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Cash difference reclassified"
+msgstr "Kasa farkı yeniden sınıflandırıldı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_category__direction__in
+msgid "Cash in"
+msgstr "Nakit giriş"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_category__kind__cash_in
+msgid "Cash in (float / change)"
+msgstr "Nakit giriş (bozuk para / devir)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_safe_move__move_type__in
+msgid "Cash in (from drawer / bank)"
+msgstr "Giriş (çekmeceden / bankadan)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__cash_moves
+msgid "Cash in/out so far"
+msgstr "Şu ana kadar giriş/çıkış"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_safe__journal_id
+msgid "Cash journal that represents the physical safe."
+msgstr "Fiziksel küçük kasayı temsil eden nakit yevmiyesi."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Cash moved to safe without cash-out — %s"
+msgstr "Çıkış kaydı olmadan küçük kasaya aktarılan nakit — %s"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Cash movements"
+msgstr "Nakit hareketleri"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_category__direction__out
+msgid "Cash out"
+msgstr "Nakit çıkış"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_safe_move__move_type__out
+msgid "Cash out (payment)"
+msgstr "Çıkış (ödeme)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_day_line__spent
+msgid "Cash out as a positive figure (for reports and graphs)."
+msgstr "Pozitif değer olarak nakit çıkışı (raporlar ve grafikler için)."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__cash_sales
+msgid "Cash sales so far"
+msgstr "Şu ana kadar nakit satış"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_day__difference_action__to_safe
+msgid "Cash was moved to the safe without a cash-out"
+msgstr "Para çıkış kaydı olmadan küçük kasaya kondu"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_pos_cashier
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__cashier_name
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_check_search
+msgid "Cashier"
+msgstr "Kasiyer"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__requires_employee
+msgid "Cashier must pick the staff member (taxi, food, advance...)."
+msgstr "Kasiyer personeli seçmek zorundadır (taksi, yemek, avans...)."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__cashier_names
+msgid "Cashiers"
+msgstr "Kasiyerler"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Cashiers:"
+msgstr "Kasiyerler:"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day_line__category_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__category_id
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_line_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_search
+msgid "Category"
+msgstr "Kategori"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Category %(cat)s is capped at %(max)s per movement."
+msgstr "%(cat)s kategorisinde tek işlem limiti %(max)s."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Category %s cannot be used for this type of cash movement."
+msgstr "%s kategorisi bu tür nakit hareketinde kullanılamaz."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_category.py:0
+msgid "Category %s needs a counterpart account."
+msgstr "%s kategorisi için karşı hesap gerekli."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Category %s requires the staff member."
+msgstr "%s kategorisinde personel seçimi zorunludur."
+
+#. module: cz_cash_control
+#: model:ir.model.constraint,message:cz_cash_control.constraint_cz_cash_category_code_company_uniq
+msgid "Category code must be unique per company."
+msgstr "Kategori kodu şirket başına benzersiz olmalı."
+
+#. module: cz_cash_control
+#: model_terms:ir.actions.act_window,help:cz_cash_control.action_cz_cash_check
+msgid "Checks are recorded from the POS with the \"Sayım\" button (manager PIN), without closing the register."
+msgstr "Sayımlar POS'taki \"Sayım\" düğmesiyle (yönetici PIN) kasa kapatılmadan kaydedilir."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.pos_config_view_form_cz_cash
+msgid "Choco Zuma Cash Control"
+msgstr "Choco Zuma Kasa Kontrol"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Choose the account for the difference."
+msgstr "Fark için hesap seçin."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__closing_notes
+msgid "Closing Notes"
+msgstr "Kapanış Notları"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_pos_config__cz_diff_pin_above
+msgid "Closing with a bigger difference requires a manager PIN and a closing note."
+msgstr "Daha büyük farkla kapanış için yönetici PIN'i ve kapanış notu gerekir."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__code
+msgid "Code"
+msgstr "Kod"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__color
+msgid "Color"
+msgstr "Renk"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__company_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__company_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__company_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day_line__company_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__company_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__company_id
+msgid "Company"
+msgstr "Şirket"
+
+#. module: cz_cash_control
+#: model:ir.ui.menu,name:cz_cash_control.menu_cz_cash_config
+msgid "Configuration"
+msgstr "Yapılandırma"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_category_form
+msgid "Controls"
+msgstr "Kontroller"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day_line__count
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_kanban
+msgid "Count"
+msgstr "Sayım"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__count_difference
+msgid "Count Difference"
+msgstr "Sayım Farkı"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_form
+msgid "Count Safe"
+msgstr "Kasayı Say"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe.py:0
+msgid "Count Safe — %s"
+msgstr "Kasa Sayımı — %s"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__counted
+msgid "Counted"
+msgstr "Sayılan"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe_move.py:0
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Counted amount cannot be negative."
+msgstr "Sayılan tutar negatif olamaz."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__counted_cash
+msgid "Counted at Closing"
+msgstr "Kapanışta Sayılan"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Counted cash is 0 although cash sales were %s — cashier skipped the count."
+msgstr "Nakit satış %s olmasına rağmen sayılan 0 — kasiyer sayımı atlamış."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_check__difference
+msgid "Counted − expected. Negative = shortage."
+msgstr "Sayılan − beklenen. Negatif = eksik."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__account_id
+msgid "Counterpart Account"
+msgstr "Karşı Hesap"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_day__alert_level__danger
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__pos_config__cz_alert_level__danger
+msgid "Critical"
+msgstr "Kritik"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__currency_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__currency_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__currency_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day_line__currency_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__currency_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__currency_id
+msgid "Currency"
+msgstr "Para Birimi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_category__kind__refund
+msgid "Customer refund"
+msgstr "Müşteri iadesi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_alert_level
+msgid "Cz Alert Level"
+msgstr "Uyarı Seviyesi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_today_state
+msgid "Cz Today State"
+msgstr "Bugünün Durumu"
+
+#. module: cz_cash_control
+#: model:ir.model,name:cz_cash_control.model_cz_cash_day
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_day_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__day_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_session__cz_day_id
+msgid "Daily Cash Sheet"
+msgstr "Günlük Kasa Sayfası"
+
+#. module: cz_cash_control
+#: model:ir.model,name:cz_cash_control.model_cz_cash_day_line
+msgid "Daily Cash Sheet — Category Summary"
+msgstr "Günlük Kasa Sayfası — Kategori Özeti"
+
+#. module: cz_cash_control
+#: model:ir.actions.act_window,name:cz_cash_control.action_cz_cash_day
+#: model:ir.ui.menu,name:cz_cash_control.menu_cz_cash_days
+msgid "Daily Cash Sheets"
+msgstr "Günlük Kasa Sayfaları"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Daily cash sheet approved by %s. Counterparts posted."
+msgstr "Günlük kasa sayfası %s tarafından onaylandı. Karşı kayıtlar işlendi."
+
+#. module: cz_cash_control
+#: model:ir.ui.menu,name:cz_cash_control.menu_cz_dashboard
+msgid "Dashboard"
+msgstr "Panel"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__date
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day_line__date
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__date
+msgid "Date"
+msgstr "Tarih"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day_line__day_id
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_check_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_line_search
+msgid "Day"
+msgstr "Gün"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe_move.py:0
+msgid "Define profit/loss accounts on journal %s."
+msgstr "%s yevmiyesinde kâr/zarar hesaplarını tanımlayın."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__note
+msgid "Description"
+msgstr "Açıklama"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__difference
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__difference
+msgid "Difference"
+msgstr "Fark"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__difference_account_id
+msgid "Difference Account"
+msgstr "Fark Hesabı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__difference_action
+msgid "Difference Action"
+msgstr "Fark İşlemi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__difference_note
+msgid "Difference Note"
+msgstr "Fark Notu"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Difference handling"
+msgstr "Fark işlemi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__direction
+msgid "Direction"
+msgstr "Yön"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Drawer"
+msgstr "Çekmece"
+
+#. module: cz_cash_control
+#: model:ir.actions.act_window,name:cz_cash_control.action_cz_cash_check
+#: model:ir.ui.menu,name:cz_cash_control.menu_cz_cash_checks
+msgid "Drawer Checks"
+msgstr "Kasa Sayımları"
+
+#. module: cz_cash_control
+#: model:ir.actions.act_window,name:cz_cash_control.action_cz_cash_day_line
+msgid "Drawer Expenses by Category"
+msgstr "Kategoriye Göre Çekmece Masrafları"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Drawer check %(ref)s at %(time)s (%(cashier)s): difference %(diff)s."
+msgstr "Kasa sayımı %(ref)s saat %(time)s (%(cashier)s): fark %(diff)s."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__check_ids
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Drawer checks"
+msgstr "Kasa sayımları"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_check.py:0
+msgid "Drawer checks are an audit trail and cannot be deleted."
+msgstr "Kasa sayımları denetim kaydıdır, silinemez."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_check.py:0
+msgid "Drawer checks are an audit trail and cannot be modified."
+msgstr "Kasa sayımları denetim kaydıdır, değiştirilemez."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__check_count
+msgid "Drawer checks count"
+msgstr "Kasa sayımı adedi"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_line_graph
+msgid "Drawer expenses by category"
+msgstr "Kategoriye göre çekmece masrafları"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Drawer → safe transfer (%s)"
+msgstr "Çekmece → küçük kasa aktarımı (%s)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_day__safe_id
+#: model:ir.model.fields,help:cz_cash_control.field_pos_config__cz_safe_id
+msgid "Drawer→safe transfers approved on the daily sheet are mirrored into this safe."
+msgstr "Günlük sayfada onaylanan çekmece→kasa aktarımları bu küçük kasaya yansıtılır."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_day__excel_cash_sales
+msgid "During the parallel run: the CASH SALES figure typed in the old Excel sheet."
+msgstr "Paralel dönemde: eski Excel'e yazılan NAKİT SATIŞ tutarı."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__employee_id
+msgid "Employee"
+msgstr "Personel"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_account_bank_statement_line__cz_pos_cashier
+msgid "Employee logged in the POS when the movement was made."
+msgstr "Hareket yapıldığında POS'a giriş yapmış personel."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__requires_employee
+msgid "Employee required"
+msgstr "Personel zorunlu"
+
+#. module: cz_cash_control
+#: model_terms:ir.actions.act_window,help:cz_cash_control.action_cz_dashboard
+msgid "Enable \"Choco Zuma Cash Control\" in the POS settings to see it here."
+msgstr "Burada görmek için POS ayarlarında \"Choco Zuma Kasa Kontrol\"ü etkinleştirin."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_pos_config__cz_cash_control
+msgid "Enable categorised cash-outs, blind count and the daily cash sheet for this POS."
+msgstr "Bu kasada kategorili nakit çıkışı, kör sayım ve günlük kasa sayfasını etkinleştir."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_end_of_day
+msgid "End-of-day drawer transfer"
+msgstr "Gün sonu çekmece aktarımı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__eod_transfer_total
+msgid "End-of-day drawer → safe"
+msgstr "Gün sonu çekmece → küçük kasa"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_envelope_ref
+msgid "Envelope / Bag No"
+msgstr "Zarf / Poşet No"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Excel cash sales differ from POS by %s."
+msgstr "Excel nakit satışı POS'tan %s farklı."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__excel_diff
+msgid "Excel vs POS"
+msgstr "Excel - POS farkı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__excel_cash_sales
+msgid "Excel: Cash Sales"
+msgstr "Excel: Nakit Satış"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__excel_expenses
+msgid "Excel: Expenses"
+msgstr "Excel: Masraflar"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__expected
+msgid "Expected"
+msgstr "Beklenen"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_pos_config__cz_opening_float
+msgid "Expected cash left in the drawer at closing (devir)."
+msgstr "Kapanışta çekmecede bırakılması beklenen nakit (devir)."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__expected_cash
+msgid "Expected in Drawer"
+msgstr "Çekmecede Beklenen"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_category__kind__expense
+msgid "Expense paid from drawer"
+msgstr "Çekmeceden ödenen masraf"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_month_expenses
+msgid "Expenses (30 days)"
+msgstr "Masraflar (30 gün)"
+
+#. module: cz_cash_control
+#: model:ir.ui.menu,name:cz_cash_control.menu_cz_cash_day_lines
+msgid "Expenses by Category"
+msgstr "Kategoriye Göre Masraflar"
+
+#. module: cz_cash_control
+#: model:ir.actions.act_window,name:cz_cash_control.action_cz_cash_day_line_graph
+msgid "Expenses by Category — 30 days"
+msgstr "Kategoriye Göre Masraflar — 30 gün"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__expense_total
+msgid "Expenses from Drawer"
+msgstr "Çekmeceden Masraflar"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_line_search
+msgid "Expenses only"
+msgstr "Sadece masraflar"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__pos_config_ids
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_form
+msgid "Fed by POS"
+msgstr "Besleyen kasalar (POS)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__icon
+msgid "FontAwesome 4 icon class shown on the POS tile, e.g. fa-taxi, fa-cutlery, fa-lock."
+msgstr "POS kutusunda gösterilen FontAwesome 4 simgesi, ör. fa-taxi, fa-cutlery, fa-lock."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_safe_move__amount
+msgid "For a count: the amount physically found in the safe."
+msgstr "Sayımda: kasada fiilen bulunan tutar."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__origin_day_id
+msgid "From daily sheet"
+msgstr "Günlük sayfadan"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_check_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_line_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_search
+msgid "Group By"
+msgstr "Grupla"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__max_amount
+msgid "Hard cap for a single movement. 0 = no cap."
+msgstr "Tek hareket için üst limit. 0 = limitsiz."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_pos_config__cz_blind_count
+msgid "Hide the expected cash and the difference from the cashier while counting."
+msgstr "Sayım sırasında beklenen tutarı ve farkı kasiyerden gizle."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__pin_above
+msgid "If 'Manager PIN required' is off, still ask for a PIN above this amount. 0 = never."
+msgstr "'Yönetici PIN'i gerekli' kapalı olsa da bu tutarın üzerinde PIN iste. 0 = hiçbir zaman."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_pos_config__cz_cash_out_pin_above
+msgid "Independent of the category rules. 0 = off."
+msgstr "Kategori kurallarından bağımsız. 0 = kapalı."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_category_form
+msgid "Internal note for the accountant..."
+msgstr "Muhasebe için iç not..."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Invalid counted amount."
+msgstr "Geçersiz sayım tutarı."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_search
+msgid "Journal"
+msgstr "Yevmiye"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_day__difference_action__keep
+msgid "Keep as cash difference (profit/loss)"
+msgstr "Kasa farkı olarak bırak (kâr/zarar)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__kind
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day_line__kind
+msgid "Kind"
+msgstr "Tür"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_line_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_search
+msgid "Last 30 days"
+msgstr "Son 30 gün"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__last_count_amount
+msgid "Last Count Amount"
+msgstr "Son Sayım Tutarı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__last_count_date
+msgid "Last Count Date"
+msgstr "Son Sayım Tarihi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__last_count_difference
+msgid "Last Count Difference"
+msgstr "Son Sayım Farkı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_last_difference
+msgid "Last closing difference"
+msgstr "Son kapanış farkı"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "Last closing difference:"
+msgstr "Son kapanış farkı:"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_form
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_kanban
+msgid "Ledger"
+msgstr "Defter"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__pin_above
+msgid "Manager PIN above"
+msgstr "Bu tutarın üzerinde yönetici PIN'i"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_cash_out_pin_above
+msgid "Manager PIN for any cash out above"
+msgstr "Bu tutarı aşan her çıkışta yönetici PIN'i"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_manager_pin_ok
+msgid "Manager PIN given"
+msgstr "Yönetici PIN'i girildi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__requires_pin
+msgid "Manager PIN required"
+msgstr "Yönetici PIN'i gerekli"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_zero_count_pin
+msgid "Manager PIN when count is 0"
+msgstr "Sayım 0 ise yönetici PIN'i"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_diff_pin_above
+msgid "Manager PIN when |difference| above"
+msgstr "|Fark| bu tutarı aşarsa yönetici PIN'i"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_account_bank_statement_line__cz_manager_name
+msgid "Manager whose PIN authorised the movement."
+msgstr "Hareketi PIN'iyle onaylayan yönetici."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_manager_ids
+msgid "Managers to notify"
+msgstr "Bildirilecek yöneticiler"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__max_amount
+msgid "Max per movement"
+msgstr "Hareket başına üst limit"
+
+#. module: cz_cash_control
+#: model:ir.model,name:cz_cash_control.model_cz_cash_check
+msgid "Mid-day Drawer Check"
+msgstr "Gün İçi Kasa Sayımı"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Missing receipt number: %s"
+msgstr "Fiş numarası eksik: %s"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Mixed sessions are not supported."
+msgstr "Karışık oturumlar desteklenmiyor."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_search
+msgid "Month"
+msgstr "Ay"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__move_type
+msgid "Move Type"
+msgstr "Hareket Türü"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__move_ids
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_form
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_kanban
+msgid "Movements"
+msgstr "Hareketler"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__name
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__name
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__name
+msgid "Name"
+msgstr "Ad"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "New"
+msgstr "Yeni"
+
+#. module: cz_cash_control
+#: model_terms:ir.actions.act_window,help:cz_cash_control.action_cz_dashboard
+msgid "No POS with Cash Control yet"
+msgstr "Henüz Kasa Kontrol'lü POS yok"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "No branch safe is configured on %s."
+msgstr "%s için şube küçük kasası tanımlı değil."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/account_bank_statement_line.py:0
+msgid "No counterpart account for %s."
+msgstr "%s için karşı hesap yok."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe_move.py:0
+msgid "No counterpart account: set a category or a transfer account on the safe."
+msgstr "Karşı hesap yok: kategori seçin veya kasada aktarım hesabı tanımlayın."
+
+#. module: cz_cash_control
+#: model_terms:ir.actions.act_window,help:cz_cash_control.action_cz_cash_day
+msgid "No daily cash sheet yet"
+msgstr "Henüz günlük kasa sayfası yok"
+
+#. module: cz_cash_control
+#: model_terms:ir.actions.act_window,help:cz_cash_control.action_cz_cash_check
+msgid "No drawer check yet"
+msgstr "Henüz kasa sayımı yok"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__pos_config__cz_today_state__none
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "No session"
+msgstr "Oturum yok"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "No transfer to the safe was recorded although cash sales were %s."
+msgstr "Nakit satış %s olmasına rağmen küçük kasaya aktarım kaydedilmedi."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_search
+msgid "Not approved yet"
+msgstr "Henüz onaylanmadı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__note
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__note
+msgid "Note"
+msgstr "Not"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__usage_count
+msgid "Number of POS cash movements with this category in the last 30 days — drives the tile order in the POS."
+msgstr "Son 30 günde bu kategoriyle yapılan POS nakit hareketi sayısı — POS'taki kutu sırasını belirler."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_account_bank_statement_line__cz_envelope_ref
+msgid "Number written on the envelope or bag that went to the safe (end-of-day transfer)."
+msgstr "Küçük kasaya giden zarf veya poşetin üzerindeki numara (gün sonu aktarımı)."
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_day__alert_level__ok
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__pos_config__cz_alert_level__ok
+msgid "OK"
+msgstr "Tamam"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_pos_config__cz_show_recent
+msgid "One-tap repeat of the last movements. Off by default (Mo: not practical)."
+msgstr "Son hareketleri tek dokunuşla tekrarla. Varsayılan kapalı."
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_day__state__open
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__pos_config__cz_today_state__open
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_search
+msgid "Open"
+msgstr "Açık"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_alert_count
+msgid "Open alerts"
+msgstr "Açık uyarılar"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Open journal lines"
+msgstr "Yevmiye satırlarını aç"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__opening
+msgid "Opening"
+msgstr "Açılış"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__opening_cash
+msgid "Opening Cash"
+msgstr "Açılış Nakdi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_category__kind__other
+msgid "Other"
+msgstr "Diğer"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__cash_sales
+msgid "POS Cash Sales"
+msgstr "POS Nakit Satış"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__session_id
+msgid "POS Session"
+msgstr "POS Oturumu"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__session_ids
+msgid "POS Sessions"
+msgstr "POS Oturumları"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "POS sessions"
+msgstr "POS oturumları"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__partner_id
+msgid "Paid to / received from"
+msgstr "Ödenen / alınan kişi"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Parallel run — legacy Excel"
+msgstr "Paralel dönem — eski Excel"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_day__eod_transfer_total
+msgid "Part of 'Transferred to Safe': the whole counted drawer moved to the safe at closing."
+msgstr "'Küçük Kasaya Aktarılan'ın parçası: kapanışta sayılan çekmecenin tamamı kasaya aktarıldı."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__pending_move_count
+msgid "Pending Move Count"
+msgstr "Bekleyen Hareket Sayısı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_has_receipt_image
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_list
+msgid "Photo"
+msgstr "Fotoğraf"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_account_bank_statement_line__cz_receipt_image
+msgid "Photo of the receipt taken from the POS (camera) when the movement was recorded."
+msgstr "Hareket kaydedilirken POS'tan (kamerayla) çekilen fiş fotoğrafı."
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_safe_move__move_type__count
+msgid "Physical count"
+msgstr "Fiziksel sayım"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__config_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__config_id
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day_line__config_id
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_line_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_search
+msgid "Point of Sale"
+msgstr "Satış Noktası"
+
+#. module: cz_cash_control
+#: model:ir.model,name:cz_cash_control.model_pos_config
+msgid "Point of Sale Configuration"
+msgstr "Satış Noktası Yapılandırması"
+
+#. module: cz_cash_control
+#: model:ir.model,name:cz_cash_control.model_pos_session
+msgid "Point of Sale Session"
+msgstr "Satış Noktası Oturumu"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Post all counterparts for this day? Approved movements can no longer be edited."
+msgstr "Bu günün tüm karşı kayıtları işlensin mi? Onaylanan hareketler artık değiştirilemez."
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_day__difference_action__reclass
+msgid "Post to another account"
+msgstr "Başka hesaba kaydet"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_receipt_ref
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__receipt_ref
+msgid "Receipt / Fiş No"
+msgstr "Fiş / Fatura No"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_receipt_image
+msgid "Receipt Photo"
+msgstr "Fiş Fotoğrafı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__requires_receipt_above
+msgid "Receipt no. required above"
+msgstr "Bu tutarın üzerinde fiş no. zorunlu"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_statement_line_form
+msgid "Receipt photo"
+msgstr "Fiş fotoğrafı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__attachment_ids
+msgid "Receipt scan"
+msgstr "Fiş taraması"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__name
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__name
+msgid "Reference"
+msgstr "Referans"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Refresh from POS"
+msgstr "POS'tan yenile"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__refund_total
+msgid "Refunds"
+msgstr "İadeler"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Reminder: this daily cash sheet is still waiting for approval."
+msgstr "Hatırlatma: bu günlük kasa sayfası hâlâ onay bekliyor."
+
+#. module: cz_cash_control
+#: model:ir.ui.menu,name:cz_cash_control.menu_cz_cash_reporting
+msgid "Reporting"
+msgstr "Raporlama"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_form
+msgid "Reset to draft"
+msgstr "Taslağa al"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__responsible_id
+msgid "Responsible (Manager)"
+msgstr "Sorumlu (Yönetici)"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_kanban
+msgid "Responsible:"
+msgstr "Sorumlu:"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__safe_id
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_search
+msgid "Safe"
+msgstr "Küçük Kasa"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__account_id
+msgid "Safe Account"
+msgstr "Kasa Hesabı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__journal_id
+msgid "Safe Journal"
+msgstr "Kasa Yevmiyesi"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe.py:0
+msgid "Safe Ledger — %s"
+msgstr "Kasa Defteri — %s"
+
+#. module: cz_cash_control
+#: model:ir.model,name:cz_cash_control.model_cz_cash_safe_move
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_safe_move_id
+msgid "Safe Movement"
+msgstr "Kasa Hareketi"
+
+#. module: cz_cash_control
+#: model:ir.actions.act_window,name:cz_cash_control.action_cz_cash_safe_move
+#: model:ir.ui.menu,name:cz_cash_control.menu_cz_cash_safe_moves
+msgid "Safe Movements"
+msgstr "Kasa Hareketleri"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe.py:0
+msgid "Safe Movements — %s"
+msgstr "Kasa Hareketleri — %s"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_safe_balance
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "Safe balance"
+msgstr "Kasa bakiyesi"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe.py:0
+msgid "Safe balance %(bal)s exceeds the alert threshold %(thr)s — bank deposit due."
+msgstr "Kasa bakiyesi %(bal)s uyarı limiti %(thr)s'ı aştı — bankaya yatırın."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe_move.py:0
+msgid "Safe count difference (%(kind)s) — %(note)s"
+msgstr "Kasa sayım farkı (%(kind)s) — %(note)s"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe_move.py:0
+msgid "Safe counted by %(user)s: %(amt)s (difference %(diff)s)."
+msgstr "Kasayı sayan %(user)s: %(amt)s (fark %(diff)s)."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe.py:0
+msgid "Safe has not been counted for more than 7 days."
+msgstr "Kasa 7 günden fazladır sayılmadı."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+msgid "Safe movements"
+msgstr "Kasa hareketleri"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__safe_move_ids
+msgid "Safe movements created"
+msgstr "Oluşturulan kasa hareketleri"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Safe → drawer: %(cat)s (%(day)s)"
+msgstr "Kasa → çekmece: %(cat)s (%(day)s)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_category__kind__salary
+msgid "Salary / wage payment (from safe)"
+msgstr "Maaş / ücret ödemesi (küçük kasadan)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__sequence
+msgid "Sequence"
+msgstr "Sıra"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__session_count
+msgid "Session Count"
+msgstr "Oturum Sayısı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__seq
+msgid "Sheet no."
+msgstr "Sayfa no."
+
+#. module: cz_cash_control
+#: model_terms:ir.actions.act_window,help:cz_cash_control.action_cz_cash_day
+msgid "Sheets are created automatically when a POS session with Cash Control is opened."
+msgstr "Kasa Kontrol'lü bir POS oturumu açıldığında sayfalar otomatik oluşur."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_pending_count
+msgid "Sheets waiting approval"
+msgstr "Onay bekleyen sayfalar"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_check__check_type__handover
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_check_search
+msgid "Shift handover"
+msgstr "Vardiya devri"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__code
+msgid "Short code printed on receipts and used in journal labels, e.g. TAKSI."
+msgstr "Fişlerde basılan ve yevmiye açıklamalarında kullanılan kısa kod, ör. TAKSI."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__pos_available
+msgid "Show in POS"
+msgstr "POS'ta göster"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_pos_config__cz_enable_eod
+msgid "Show the one-PIN 'empty the whole drawer into the safe and close at 0' button in the closing popup. Off: the cashier only counts; transfers to the safe are recorded with Masraf → 'Küçük Kasaya Aktar'."
+msgstr "Kapanış ekranında tek PIN'li 'çekmecenin tamamını küçük kasaya aktar ve 0 ile kapat' düğmesini göster. Kapalı: kasiyer sadece sayar; kasaya aktarımlar Masraf → 'Küçük Kasaya Aktar' ile kaydedilir."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_category_form
+msgid "Shown to the cashier"
+msgstr "Kasiyere gösterilen"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_day_line__amount
+msgid "Signed: negative = cash out."
+msgstr "İşaretli: negatif = nakit çıkışı."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day_line__spent
+msgid "Spent"
+msgstr "Harcanan"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_check__check_type__spot
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_check_search
+msgid "Spot check"
+msgstr "Ani sayım"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_employee_id
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_search
+msgid "Staff"
+msgstr "Personel"
+
+#. module: cz_cash_control
+#: model:ir.ui.menu,name:cz_cash_control.menu_cz_staff_expenses
+msgid "Staff Expenses (Monthly)"
+msgstr "Personel Masrafları (Aylık)"
+
+#. module: cz_cash_control
+#: model:ir.actions.act_window,name:cz_cash_control.action_cz_staff_expenses
+msgid "Staff Expenses (taxi, food, advances)"
+msgstr "Personel Masrafları (taksi, yemek, avans)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_category__kind__advance
+msgid "Staff advance / loan"
+msgstr "Personel avansı / borç"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_graph
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_pivot
+msgid "Staff expenses"
+msgstr "Personel masrafları"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_opening_float
+msgid "Standard opening float"
+msgstr "Standart devir tutarı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__state
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__state
+msgid "State"
+msgstr "Durum"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__statement_line_id
+msgid "Statement Line"
+msgstr "Hesap Özeti Satırı"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_search
+msgid "Status"
+msgstr "Durum"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__summary_line_ids
+msgid "Summary by Category"
+msgstr "Kategoriye Göre Özet"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "The receipt photo is too large."
+msgstr "Fiş fotoğrafı çok büyük."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "The register must be open to check the drawer."
+msgstr "Kasa sayımı için kasa açık olmalı."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_account_bank_statement_line__cz_end_of_day
+msgid "The whole counted drawer was moved to the safe at closing (drawer closes at 0)."
+msgstr "Kapanışta sayılan çekmecenin tamamı küçük kasaya aktarıldı (çekmece 0 ile kapanır)."
+
+#. module: cz_cash_control
+#: model:ir.model.constraint,message:cz_cash_control.constraint_cz_cash_day_config_date_seq_uniq
+msgid "There is already a cash sheet for this POS, day and sheet number."
+msgstr "Bu POS, gün ve sayfa numarası için zaten bir kasa sayfası var."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "There is no cash payment method for this PoS Session"
+msgstr "Bu POS oturumunda nakit ödeme yöntemi yok"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/account_bank_statement_line.py:0
+msgid "This cash movement was approved by the accountant and can no longer be modified."
+msgstr "Bu nakit hareketi muhasebe tarafından onaylandı, artık değiştirilemez."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_check_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_line_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_search
+msgid "This month"
+msgstr "Bu ay"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__color
+msgid "Tile colour in the POS (0-11, Odoo colour palette)."
+msgstr "POS'taki kutu rengi (0-11, Odoo renk paleti)."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__check_time
+msgid "Time"
+msgstr "Saat"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_day__state__to_approve
+msgid "To Approve"
+msgstr "Onay Bekliyor"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_safe_move__state__draft
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__pos_config__cz_today_state__to_approve
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "To approve"
+msgstr "Onay bekliyor"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "Today · cash sales"
+msgstr "Bugün · nakit satış"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "Today · drawer expenses"
+msgstr "Bugün · çekmece masrafı"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "Today · to safe"
+msgstr "Bugün · küçük kasaya"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_today_day_id
+msgid "Today's sheet"
+msgstr "Bugünün sayfası"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_today_cash_sales
+msgid "Today: cash sales"
+msgstr "Bugün: nakit satış"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_today_expenses
+msgid "Today: drawer expenses"
+msgstr "Bugün: çekmece masrafı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_today_safe_transfers
+msgid "Today: to safe"
+msgstr "Bugün: küçük kasaya"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_check_list
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_form
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_list
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_list
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_list
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_list
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_statement_line_in_day
+msgid "Total"
+msgstr "Toplam"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__total_sales
+msgid "Total Sales"
+msgstr "Toplam Satış"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__transfer_account_id
+msgid "Transfer Clearing Account"
+msgstr "Aktarım Ara Hesabı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_category__kind__safe_transfer
+msgid "Transfer to branch safe"
+msgstr "Şube küçük kasasına aktarım"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__safe_transfer_total
+msgid "Transferred to Safe"
+msgstr "Küçük Kasaya Aktarılan"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_check__check_type
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_search
+msgid "Type"
+msgstr "Tür"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__typical_amount
+msgid "Typical amount"
+msgstr "Tipik tutar"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__uncategorised_total
+msgid "Uncategorised"
+msgstr "Kategorisiz"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__uncategorised_count
+msgid "Uncategorised Count"
+msgstr "Kategorisiz Adet"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_pending_amount
+msgid "Unposted expenses"
+msgstr "İşlenmemiş masraflar"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Unusual %(cat)s: %(amt)s (typical %(typ)s) — %(ref)s"
+msgstr "Olağandışı %(cat)s: %(amt)s (tipik %(typ)s) — %(ref)s"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__usage_count
+msgid "Used (30 days)"
+msgstr "Kullanım (30 gün)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__typical_amount
+msgid "Used for the 'unusual expense' alert (2x typical). 0 = no alert."
+msgstr "'Olağandışı masraf' uyarısı için kullanılır (tipiğin 2 katı). 0 = uyarı yok."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Waiting for approval for %s days."
+msgstr "%s gündür onay bekliyor."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_pos_config__cz_drawer_alert_above
+msgid "Warn on the daily sheet when more than this stays in the drawer after closing. 0 = off."
+msgstr "Kapanıştan sonra çekmecede bundan fazlası kalırsa günlük sayfada uyar. 0 = kapalı."
+
+#. module: cz_cash_control
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__cz_cash_day__alert_level__warning
+#: model:ir.model.fields.selection,name:cz_cash_control.selection__pos_config__cz_alert_level__warning
+msgid "Warning"
+msgstr "Uyarı"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_move_form
+msgid "What was this for? (required)"
+msgstr "Ne için? (zorunlu)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__direction
+msgid "Which POS cash movement types this category may be used with."
+msgstr "Bu kategorinin hangi POS nakit hareketlerinde kullanılabileceği."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_search
+msgid "With alerts"
+msgstr "Uyarılı"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_check_search
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_day_search
+msgid "With difference"
+msgstr "Farklı"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_search
+msgid "With staff member"
+msgstr "Personelli"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_staff_expense_search
+msgid "Without receipt / photo"
+msgstr "Fişsiz / fotoğrafsız"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Wrong manager PIN."
+msgstr "Yanlış yönetici PIN'i."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "You don't have the access rights to perform a drawer check."
+msgstr "Kasa sayımı yapma yetkiniz yok."
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "alert(s)"
+msgstr "uyarı"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_form
+msgid "e.g. Metrokent Küçük Kasa"
+msgstr "ör. Metrokent Küçük Kasa"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid "of expenses not posted yet)"
+msgstr "masraf henüz işlenmedi)"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_dashboard_kanban
+msgid ""
+"sheet(s) waiting for approval\n"
+"                                ("
+msgstr ""
+"sayfa onay bekliyor\n"
+"                                ("
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe_move.py:0
+msgid "shortage"
+msgstr "eksik"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe_move.py:0
+msgid "surplus"
+msgstr "fazla"
+
+#. module: cz_cash_control
+#: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_kanban
+msgid "to approve"
+msgstr "onay bekliyor"
