@@ -10,7 +10,7 @@
   background: var(--cz-bg);
   color: var(--cz-ink);
   min-height: 100%;
-  padding: 16px clamp(16px, 2vw, 32px) 40px;
+  padding: 16px 24px 40px;
   font-size: 14px;
 
   .cz_dash_head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
@@ -63,7 +63,7 @@
     &.st_draft { background: #eee; color: var(--cz-muted); }
   }
 
-  .cz_wh_grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 12px; }
+  .cz_wh_grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px; }
   .cz_card { background: var(--cz-panel); border: 1px solid var(--cz-line); border-radius: 10px; padding: 12px 14px; }
   .cz_card_title { font-weight: 600; font-size: 15px; margin-bottom: 8px; display: flex; gap: 8px; align-items: center; }
 

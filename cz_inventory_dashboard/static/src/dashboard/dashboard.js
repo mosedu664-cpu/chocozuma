@@ -119,8 +119,11 @@ export class CzInventoryDashboard extends Component {
     }
 
     openPartner(g) {
+        const who = this.state.data.has_sale
+            ? ["|", ["partner_id", "=", g.partner_id], ["sale_id.partner_id", "=", g.partner_id]]
+            : [["partner_id", "=", g.partner_id]];
         this.openList(
-            [["partner_id", "=", g.partner_id], ["picking_type_code", "in", ["outgoing", "dropship"]], ["state", "in", ["assigned", "waiting", "confirmed"]]],
+            [...who, ["picking_type_code", "in", ["outgoing", "dropship"]], ["state", "in", ["assigned", "waiting", "confirmed"]]],
             g.partner
         );
     }

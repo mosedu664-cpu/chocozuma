@@ -56,12 +56,17 @@ class StockPicking(models.Model):
             ('picking_type_code', 'in', ('outgoing', 'dropship')),
             ('state', 'in', OPEN_STATES)]]), order='scheduled_date')
         rows = []
+        has_sale = 'sale_id' in self._fields
         for p in out:
             is_late = p.scheduled_date < start_today or p.has_deadline_issue
+            # dropship pickings carry the vendor as partner; the board groups by customer
+            customer = p.partner_id
+            if p.picking_type_code == 'dropship' and has_sale and p.sale_id.partner_id:
+                customer = p.sale_id.partner_id
             rows.append({
                 'id': p.id, 'name': p.name,
-                'partner': p.partner_id.display_name or '—',
-                'partner_id': p.partner_id.id,
+                'partner': customer.display_name or '—',
+                'partner_id': customer.id,
                 'scheduled': fields.Datetime.context_timestamp(self, p.scheduled_date).strftime('%d.%m %H:%M'),
                 'is_late': is_late,
                 'is_today': start_today <= p.scheduled_date < end_today,
@@ -101,7 +106,7 @@ class StockPicking(models.Model):
             'done_today': count([('picking_type_code', 'in', ('outgoing', 'dropship')), ('state', '=', 'done'), ('date_done', '>=', start_today)]),
         }
         return {
-            'company': company.name, 'company_id': company.id,
+            'company': company.name, 'company_id': company.id, 'has_sale': has_sale,
             'as_of': fields.Datetime.context_timestamp(self, now).strftime('%d.%m.%Y %H:%M'),
             'totals': totals, 'warehouses': warehouses, 'groups': groups, 'receipts': receipts,
             'can_validate': self.env.user.has_group('stock.group_stock_user'),
