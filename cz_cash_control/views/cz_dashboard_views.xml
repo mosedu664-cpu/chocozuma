@@ -30,7 +30,7 @@
                                 <div>
                                     <strong class="fs-4"><field name="name"/></strong>
                                     <div class="text-muted small">
-                                        <i class="fa fa-archive me-1"/><field name="cz_safe_id"/>
+                                        <i class="fa fa-archive me-1" title="Branch safe"/><field name="cz_safe_id"/>
                                     </div>
                                 </div>
                                 <div class="text-end">
@@ -42,7 +42,7 @@
                                     <span t-else="" class="badge text-bg-light">No session</span>
                                     <div t-if="record.cz_alert_count.raw_value" class="mt-1">
                                         <span t-attf-class="badge text-bg-#{record.cz_alert_level.raw_value == 'danger' ? 'danger' : 'warning'}">
-                                            <i class="fa fa-exclamation-triangle me-1"/><field name="cz_alert_count"/> alert(s)
+                                            <i class="fa fa-exclamation-triangle me-1" title="Alerts"/><field name="cz_alert_count"/> alert(s)
                                         </span>
                                     </div>
                                 </div>
@@ -80,7 +80,7 @@
                                 <span>30 days expenses: <strong><field name="cz_month_expenses" widget="monetary"/></strong></span>
                             </div>
                             <div t-if="record.cz_pending_count.raw_value" class="small mt-1">
-                                <i class="fa fa-hourglass-half me-1 text-warning"/>
+                                <i class="fa fa-hourglass-half me-1 text-warning" title="Waiting for approval"/>
                                 <field name="cz_pending_count"/> sheet(s) waiting for approval
                                 (<field name="cz_pending_amount" widget="monetary"/> of expenses not posted yet)
                             </div>
