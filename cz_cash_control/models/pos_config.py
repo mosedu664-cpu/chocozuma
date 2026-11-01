@@ -25,6 +25,8 @@ class PosConfig(models.Model):
                                         "Masraf → 'Küçük Kasaya Aktar'.")
     cz_show_recent = fields.Boolean(string='"Recent movements" chips in the cash popup', default=False,
                                     help="One-tap repeat of the last movements. Off by default (Mo: not practical).")
+    cz_drawer_alert_above = fields.Float(string='Alert when drawer holds more than overnight', default=10000.0,
+                                         help="Warn on the daily sheet when more than this stays in the drawer after closing. 0 = off.")
     cz_opening_float = fields.Float(string='Standard opening float', default=2000.0,
                                     help="Expected cash left in the drawer at closing (devir).")
     cz_accountant_ids = fields.Many2many('res.users', 'cz_pos_config_accountant_rel', 'config_id', 'user_id',

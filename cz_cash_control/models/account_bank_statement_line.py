@@ -24,6 +24,8 @@ class AccountBankStatementLine(models.Model):
     cz_approved = fields.Boolean(string='Approved by accountant', copy=False, default=False)
     cz_pos_cashier = fields.Char(string='Cashier', copy=False, help="Employee logged in the POS when the movement was made.")
     cz_manager_pin_ok = fields.Boolean(string='Manager PIN given', copy=False)
+    cz_manager_name = fields.Char(string='Authorised by', copy=False,
+                                  help="Manager whose PIN authorised the movement.")
     cz_end_of_day = fields.Boolean(string='End-of-day drawer transfer', copy=False,
                                    help="The whole counted drawer was moved to the safe at closing (drawer closes at 0).")
 

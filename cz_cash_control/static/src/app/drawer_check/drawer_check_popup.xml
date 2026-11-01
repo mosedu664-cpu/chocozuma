@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="cz_cash_control.DrawerCheckResultPopup">
+        <Dialog title="'Kasa sayımı sonucu'" size="'md'">
+            <div class="cz-drawer-check">
+                <div t-attf-class="alert {{statusClass}} text-center fs-4 fw-bold mb-3">
+                    <t t-if="isZero">Kasa tam ✓</t>
+                    <t t-elif="props.result.difference &lt; 0">Eksik: <t t-esc="fmt(-props.result.difference)"/></t>
+                    <t t-else="">Fazla: <t t-esc="fmt(props.result.difference)"/></t>
+                </div>
+                <table class="table table-sm mb-2">
+                    <tbody>
+                        <tr><td>Açılış</td><td class="text-end" t-esc="fmt(props.result.opening)"/></tr>
+                        <tr><td>Şu ana kadar nakit satış</td><td class="text-end" t-esc="fmt(props.result.cash_sales)"/></tr>
+                        <tr><td>Masraf / aktarım (net)</td><td class="text-end" t-esc="fmt(props.result.cash_moves)"/></tr>
+                        <tr class="fw-bold"><td>Çekmecede olması gereken</td><td class="text-end" t-esc="fmt(props.result.expected)"/></tr>
+                        <tr class="fw-bold"><td>Sayılan</td><td class="text-end" t-esc="fmt(props.result.counted)"/></tr>
+                        <tr t-attf-class="fw-bold {{isZero ? '' : 'text-danger'}}"><td>Fark</td><td class="text-end" t-esc="fmt(props.result.difference)"/></tr>
+                    </tbody>
+                </table>
+                <div class="text-muted small">
+                    <t t-esc="props.result.name"/> · onay: <t t-esc="props.result.manager"/> · günlük kasa sayfasına kaydedildi, değiştirilemez.
+                </div>
+                <div t-if="!isZero" class="alert alert-light border mt-2 mb-0 small">
+                    Kayıtlı masrafları (Masraf → Details) ve nakit ödenen siparişleri kontrol edin. Sebebi bulursanız düzeltip tekrar sayın — her sayım yeni bir kayıt olarak saklanır.
+                </div>
+                <div t-if="props.checkType === 'handover'" class="alert alert-info mt-2 mb-0">
+                    <b>Vardiya devri:</b> çıkan kasiyer kilide 🔓 bassın, yeni kasiyer kendi adını seçsin.
+                </div>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-primary btn-lg" t-on-click="confirm">Tamam</button>
+            </t>
+        </Dialog>
+    </t>
+
+</templates>

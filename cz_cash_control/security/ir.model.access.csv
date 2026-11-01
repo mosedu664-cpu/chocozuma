@@ -14,3 +14,6 @@ access_cz_cash_day_accountant,cz.cash.day accountant,model_cz_cash_day,group_cz_
 access_cz_cash_day_line_pos_user,cz.cash.day.line pos user,model_cz_cash_day_line,point_of_sale.group_pos_user,1,0,0,0
 access_cz_cash_day_line_manager,cz.cash.day.line manager,model_cz_cash_day_line,group_cz_cash_manager,1,0,0,0
 access_cz_cash_day_line_accountant,cz.cash.day.line accountant,model_cz_cash_day_line,group_cz_cash_accountant,1,1,1,1
+access_cz_cash_check_pos_user,cz.cash.check pos user,model_cz_cash_check,point_of_sale.group_pos_user,1,0,0,0
+access_cz_cash_check_manager,cz.cash.check manager,model_cz_cash_check,group_cz_cash_manager,1,0,0,0
+access_cz_cash_check_admin,cz.cash.check admin,model_cz_cash_check,group_cz_cash_admin,1,0,0,1

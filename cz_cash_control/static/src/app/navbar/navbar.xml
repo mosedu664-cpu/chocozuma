@@ -9,6 +9,11 @@
                     t-on-click="() => this.pos.cashMove()" title="Kasadan masraf / küçük kasaya aktarım">
                 <i class="fa fa-fw fa-money"/><span t-if="!ui.isSmall" class="ms-1">Masraf</span>
             </button>
+            <button t-if="pos.czShowDrawerCheck"
+                    class="btn btn-light border btn-lg lh-lg fw-bold ms-1"
+                    t-on-click="() => this.pos.czDrawerCheck()" title="Kapatmadan kasa sayımı (yönetici PIN)">
+                <i class="fa fa-fw fa-calculator"/><span t-if="!ui.isSmall" class="ms-1">Sayım</span>
+            </button>
         </xpath>
     </t>
 

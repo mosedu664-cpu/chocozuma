@@ -84,12 +84,19 @@ class CzCashDay(models.Model):
     alert_html = fields.Html(readonly=True, sanitize=False)
     alert_count = fields.Integer(readonly=True)
     safe_move_ids = fields.One2many('cz.cash.safe.move', 'origin_day_id', string='Safe movements created')
+    check_ids = fields.One2many('cz.cash.check', 'day_id', string='Drawer checks')
+    check_count = fields.Integer(compute='_compute_check_count', string='Drawer checks count')
 
     _sql_constraints = [
         ('config_date_seq_uniq', 'unique(config_id, date, seq)', 'There is already a cash sheet for this POS, day and sheet number.'),
     ]
 
     # ------------------------------------------------------------------ computes
+    @api.depends('check_ids')
+    def _compute_check_count(self):
+        for day in self:
+            day.check_count = len(day.check_ids)
+
     @api.depends('config_id', 'date', 'seq')
     def _compute_name(self):
         for day in self:
@@ -254,6 +261,16 @@ class CzCashDay(models.Model):
                 if cat and cat.requires_receipt_above and abs(line.amount) > cat.requires_receipt_above \
                         and not line.cz_receipt_ref and not line.cz_receipt_image:
                     alerts.append(('warning', _("Missing receipt number: %s", line.payment_ref)))
+            for check in day.check_ids.sorted('check_time'):
+                if abs(check.difference) > (cfg.cz_diff_pin_above or 50.0):
+                    alerts.append(('warning', _("Drawer check %(ref)s at %(time)s (%(cashier)s): difference %(diff)s.",
+                                                ref=check.name,
+                                                time=fields.Datetime.context_timestamp(day, check.check_time).strftime('%H:%M'),
+                                                cashier=check.cashier_name or '-', diff=cur.format(check.difference))))
+            left_in_drawer = day.counted_cash - day.eod_transfer_total
+            if closed and cfg.cz_drawer_alert_above and left_in_drawer > cfg.cz_drawer_alert_above:
+                alerts.append(('warning', _("%(amt)s left in the drawer overnight (limit %(limit)s) — move it to the safe.",
+                                            amt=cur.format(left_in_drawer), limit=cur.format(cfg.cz_drawer_alert_above))))
             if day.excel_cash_sales and abs(day.excel_diff) > 1:
                 alerts.append(('warning', _("Excel cash sales differ from POS by %s.", cur.format(day.excel_diff))))
             if day.state == 'to_approve' and (fields.Date.today() - day.date).days > 2:

@@ -10,6 +10,16 @@ import { makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
  * The current cashier can never authorise himself unless he is a manager.
  */
 export async function askManagerPin(pos, dialog, notification, title) {
+    const res = await askManagerPinWithCode(pos, dialog, notification, title);
+    return res ? res.manager : false;
+}
+
+/**
+ * Same as askManagerPin but also returns the typed PIN so the server can
+ * re-verify it (actions recorded server-side, e.g. drawer checks).
+ * Returns { manager, pin } or false.
+ */
+export async function askManagerPinWithCode(pos, dialog, notification, title) {
     const managers = (pos.models["hr.employee"]?.getAll() || []).filter(
         (e) => e._role === "manager" && e._pin
     );
@@ -33,5 +43,5 @@ export async function askManagerPin(pos, dialog, notification, title) {
         notification.add(_t("Yanlış PIN"), { type: "warning", title: _t("Yönetici onayı başarısız") });
         return false;
     }
-    return manager;
+    return { manager, pin };
 }
