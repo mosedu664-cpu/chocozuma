@@ -1,0 +1,74 @@
+.cz_dash {
+  --cz-late: #c0392b;
+  --cz-ready: #1e8449;
+  --cz-wait: #b9770e;
+  --cz-ink: #2c2c2c;
+  --cz-muted: #7a7a7a;
+  --cz-line: #e6e3dc;
+  --cz-panel: #ffffff;
+  --cz-bg: #f6f4ef;
+  background: var(--cz-bg);
+  color: var(--cz-ink);
+  min-height: 100%;
+  padding: 16px 24px 40px;
+  font-size: 14px;
+
+  .cz_dash_head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .cz_dash_title { font-size: 24px; margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+  .cz_dash_sub { color: var(--cz-muted); font-size: 13px; }
+  .cz_dash_tabs { display: flex; gap: 6px; flex-wrap: wrap; .badge { margin-left: 4px; } }
+  .cz_dash_loading, .cz_dash_empty { padding: 40px; text-align: center; color: var(--cz-muted); font-size: 16px; i { margin-right: 6px; } }
+
+  .cz_dash_tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .cz_tile {
+    background: var(--cz-panel); border: 1px solid var(--cz-line); border-radius: 10px; padding: 12px 14px; text-align: left;
+    cursor: default; color: inherit;
+    &:is(button) { cursor: pointer; }
+    &:is(button):hover, &.active { border-color: var(--cz-ink); box-shadow: 0 0 0 2px rgba(0,0,0,.06); }
+    .cz_tile_v { font-size: 30px; font-weight: 600; line-height: 1.05; font-variant-numeric: tabular-nums; }
+    .cz_tile_l { color: var(--cz-muted); font-size: 12px; margin-top: 4px; }
+    &.cz_tile_late .cz_tile_v { color: var(--cz-late); }
+    &.cz_tile_ready .cz_tile_v { color: var(--cz-ready); }
+    &.cz_tile_wait .cz_tile_v { color: var(--cz-wait); }
+    &.cz_tile_done .cz_tile_v { color: var(--cz-muted); }
+  }
+
+  .cz_group { background: var(--cz-panel); border: 1px solid var(--cz-line); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+  .cz_group_head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--cz-line); background: #fbfaf7; flex-wrap: wrap; }
+  .cz_group_name { background: none; border: 0; padding: 0; font-weight: 600; font-size: 15px; color: var(--cz-ink); cursor: pointer; &:hover { text-decoration: underline; } }
+  .cz_pill { font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--cz-line); background: #fff; }
+  .cz_pill_late { color: var(--cz-late); border-color: var(--cz-late); }
+  .cz_pill_ready { color: var(--cz-ready); border-color: var(--cz-ready); }
+  .cz_pill_wait { color: var(--cz-wait); border-color: var(--cz-wait); }
+
+  .cz_table { width: 100%; border-collapse: collapse;
+    th { font-weight: 500; color: var(--cz-muted); font-size: 12px; text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--cz-line); }
+    td { padding: 8px 12px; border-bottom: 1px solid var(--cz-line); vertical-align: middle; }
+    tr:last-child td { border-bottom: 0; }
+    tr.is_late td { background: #fff5f3; }
+    tr.is_prio .cz_ref::before { content: "★ "; color: var(--cz-wait); }
+    .n { text-align: right; font-variant-numeric: tabular-nums; }
+    .cz_ref { white-space: nowrap; font-weight: 500; }
+    .cz_muted { color: var(--cz-muted); font-size: 12px; font-weight: 400; }
+    .cz_when { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .cz_lines { white-space: nowrap; color: var(--cz-muted); }
+    .cz_actions { text-align: right; white-space: nowrap; .btn { margin-left: 4px; } }
+    .btn-link { border: 0; background: none; color: #1f5f8b; }
+  }
+  .cz_table_sm td, .cz_table_sm th { padding: 6px 10px; }
+  .cz_tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: #efece5; color: var(--cz-ink); }
+  .cz_state_pill { font-size: 12px; padding: 2px 8px; border-radius: 999px;
+    &.st_assigned { background: #e6f4ea; color: var(--cz-ready); }
+    &.st_confirmed, &.st_waiting { background: #fdf3e1; color: var(--cz-wait); }
+    &.st_draft { background: #eee; color: var(--cz-muted); }
+  }
+
+  .cz_wh_grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px; }
+  .cz_card { background: var(--cz-panel); border: 1px solid var(--cz-line); border-radius: 10px; padding: 12px 14px; }
+  .cz_card_title { font-weight: 600; font-size: 15px; margin-bottom: 8px; display: flex; gap: 8px; align-items: center; }
+
+  @media (max-width: 700px) {
+    .cz_table .cz_lines, .cz_table .cz_wh { display: none; }
+    .cz_actions .btn { margin: 2px 0 2px 4px; }
+  }
+}

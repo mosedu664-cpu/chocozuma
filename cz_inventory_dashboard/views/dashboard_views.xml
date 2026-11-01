@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_cz_inventory_dashboard" model="ir.actions.client">
+        <field name="name">Sevkiyat Paneli</field>
+        <field name="tag">cz_inventory_dashboard</field>
+    </record>
+
+    <!-- First entry under Inventory, visible to every inventory user -->
+    <menuitem id="menu_cz_inventory_dashboard"
+              name="Sevkiyat Paneli"
+              parent="stock.menu_stock_root"
+              action="action_cz_inventory_dashboard"
+              sequence="0"
+              groups="stock.group_stock_user"/>
+</odoo>
