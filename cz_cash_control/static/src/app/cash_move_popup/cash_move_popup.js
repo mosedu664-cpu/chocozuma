@@ -39,7 +39,7 @@ patch(CashMovePopup.prototype, {
             this.printer = { print: (component, props) => czPrint(this.pos, printerService, component, props) };
         }
         onWillStart(async () => {
-            if (!this.czEnabled) {
+            if (!this.czEnabled || !this.pos.config.cz_show_recent) {
                 return;
             }
             try {
@@ -145,6 +145,9 @@ patch(CashMovePopup.prototype, {
 
     /** Recent movements usable for the current direction. */
     get czRecentForType() {
+        if (!this.pos.config.cz_show_recent) {
+            return [];
+        }
         return (this.state.czRecent || []).filter((r) => r.type === this.state.type);
     },
 
