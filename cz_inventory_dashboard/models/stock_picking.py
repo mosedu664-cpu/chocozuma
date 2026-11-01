@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-from datetime import timedelta
+from datetime import datetime, time, timedelta
+
+import pytz
 
 from odoo import api, fields, models
 from odoo.osv import expression
@@ -16,7 +18,9 @@ class StockPicking(models.Model):
         company = self.env['res.company'].browse(company_id) if company_id else self.env.company
         now = fields.Datetime.now()
         today = fields.Date.context_today(self)
-        start_today = fields.Datetime.to_datetime(today)
+        # local midnight (user's timezone, e.g. Europe/Istanbul) expressed in UTC like the DB values
+        tz = pytz.timezone(self.env.user.tz or self.env.context.get('tz') or 'UTC')
+        start_today = tz.localize(datetime.combine(today, time.min)).astimezone(pytz.utc).replace(tzinfo=None)
         end_today = start_today + timedelta(days=1)
         week_ago = start_today - timedelta(days=7)
 
@@ -25,7 +29,12 @@ class StockPicking(models.Model):
              ('code', 'in', ('incoming', 'outgoing', 'internal', 'dropship'))],
             order='warehouse_id, sequence, id')
 
+        # POS counter sales also create (done) outgoing pickings: they are not shipments, keep them out
+        if 'pos.config' in self.env:
+            types -= self.env['pos.config'].sudo().search([]).picking_type_id
         base = [('company_id', '=', company.id)]
+        if 'pos_session_id' in self._fields:
+            base.append(('pos_session_id', '=', False))
         late_dom = [('state', 'in', OPEN_STATES), '|',
                     ('scheduled_date', '<', start_today), ('has_deadline_issue', '=', True)]
 
