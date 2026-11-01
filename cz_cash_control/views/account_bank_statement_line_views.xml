@@ -14,15 +14,59 @@
                        domain="[('company_id', '=', company_id)]"/>
                 <field name="cz_employee_id" readonly="cz_approved"/>
                 <field name="cz_receipt_ref" readonly="cz_approved"/>
+                <field name="cz_has_receipt_image" column_invisible="1"/>
+                <button name="action_cz_open_form" type="object" icon="fa-camera" title="Fiş fotoğrafını aç"
+                        invisible="not cz_has_receipt_image" class="text-success"/>
                 <field name="cz_pos_cashier" readonly="1" optional="show"/>
                 <field name="cz_manager_pin_ok" readonly="1" optional="hide"/>
                 <field name="cz_end_of_day" readonly="1" optional="hide"/>
+                <field name="cz_envelope_ref" readonly="1" optional="hide"/>
                 <field name="amount" readonly="1" sum="Total"/>
                 <field name="cz_approved" readonly="1"/>
                 <field name="company_id" column_invisible="1"/>
                 <field name="currency_id" column_invisible="1"/>
                 <field name="journal_id" column_invisible="1"/>
             </list>
+        </field>
+    </record>
+
+    <!-- Read-only detail of one drawer movement (receipt photo) -->
+    <record id="view_cz_statement_line_form" model="ir.ui.view">
+        <field name="name">account.bank.statement.line.cz.form</field>
+        <field name="model">account.bank.statement.line</field>
+        <field name="priority">99</field>
+        <field name="arch" type="xml">
+            <form string="Cash Movement" create="0" delete="0">
+                <sheet>
+                    <div class="oe_title">
+                        <h2><field name="payment_ref" readonly="1"/></h2>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date" readonly="1"/>
+                            <field name="amount" readonly="1"/>
+                            <field name="journal_id" readonly="1"/>
+                            <field name="cz_category_id" readonly="cz_approved" domain="[('company_id', '=', company_id)]"/>
+                            <field name="cz_employee_id" readonly="cz_approved"/>
+                            <field name="company_id" invisible="1"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="cz_receipt_ref" readonly="cz_approved"/>
+                            <field name="cz_envelope_ref" readonly="1"/>
+                            <field name="cz_pos_cashier" readonly="1"/>
+                            <field name="cz_manager_pin_ok" readonly="1"/>
+                            <field name="cz_end_of_day" readonly="1"/>
+                            <field name="cz_approved" readonly="1"/>
+                            <field name="cz_day_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Receipt photo">
+                        <field name="cz_receipt_image" widget="image" nolabel="1" colspan="2" readonly="1"
+                               options="{'size': [0, 600], 'zoom': true}"/>
+                    </group>
+                </sheet>
+            </form>
         </field>
     </record>
 

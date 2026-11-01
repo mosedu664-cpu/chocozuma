@@ -251,7 +251,8 @@ class CzCashDay(models.Model):
                     alerts.append(('warning', _("Unusual %(cat)s: %(amt)s (typical %(typ)s) — %(ref)s",
                                                 cat=cat.name, amt=cur.format(abs(line.amount)),
                                                 typ=cur.format(cat.typical_amount), ref=line.payment_ref)))
-                if cat and cat.requires_receipt_above and abs(line.amount) > cat.requires_receipt_above and not line.cz_receipt_ref:
+                if cat and cat.requires_receipt_above and abs(line.amount) > cat.requires_receipt_above \
+                        and not line.cz_receipt_ref and not line.cz_receipt_image:
                     alerts.append(('warning', _("Missing receipt number: %s", line.payment_ref)))
             if day.excel_cash_sales and abs(day.excel_diff) > 1:
                 alerts.append(('warning', _("Excel cash sales differ from POS by %s.", cur.format(day.excel_diff))))
@@ -432,3 +433,10 @@ class CzCashDayLine(models.Model):
     kind = fields.Selection(related='category_id.kind', store=True)
     count = fields.Integer()
     amount = fields.Monetary(currency_field='currency_id', help="Signed: negative = cash out.")
+    spent = fields.Monetary(compute='_compute_spent', store=True, currency_field='currency_id',
+                            help="Cash out as a positive figure (for reports and graphs).")
+
+    @api.depends('amount')
+    def _compute_spent(self):
+        for line in self:
+            line.spent = -line.amount if line.amount < 0 else 0.0

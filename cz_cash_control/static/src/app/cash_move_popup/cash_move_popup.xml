@@ -2,23 +2,50 @@
 <templates id="template" xml:space="preserve">
 
     <t t-name="cz_cash_control.CashMovePopup" t-inherit="point_of_sale.CashMovePopup" t-inherit-mode="extension">
-        <!-- Category / staff / receipt block, only when Cash Control is on -->
+        <!-- Category tiles / recent movements / staff / receipt, only when Cash Control is on -->
         <xpath expr="//div[hasclass('form-floating')]" position="before">
             <t t-if="czEnabled">
                 <div class="cz-cash-move mb-2">
+
+                    <!-- one-tap repeat of recent movements -->
+                    <div t-if="czRecentForType.length" class="mb-2">
+                        <div class="text-muted small mb-1"><i class="fa fa-history me-1"/>Son hareketler — tek dokunuşla tekrarla</div>
+                        <div class="d-flex flex-wrap gap-1">
+                            <t t-foreach="czRecentForType" t-as="r" t-key="r_index">
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill cz-recent-chip"
+                                        t-on-click="() => this.czApplyRecent(r)">
+                                    <b t-esc="r.category_name"/>
+                                    <t t-if="r.employee_name"> · <t t-esc="r.employee_name"/></t>
+                                    <t t-if="r.reason"> · <span class="text-muted" t-esc="r.reason"/></t>
+                                    · <t t-esc="env.utils.formatCurrency(r.amount)"/>
+                                </button>
+                            </t>
+                        </div>
+                    </div>
+
                     <label class="form-label fw-bold mb-1">Kategori <span class="text-danger">*</span></label>
-                    <div class="d-flex flex-wrap gap-2 mb-2">
-                        <t t-foreach="czCategories" t-as="cat" t-key="cat.id">
-                            <button type="button"
-                                    t-attf-class="btn btn-lg lh-lg #{state.czCategoryId === cat.id ? 'btn-primary' : 'btn-secondary'}"
-                                    t-on-click="() => this.czSelectCategory(cat.id)">
-                                <t t-esc="cat.name"/>
-                                <i t-if="cat.requires_pin" class="fa fa-lock ms-1 small" title="Yönetici PIN gerekli"/>
+                    <div class="cz-tiles mb-2">
+                        <t t-foreach="czVisibleCategories" t-as="cat" t-key="cat.id">
+                            <button type="button" t-att-class="czTileClass(cat)"
+                                    t-on-click="() => this.czSelectCategory(cat.id)"
+                                    t-att-title="cat.requires_pin ? 'Yönetici PIN gerekli' : cat.name">
+                                <i t-att-class="czIcon(cat)"/>
+                                <span class="cz-tile-name" t-esc="cat.name"/>
+                                <i t-if="cat.requires_pin" class="fa fa-lock cz-tile-lock" title="Yönetici PIN gerekli"/>
                             </button>
                         </t>
+                        <button t-if="czHiddenCount or state.czShowAll" type="button" class="cz-tile cz-tile-more"
+                                t-on-click="() => this.czToggleShowAll()">
+                            <i t-attf-class="fa fa-fw #{state.czShowAll ? 'fa-angle-up' : 'fa-ellipsis-h'}"/>
+                            <span class="cz-tile-name">
+                                <t t-if="state.czShowAll">Daha az</t>
+                                <t t-else="">Diğer (<t t-esc="czHiddenCount"/>)</t>
+                            </span>
+                        </button>
                     </div>
-                    <div class="row g-2">
-                        <div class="col-12 col-md-6" t-if="czNeedsEmployee or czCategory">
+
+                    <div class="row g-2" t-if="czCategory">
+                        <div class="col-12 col-md-6">
                             <label class="form-label mb-1">Personel <span t-if="czNeedsEmployee" class="text-danger">*</span></label>
                             <select class="form-select form-select-lg" t-model.number="state.czEmployeeId">
                                 <option value="">—</option>
@@ -27,20 +54,40 @@
                                 </t>
                             </select>
                         </div>
-                        <div class="col-12 col-md-6" t-if="czCategory">
-                            <label class="form-label mb-1">Fiş / Fatura No <span t-if="czNeedsReceipt" class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-lg" t-model="state.czReceiptRef"
-                                   placeholder="Fiş numarası"/>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label mb-1">Fiş / Fatura No <span t-if="czNeedsReceipt and !state.czReceiptImage" class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control form-control-lg" t-model="state.czReceiptRef"
+                                       placeholder="Fiş numarası"/>
+                                <!-- camera: opens the device camera on tablets / phones -->
+                                <input type="file" accept="image/*" capture="environment" class="d-none"
+                                       t-ref="czPhotoInput" t-on-change="czOnPhotoSelected"/>
+                                <button type="button" t-attf-class="btn btn-lg #{state.czReceiptImage ? 'btn-success' : 'btn-outline-secondary'}"
+                                        t-on-click="() => this.czTakePhoto()" t-att-disabled="state.czPhotoBusy"
+                                        title="Fişin fotoğrafını çek">
+                                    <i t-attf-class="fa #{state.czPhotoBusy ? 'fa-spinner fa-spin' : 'fa-camera'}"/>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-12" t-if="state.czReceiptImage">
+                            <div class="d-flex align-items-center gap-2">
+                                <img t-att-src="state.czReceiptImage" class="cz-receipt-thumb rounded border" alt="Fiş"/>
+                                <span class="text-success small"><i class="fa fa-check me-1"/>Fiş fotoğrafı eklendi</span>
+                                <button type="button" class="btn btn-sm btn-link text-danger" t-on-click="() => this.czRemovePhoto()">
+                                    <i class="fa fa-trash"/> Kaldır
+                                </button>
+                            </div>
                         </div>
                     </div>
+
                     <div t-if="czOverMax" class="alert alert-danger py-1 mt-2 mb-0">
                         Bu kategori için tek işlem limiti <t t-esc="env.utils.formatCurrency(czCategory.max_amount)"/>.
                     </div>
                     <div t-elif="czNeedsPin" class="alert alert-warning py-1 mt-2 mb-0">
                         <i class="fa fa-lock me-1"/> Bu işlem için yönetici PIN'i istenecek.
                     </div>
-                    <div t-elif="czNeedsReceipt and !state.czReceiptRef.trim()" class="alert alert-warning py-1 mt-2 mb-0">
-                        Bu tutar için fiş numarası zorunlu.
+                    <div t-elif="czNeedsReceipt and !czHasReceipt" class="alert alert-warning py-1 mt-2 mb-0">
+                        <i class="fa fa-camera me-1"/> Bu tutar için fiş numarası veya fiş fotoğrafı zorunlu.
                     </div>
                 </div>
             </t>
