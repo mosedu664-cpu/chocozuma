@@ -3,7 +3,6 @@
 import { Component, onWillStart, onWillUnmount, useState } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { _t } from "@web/core/l10n/translation";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 
 const REFRESH_MS = 60000;
@@ -76,7 +75,7 @@ export class CzInventoryDashboard extends Component {
     }
 
     stateLabel(s) {
-        return { assigned: _t("Ready"), confirmed: _t("Waiting"), waiting: _t("Waiting"), draft: _t("Draft") }[s] || s;
+        return { assigned: "Hazır", confirmed: "Bekliyor", waiting: "Bekliyor", draft: "Taslak" }[s] || s;
     }
 
     // ---- actions ------------------------------------------------------
@@ -135,9 +134,9 @@ export class CzInventoryDashboard extends Component {
             if (res.action) {
                 await this.action.doAction(res.action, { onClose: () => this.load(true) });
             } else if (!res.ok) {
-                this.notification.add(res.msg || _t("Could not perform the action"), { type: "warning" });
+                this.notification.add(res.msg || "İşlem yapılamadı", { type: "warning" });
             } else {
-                this.notification.add(what === "validate" ? _t("Delivery validated") : _t("Availability checked"), { type: "success" });
+                this.notification.add(what === "validate" ? "Teslimat onaylandı" : "Stok kontrolü yapıldı", { type: "success" });
             }
         } catch (e) {
             this.notification.add(e.message || String(e), { type: "danger" });

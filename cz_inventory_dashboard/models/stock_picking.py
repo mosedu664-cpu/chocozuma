@@ -123,7 +123,7 @@ class StockPicking(models.Model):
             return {'ok': True}
         if action == 'validate':
             if picking.state != 'assigned':
-                return {'ok': False, 'msg': 'Not fully reserved'}
+                return {'ok': False, 'msg': 'Henüz tam rezerve edilmedi'}
             res = picking.with_context(skip_sms=True).button_validate()
             # a wizard (backorder / immediate transfer) must be shown to the user
             if isinstance(res, dict) and res.get('res_model'):
