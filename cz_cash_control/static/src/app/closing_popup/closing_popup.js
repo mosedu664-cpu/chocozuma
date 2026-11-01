@@ -62,7 +62,7 @@ patch(ClosePosPopup.prototype, {
             body: _t(
                 "Sayılan: %(counted)s\nSistemde beklenen: %(expected)s\nFark: %(diff)s\n\n" +
                     "Beklenen tutar ve hareket detayları artık kapanış ekranında görünüyor. Masrafları ve aktarımları " +
-                    "kontrol edin (Cash In/Out → Details), sonra farkın sebebini kapanış notuna yazın ve yönetici PIN'ini girin. " +
+                    "kontrol edin (bu ekrandaki Cash in/out ve Payments satırlarını açın), sonra farkın sebebini kapanış notuna yazın ve yönetici PIN'ini girin. " +
                     "Sayılan tutar kilitlendi, değiştirilemez.",
                 { counted: fmt(counted), expected: fmt(expected), diff: fmt(diff) }
             ),
