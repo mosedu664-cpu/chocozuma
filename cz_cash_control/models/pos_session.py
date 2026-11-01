@@ -43,7 +43,7 @@ class PosSession(models.Model):
                 'cz_employee_id': employee.id if employee.exists() else False,
                 'cz_receipt_ref': receipt or False,
                 'cz_envelope_ref': envelope or False,
-                'partner_id': employee.work_contact_id.id if employee.exists() else False,
+                'partner_id': self._cz_partner_for(session, employee),
             })
         image = self._cz_clean_image(extras.get('cz_receipt_image'))
         vals.update({
@@ -53,6 +53,21 @@ class PosSession(models.Model):
             'cz_receipt_image': image,
         })
         return vals
+
+    @api.model
+    def _cz_partner_for(self, session, employee):
+        """Employee's contact as partner of the statement line — only when the contact is usable
+        from the session's company (shared contact or contact of the company / a parent company).
+        Employees created under another company (e.g. ADMIN under Tonalli) otherwise break the
+        multi-company check; the employee is still kept in cz_employee_id."""
+        if not employee.exists():
+            return False
+        partner = employee.work_contact_id
+        if not partner:
+            return False
+        if partner.company_id and partner.company_id not in session.company_id.parent_ids:
+            return False
+        return partner.id
 
     @api.model
     def _cz_clean_image(self, data):
