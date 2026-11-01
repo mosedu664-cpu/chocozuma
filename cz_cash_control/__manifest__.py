@@ -20,11 +20,13 @@ Replaces the side Excel "kasa" sheets with a controlled flow inside Odoo:
 * Branch safe (küçük kasa) ledger with live balance, manager-only movements
   and periodic counts.
 * Alerts (zero count, big difference, unusual expense, unapproved days).
+* "Hareketler" list in the POS: every movement of the session, read-only;
+  a wrong movement is cancelled by an opposite correction (manager PIN + reason).
     """,
     'author': 'Choco Zuma Yönetim',
     'website': 'https://chocozuma.com',
     'category': 'Accounting/Point of Sale',
-    'version': '18.0.1.3.0',
+    'version': '18.0.1.4.0',
     'license': 'LGPL-3',
     'depends': ['point_of_sale', 'pos_hr', 'account', 'hr'],
     'data': [

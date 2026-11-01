@@ -1,0 +1,178 @@
+// Choco Zuma Cash Control — "Hareketler" (session cash movements) dialog
+$cz-move-colors: (
+    0: #8f8f8f, 1: #f06050, 2: #f4a460, 3: #f7cd1f, 4: #6cc1ed, 5: #814968,
+    6: #eb7e7f, 7: #2c8397, 8: #475577, 9: #d6145f, 10: #30c381, 11: #9365b8,
+);
+
+.cz-moves-dialog {
+    @each $index, $color in $cz-move-colors {
+        .cz-color-#{$index} {
+            --cz-dot-bg: #{$color};
+        }
+    }
+
+    .cz-moves-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.5rem;
+    }
+    .cz-stat {
+        border: 1px solid #dee2e6;
+        border-radius: 0.75rem;
+        padding: 0.6rem 0.8rem;
+        background: #fff;
+        .cz-stat-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .cz-stat-value {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #212529;
+        }
+        &.cz-stat-out {
+            border-color: #f1aeb5;
+            background: #fff5f5;
+            .cz-stat-value { color: #b02a37; }
+        }
+        &.cz-stat-in {
+            border-color: #a3cfbb;
+            background: #f3fbf6;
+            .cz-stat-value { color: #146c43; }
+        }
+    }
+
+    .cz-moves-top {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        .cz-top-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .cz-top-name {
+            width: 9rem;
+            font-size: 0.85rem;
+        }
+        .cz-top-bar {
+            height: 0.6rem;
+            border-radius: 1rem;
+            background: #f1f3f5;
+            overflow: hidden;
+        }
+        .cz-top-fill {
+            height: 100%;
+            border-radius: 1rem;
+            background: var(--cz-dot-bg, #8f8f8f);
+        }
+        .cz-top-amount {
+            width: 7rem;
+            text-align: right;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+    }
+
+    .cz-moves-search {
+        position: relative;
+        min-width: 220px;
+        > .fa {
+            position: absolute;
+            left: 0.6rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #adb5bd;
+        }
+        input {
+            padding-left: 1.9rem;
+        }
+    }
+
+    .cz-dot {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 50%;
+        background: var(--cz-dot-bg, #8f8f8f);
+        color: #fff;
+        font-size: 0.95rem;
+        &.cz-color-3 { color: #212529; }
+    }
+
+    .cz-moves-list {
+        max-height: 52vh;
+        overflow-y: auto;
+        border: 1px solid #e9ecef;
+        border-radius: 0.75rem;
+    }
+    .cz-move-row {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.6rem 0.75rem;
+        border-bottom: 1px solid #f1f3f5;
+        &:last-child { border-bottom: 0; }
+        &:nth-child(even) { background: #fcfcfd; }
+
+        .cz-move-time {
+            width: 3rem;
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            color: #495057;
+        }
+        .cz-move-main {
+            flex: 1 1 auto;
+            min-width: 0;
+            .cz-move-sub {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+        .cz-move-amount {
+            font-size: 1.1rem;
+            font-weight: 700;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+        .cz-move-actions {
+            display: flex;
+            gap: 0.3rem;
+            min-width: 4.6rem;
+            justify-content: flex-end;
+        }
+
+        &.cz-move-corrected {
+            opacity: 0.6;
+            .cz-move-amount { text-decoration: line-through; }
+        }
+        &.cz-move-correction {
+            background: #eef8fb;
+        }
+        &.cz-move-flash {
+            animation: cz-move-flash 1.6s ease-out 1;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .cz-move-row {
+            flex-wrap: wrap;
+            .cz-move-main { flex-basis: calc(100% - 7rem); }
+            .cz-move-amount { margin-left: auto; }
+        }
+        .cz-moves-top .cz-top-name { width: 6rem; }
+    }
+}
+
+@keyframes cz-move-flash {
+    0% { background: #fff3cd; }
+    100% { background: #eef8fb; }
+}
+
+.cz-photo-full {
+    max-height: 75vh;
+}

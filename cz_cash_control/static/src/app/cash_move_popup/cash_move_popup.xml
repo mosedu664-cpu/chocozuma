@@ -92,6 +92,13 @@
                 </div>
             </t>
         </xpath>
+        <!-- Session movements list (read-only, corrections with manager PIN) -->
+        <xpath expr="//t[@t-set-slot='footer']" position="inside">
+            <button t-if="czEnabled" type="button" class="button btn btn-lg lh-lg btn-outline-secondary ms-auto"
+                    t-on-click="() => this.czOpenMoves()" title="Bu oturumun kasa hareketleri">
+                <i class="fa fa-list-ul me-1" title="Hareketler"/>Hareketler
+            </button>
+        </xpath>
         <!-- Reason becomes optional when a category is chosen -->
         <xpath expr="//textarea[hasclass('cash-reason')]" position="attributes">
             <attribute name="placeholder">Açıklama (isteğe bağlı)</attribute>

@@ -86,6 +86,8 @@ class PosSession(models.Model):
 
     def _cz_validate_cash_move(self, session, category, sign, amount, extras):
         """Server-side guard: the POS enforces the same rules, this is the safety net."""
+        if self.env.context.get('cz_reversal'):
+            return  # a correction mirrors an existing movement; checked in cz_reverse_move
         if sign < 0 and category.direction == 'in' or sign > 0 and category.direction == 'out':
             raise UserError(_("Category %s cannot be used for this type of cash movement.", category.name))
         if category.max_amount and amount > category.max_amount:
@@ -133,6 +135,8 @@ class PosSession(models.Model):
             ('pos_session_id.config_id', '=', config.id),
             ('cz_category_id', '!=', False),
             ('cz_end_of_day', '=', False),
+            ('cz_reversal_of_id', '=', False),
+            ('cz_reversal_ids', '=', False),
             ('create_date', '>=', since),
         ], order='create_date desc', limit=200)
         result, seen = [], set()
@@ -169,6 +173,141 @@ class PosSession(models.Model):
             return part
         return ''
 
+    # ----------------------------------------------------------------- movements list in the POS
+    def _cz_check_pos_access(self):
+        self.ensure_one()
+        if not self.config_id.cz_cash_control:
+            raise UserError(_("Cash Control is not enabled on this point of sale."))
+        if not self.env.user.has_group('point_of_sale.group_pos_user'):
+            raise UserError(_("You don't have the access rights to see the cash movements."))
+
+    def _cz_line_reversible(self, line):
+        """A movement can be corrected from the POS while its session is open, if it is a
+        categorised cashier movement that is neither a correction itself nor already corrected."""
+        return bool(
+            self.state == 'opened'
+            and line.pos_session_id == self
+            and line.cz_category_id
+            and not line.cz_end_of_day
+            and not line.cz_approved
+            and not line.cz_reversal_of_id
+            and not line.cz_reversal_ids
+        )
+
+    def cz_session_moves(self):
+        """Every drawer movement of this session for the POS "Hareketler" list (read-only).
+        Nothing accounting-related (accounts, counterparts) is returned."""
+        self._cz_check_pos_access()
+        session = self.sudo()
+        lines = session.statement_line_ids.sorted(lambda l: (l.create_date, l.id), reverse=True)
+        cur = session.currency_id
+        rows = []
+        total_in = total_out = cancelled_amount = 0.0
+        cancelled_count = 0
+        for line in lines:
+            cat = line.cz_category_id
+            amount = cur.round(line.amount)
+            in_pair = bool(line.cz_reversal_of_id or line.cz_reversal_ids)
+            if in_pair:
+                # a cancelled movement and its correction net to zero: kept out of the in/out totals
+                if line.cz_reversal_ids:
+                    cancelled_count += 1
+                    cancelled_amount += abs(amount)
+            elif amount >= 0:
+                total_in += amount
+            else:
+                total_out += -amount
+            created = fields.Datetime.context_timestamp(self, line.create_date) if line.create_date else False
+            reason = self._cz_reason_from_ref(line, cat) if cat else (line.payment_ref or '')
+            rows.append({
+                'id': line.id,
+                'time': created.strftime('%H:%M') if created else '',
+                'type': 'in' if amount >= 0 else 'out',
+                'amount': abs(amount),
+                'category': cat.name or _('Uncategorised'),
+                'code': cat.code or '',
+                'kind': cat.kind or '',
+                'icon': cat.icon or 'fa-exchange',
+                'color': cat.color or 0,
+                'reason': reason,
+                'employee': line.cz_employee_id.name or '',
+                'cashier': line.cz_pos_cashier or '',
+                'manager': line.cz_manager_name or '',
+                'receipt_ref': line.cz_receipt_ref or '',
+                'has_photo': bool(line.cz_has_receipt_image),
+                'end_of_day': line.cz_end_of_day,
+                'is_correction': bool(line.cz_reversal_of_id),
+                'corrects_id': line.cz_reversal_of_id.id or False,
+                'correction_reason': line.cz_reversal_reason or '',
+                'corrected': bool(line.cz_reversal_ids),
+                'reversible': session._cz_line_reversible(line),
+            })
+        return {
+            'session_name': session.name,
+            'is_open': session.state == 'opened',
+            'lines': rows,
+            'total_in': cur.round(total_in),
+            'total_out': cur.round(total_out),
+            'net': cur.round(sum(lines.mapped('amount'))),
+            'count': len(rows),
+            'cancelled_count': cancelled_count,
+            'cancelled_amount': cur.round(cancelled_amount),
+        }
+
+    def cz_move_photo(self, line_id):
+        """Receipt photo of one movement of this session (base64 jpeg) or False."""
+        self._cz_check_pos_access()
+        line = self.sudo().statement_line_ids.filtered(lambda l: l.id == int(line_id or 0))
+        image = line.cz_receipt_image if line else False
+        if isinstance(image, bytes):
+            image = image.decode()
+        return image or False
+
+    def cz_reverse_move(self, line_id, manager_id, pin, reason, cashier_name=False):
+        """Cancel a movement of the open session with an opposite movement (manager PIN).
+        The original is never deleted or edited: both lines stay and net to zero, the
+        daily sheet, the drawer expectation and the accountant see the pair."""
+        self._cz_check_pos_access()
+        reason = (reason or '').strip()
+        if len(reason) < 3:
+            raise UserError(_("Please write why the movement is being corrected."))
+        session = self.sudo()
+        line = session.statement_line_ids.filtered(lambda l: l.id == int(line_id or 0))
+        if not line:
+            raise UserError(_("This movement does not belong to the current session."))
+        if not session._cz_line_reversible(line):
+            raise UserError(_("This movement can no longer be corrected from the POS."))
+        manager = self._cz_check_manager(manager_id, pin)
+        amount = abs(line.amount)
+        _type = 'out' if line.amount > 0 else 'in'
+        cat = line.cz_category_id
+        extras = {
+            'translatedType': _('in') if _type == 'in' else _('out'),
+            # pos_hr: same employee as the original, so the closing popup's per-employee totals net out
+            'employee_id': line.employee_id.id if 'employee_id' in line._fields and line.employee_id else False,
+            'cz_category_id': cat.id,
+            'cz_employee_id': line.cz_employee_id.id or False,
+            'cz_pin_ok': True,
+            'cz_manager_name': manager.name,
+            'cz_cashier_name': cashier_name or self.env.user.name,
+        }
+        before = set(session.statement_line_ids.ids)
+        session.with_context(cz_reversal=True).try_cash_in_out(
+            _type, amount, _("DÜZELTME: %s", reason), extras)
+        new_line = session.statement_line_ids.filtered(lambda l: l.id not in before)
+        new_line.write({
+            'cz_reversal_of_id': line.id,
+            'cz_reversal_reason': reason,
+            'payment_ref': _("↩ İPTAL — %(orig)s — %(reason)s (onay: %(manager)s)",
+                             orig=line.payment_ref, reason=reason, manager=manager.name),
+        })
+        if session.cz_day_id:
+            session.cz_day_id.message_post(body=_(
+                "Movement corrected in the POS by %(manager)s: %(orig)s (%(amount)s). Reason: %(reason)s",
+                manager=manager.name, orig=line.payment_ref,
+                amount=session.currency_id.format(line.amount), reason=reason))
+        return {'id': new_line.id, 'amount': amount, 'type': _type}
+
     def cz_eod_summary(self, counted):
         """Figures printed on the end-of-day slip (before the drawer is emptied)."""
         self.ensure_one()
@@ -186,9 +325,11 @@ class PosSession(models.Model):
         for line in session.statement_line_ids.filtered(lambda l: not l.cz_end_of_day):
             cat = line.cz_category_id
             moves_total += line.amount
+            # a POS correction is classified like the movement it cancels, so the pair nets out
+            base = line.cz_reversal_of_id or line
             if cat.kind == 'safe_transfer':
                 safe_transfers += -line.amount
-            elif line.amount > 0:
+            elif base.amount > 0:
                 cash_in += line.amount
             else:
                 entry = by_cat.setdefault(cat.id or 0, {'name': cat.name or _('Uncategorised'), 'count': 0, 'amount': 0.0})
