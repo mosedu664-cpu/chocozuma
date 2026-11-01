@@ -197,7 +197,8 @@ class CzCashDay(models.Model):
             closed = sessions.filtered(lambda s: s.state == 'closed').sorted('stop_at')
             # several sessions in one day: each closing counted its own drawer; the last count is the drawer
             counted = closed[-1].cash_register_balance_end_real if closed else 0.0
-            difference = sum(sessions.mapped('cash_register_difference'))
+            # an open session has no count yet: its 'difference' is just minus the expected cash
+            difference = sum(closed.mapped('cash_register_difference'))
             # End-of-day transfer: show the figures as they were *before* the drawer was emptied
             # (expected vs physically counted); the difference is identical either way.
             eod_total = -sum(lines.filtered('cz_end_of_day').mapped('amount'))
