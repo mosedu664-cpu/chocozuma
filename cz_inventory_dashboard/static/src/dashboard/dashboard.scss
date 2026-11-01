@@ -75,3 +75,11 @@
     .cz_actions .btn { margin: 2px 0 2px 4px; }
   }
 }
+
+/* Odoo's own `.o_action_manager > .o_action { display:flex; overflow:hidden }` wins on desktop
+   widths: override it explicitly so the board scrolls on every screen size */
+.o_action_manager > .cz_dash.o_action {
+  display: block;
+  height: 100%;
+  overflow-y: auto !important;
+}
