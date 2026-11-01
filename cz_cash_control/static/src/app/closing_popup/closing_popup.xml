@@ -37,7 +37,11 @@
         </xpath>
         <!-- No "copy expected amount" button in blind mode -->
         <xpath expr="//button[hasclass('fa-clone')]" position="attributes">
-            <attribute name="t-if">!czBlind</attribute>
+            <attribute name="t-if">!czBlindMode</attribute>
+        </xpath>
+        <!-- Once the difference is revealed the counted amount is frozen -->
+        <xpath expr="//Input[contains(@class, 'cash-input')]" position="attributes">
+            <attribute name="class">'cash-input w-100' + (state.czRevealed ? ' pe-none opacity-75' : '')</attribute>
         </xpath>
         <!-- One-PIN end of day: whole counted drawer → safe, close at 0 -->
         <xpath expr="//button[contains(text(), 'Close Register')]" position="before">

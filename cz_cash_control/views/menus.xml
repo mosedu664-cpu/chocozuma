@@ -8,6 +8,8 @@
               action="action_cz_dashboard" sequence="5"/>
     <menuitem id="menu_cz_cash_days" name="Daily Cash Sheets" parent="menu_cz_cash_root"
               action="action_cz_cash_day" sequence="10"/>
+    <menuitem id="menu_cz_cash_checks" name="Drawer Checks" parent="menu_cz_cash_root"
+              action="action_cz_cash_check" sequence="15"/>
     <menuitem id="menu_cz_cash_safes" name="Branch Safes" parent="menu_cz_cash_root"
               action="action_cz_cash_safe" sequence="20"/>
     <menuitem id="menu_cz_cash_safe_moves" name="Safe Movements" parent="menu_cz_cash_root"

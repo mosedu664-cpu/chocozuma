@@ -127,6 +127,10 @@
                         <page string="Safe movements" name="safe" invisible="not safe_move_ids">
                             <field name="safe_move_ids" readonly="1"/>
                         </page>
+                        <page string="Drawer checks" name="checks" invisible="not check_ids">
+                            <field name="check_ids" readonly="1"
+                                   context="{'list_view_ref': 'cz_cash_control.view_cz_cash_check_list'}"/>
+                        </page>
                         <page string="Accountant note" name="note">
                             <field name="accountant_note" placeholder="Anything the manager should know about this day..."/>
                         </page>

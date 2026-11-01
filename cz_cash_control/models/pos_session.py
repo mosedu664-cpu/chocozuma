@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
 
+import pytz
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 
@@ -49,6 +51,7 @@ class PosSession(models.Model):
         vals.update({
             'cz_pos_cashier': extras.get('cz_cashier_name') or False,
             'cz_manager_pin_ok': bool(extras.get('cz_pin_ok')),
+            'cz_manager_name': (extras.get('cz_manager_name') or False) if extras.get('cz_pin_ok') else False,
             'cz_end_of_day': bool(extras.get('cz_end_of_day')),
             'cz_receipt_image': image,
         })
@@ -215,14 +218,114 @@ class PosSession(models.Model):
             'date': fields.Date.context_today(self).strftime('%d.%m.%Y'),
         }
 
+    # ----------------------------------------------------------------- mid-day check
+    def _cz_check_manager(self, manager_id, pin):
+        """Server-side PIN check: the employee must be a POS manager of this config
+        (same rule as pos_hr: POS Administrator user or in Advanced rights)."""
+        self.ensure_one()
+        employee = self.env['hr.employee'].sudo().browse(int(manager_id or 0)).exists()
+        if not employee or not pin or not employee.pin or str(employee.pin) != str(pin):
+            raise UserError(_("Wrong manager PIN."))
+        config = self.config_id.sudo()
+        is_manager = employee in config.advanced_employee_ids or (
+            employee.user_id and config.group_pos_manager_id in employee.user_id.groups_id)
+        if not is_manager:
+            raise UserError(_("%s is not a manager on this point of sale.", employee.name))
+        return employee
+
+    def _cz_expected_cash(self):
+        """Expected drawer cash right now — same formula as Odoo's closing popup
+        (get_closing_control_data): opening + cash payments of closed orders + cash in/out."""
+        self.ensure_one()
+        session = self.sudo()
+        cash_pm = session.payment_method_ids.filtered(lambda pm: pm.type == 'cash')[:1]
+        if not cash_pm:
+            raise UserError(_("There is no cash payment method for this PoS Session"))
+        payments = session._get_closed_orders().payment_ids.filtered(lambda p: p.payment_method_id == cash_pm)
+        cash_sales = sum(payments.mapped('amount'))
+        moves = sum(session.statement_line_ids.mapped('amount'))
+        opening = session.cash_register_balance_start
+        return opening, cash_sales, moves, opening + cash_sales + moves
+
+    def cz_drawer_check(self, counted, check_type, manager_id, pin, cashier_name=False):
+        """Record a blind mid-day count without closing the session; returns the figures."""
+        self.ensure_one()
+        if not self.config_id.cz_cash_control:
+            raise UserError(_("Cash Control is not enabled on this point of sale."))
+        if self.state != 'opened':
+            raise UserError(_("The register must be open to check the drawer."))
+        if not self.env.user.has_group('point_of_sale.group_pos_user'):
+            raise UserError(_("You don't have the access rights to perform a drawer check."))
+        try:
+            counted = float(counted)
+        except (TypeError, ValueError):
+            raise UserError(_("Invalid counted amount."))
+        if counted < 0:
+            raise UserError(_("Counted amount cannot be negative."))
+        if check_type not in ('handover', 'spot'):
+            check_type = 'spot'
+        manager = self._cz_check_manager(manager_id, pin)
+        opening, cash_sales, moves, expected = self._cz_expected_cash()
+        currency = self.currency_id
+        difference = currency.round(counted - expected)
+        day = self.sudo()._cz_get_or_create_day()
+        check = self.env['cz.cash.check'].sudo().create({
+            'session_id': self.id,
+            'day_id': day.id,
+            'check_type': check_type,
+            'cashier_name': cashier_name or False,
+            'manager_id': manager.id,
+            'opening': opening,
+            'cash_sales': cash_sales,
+            'cash_moves': moves,
+            'expected': expected,
+            'counted': counted,
+            'difference': difference,
+        })
+        type_label = dict(check._fields['check_type']._description_selection(self.env))[check_type]
+        day.message_post(body=_(
+            "%(type)s %(ref)s — cashier %(cashier)s, authorised by %(manager)s: counted %(counted)s, "
+            "expected %(expected)s, difference %(diff)s.",
+            type=type_label, ref=check.name, cashier=cashier_name or '-', manager=manager.name,
+            counted=currency.format(counted), expected=currency.format(expected),
+            diff=currency.format(difference)))
+        day.invalidate_recordset(['check_ids'])
+        day._compute_alerts()
+        return {
+            'id': check.id,
+            'name': check.name,
+            'opening': opening,
+            'cash_sales': cash_sales,
+            'cash_moves': moves,
+            'expected': expected,
+            'counted': counted,
+            'difference': difference,
+            'manager': manager.name,
+        }
+
     # ----------------------------------------------------------------- closing
     def _cz_business_date(self):
-        """Business day of the session: sessions opened before 04:00 local belong to the previous day."""
+        """Business day of the session.
+
+        Sessions running before 04:00 local belong to the previous day (late closing) —
+        unless the previous day's register was already closed after midnight: then the
+        day has ended and a session opened before 04:00 is the new day's.
+        """
         self.ensure_one()
         start = fields.Datetime.context_timestamp(self, self.start_at or fields.Datetime.now())
         day = start.date()
         if start.hour < 4:
-            day = day - timedelta(days=1)
+            local_midnight = start.replace(hour=0, minute=0, second=0, microsecond=0)
+            utc_midnight = local_midnight.astimezone(pytz.utc).replace(tzinfo=None)
+            closed_after_midnight = self.env['pos.session'].sudo().search_count([
+                ('config_id', '=', self.config_id.id),
+                ('id', '!=', self.id),
+                ('state', '=', 'closed'),
+                ('stop_at', '>=', utc_midnight),
+                ('start_at', '<', self.start_at or fields.Datetime.now()),
+            ])
+            if not closed_after_midnight:
+                day = day - timedelta(days=1)
         return day
 
     def _cz_get_or_create_day(self):
@@ -251,4 +354,11 @@ class PosSession(models.Model):
         res = super().post_closing_cash_details(counted_cash)
         if res.get('successful') and self.config_id.cz_cash_control:
             self.sudo()._cz_get_or_create_day()
+        return res
+
+    def _set_opening_control_data(self, cashbox_value, notes):
+        # Odoo 18: inherit the internal method, not set_opening_control
+        res = super()._set_opening_control_data(cashbox_value, notes)
+        for session in self.filtered(lambda s: s.config_id.cz_cash_control and s.state == 'opened'):
+            session.sudo()._cz_get_or_create_day()._compute_all()
         return res

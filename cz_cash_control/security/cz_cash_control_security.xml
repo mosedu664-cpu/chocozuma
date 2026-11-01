@@ -43,6 +43,11 @@
         <field name="model_id" ref="model_cz_cash_safe_move"/>
         <field name="domain_force">[('company_id', 'in', company_ids)]</field>
     </record>
+    <record id="rule_cz_cash_check_company" model="ir.rule">
+        <field name="name">Drawer check: multi-company</field>
+        <field name="model_id" ref="model_cz_cash_check"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
     <record id="rule_cz_cash_category_company" model="ir.rule">
         <field name="name">Cash category: multi-company</field>
         <field name="model_id" ref="model_cz_cash_category"/>

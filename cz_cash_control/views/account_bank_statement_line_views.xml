@@ -19,6 +19,7 @@
                         invisible="not cz_has_receipt_image" class="text-success"/>
                 <field name="cz_pos_cashier" readonly="1" optional="show"/>
                 <field name="cz_manager_pin_ok" readonly="1" optional="hide"/>
+                <field name="cz_manager_name" readonly="1" optional="show"/>
                 <field name="cz_end_of_day" readonly="1" optional="hide"/>
                 <field name="cz_envelope_ref" readonly="1" optional="hide"/>
                 <field name="amount" readonly="1" sum="Total"/>
@@ -56,6 +57,7 @@
                             <field name="cz_envelope_ref" readonly="1"/>
                             <field name="cz_pos_cashier" readonly="1"/>
                             <field name="cz_manager_pin_ok" readonly="1"/>
+                            <field name="cz_manager_name" readonly="1"/>
                             <field name="cz_end_of_day" readonly="1"/>
                             <field name="cz_approved" readonly="1"/>
                             <field name="cz_day_id" readonly="1"/>
