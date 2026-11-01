@@ -9,7 +9,10 @@
   --cz-bg: #f6f4ef;
   background: var(--cz-bg);
   color: var(--cz-ink);
-  min-height: 100%;
+  /* the action container clips its content: the board must scroll by itself */
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 16px 24px 40px;
   font-size: 14px;
 
