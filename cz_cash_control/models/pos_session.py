@@ -27,7 +27,7 @@ class PosSession(models.Model):
         category = self.env['cz.cash.category'].browse(extras.get('cz_category_id') or False)
         employee = self.env['hr.employee'].browse(extras.get('cz_employee_id') or False)
         if category.exists():
-            self._cz_validate_cash_move(session, category, sign, amount, extras)
+            self._cz_validate_cash_move(session, category, sign, amount, extras, reason=reason)
             parts = [f"[{category.code}] {category.name}"]
             if employee.exists():
                 parts.append(employee.name)
@@ -84,7 +84,7 @@ class PosSession(models.Model):
             raise UserError(_("The receipt photo is too large."))
         return data or False
 
-    def _cz_validate_cash_move(self, session, category, sign, amount, extras):
+    def _cz_validate_cash_move(self, session, category, sign, amount, extras, reason=''):
         """Server-side guard: the POS enforces the same rules, this is the safety net."""
         if self.env.context.get('cz_reversal'):
             return  # a correction mirrors an existing movement; checked in cz_reverse_move
@@ -93,6 +93,8 @@ class PosSession(models.Model):
         if category.max_amount and amount > category.max_amount:
             raise UserError(_("Category %(cat)s is capped at %(max)s per movement.",
                               cat=category.name, max=category.max_amount))
+        if category.requires_reason and len((reason or '').strip()) < 3:
+            raise UserError(_("Category %s requires a description.", category.name))
         if category.requires_employee and not extras.get('cz_employee_id'):
             raise UserError(_("Category %s requires the staff member.", category.name))
         has_receipt = (extras.get('cz_receipt_ref') or '').strip() or extras.get('cz_receipt_image')

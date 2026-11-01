@@ -15,6 +15,7 @@
                 <field name="direction"/>
                 <field name="account_id"/>
                 <field name="requires_employee"/>
+                <field name="requires_reason"/>
                 <field name="requires_receipt_above"/>
                 <field name="requires_pin"/>
                 <field name="pin_above"/>
@@ -54,6 +55,7 @@
                         </group>
                         <group string="Controls">
                             <field name="requires_employee"/>
+                            <field name="requires_reason"/>
                             <field name="requires_receipt_above"/>
                             <field name="requires_pin"/>
                             <field name="pin_above"/>
