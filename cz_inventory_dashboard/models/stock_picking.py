@@ -29,7 +29,12 @@ class StockPicking(models.Model):
              ('code', 'in', ('incoming', 'outgoing', 'internal', 'dropship'))],
             order='warehouse_id, sequence, id')
 
+        # POS counter sales also create (done) outgoing pickings: they are not shipments, keep them out
+        if 'pos.config' in self.env:
+            types -= self.env['pos.config'].sudo().search([]).picking_type_id
         base = [('company_id', '=', company.id)]
+        if 'pos_session_id' in self._fields:
+            base.append(('pos_session_id', '=', False))
         late_dom = [('state', 'in', OPEN_STATES), '|',
                     ('scheduled_date', '<', start_today), ('has_deadline_issue', '=', True)]
 
