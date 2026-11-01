@@ -130,5 +130,8 @@ $cz-colors: (
     }
 }
 .modal .form-floating > textarea.cash-reason ~ label {
-    color: #8a6d3b;
+    display: none; // the placeholder already says it; the floating label overlapped it
+}
+.modal .form-floating > textarea.cash-reason {
+    padding-top: 0.75rem;
 }
