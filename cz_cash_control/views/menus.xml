@@ -4,6 +4,8 @@
               web_icon="cz_cash_control,static/description/icon.png"
               groups="cz_cash_control.group_cz_cash_manager"/>
 
+    <menuitem id="menu_cz_dashboard" name="Dashboard" parent="menu_cz_cash_root"
+              action="action_cz_dashboard" sequence="5"/>
     <menuitem id="menu_cz_cash_days" name="Daily Cash Sheets" parent="menu_cz_cash_root"
               action="action_cz_cash_day" sequence="10"/>
     <menuitem id="menu_cz_cash_safes" name="Branch Safes" parent="menu_cz_cash_root"
@@ -14,6 +16,10 @@
     <menuitem id="menu_cz_cash_reporting" name="Reporting" parent="menu_cz_cash_root" sequence="80"/>
     <menuitem id="menu_cz_cash_day_lines" name="Expenses by Category" parent="menu_cz_cash_reporting"
               action="action_cz_cash_day_line" sequence="10"/>
+    <menuitem id="menu_cz_cash_day_lines_graph" name="30-day Graph" parent="menu_cz_cash_reporting"
+              action="action_cz_cash_day_line_graph" sequence="20"/>
+    <menuitem id="menu_cz_staff_expenses" name="Staff Expenses (Monthly)" parent="menu_cz_cash_reporting"
+              action="action_cz_staff_expenses" sequence="30"/>
 
     <menuitem id="menu_cz_cash_config" name="Configuration" parent="menu_cz_cash_root" sequence="90"
               groups="cz_cash_control.group_cz_cash_accountant"/>

@@ -9,6 +9,16 @@ class AccountBankStatementLine(models.Model):
     cz_category_id = fields.Many2one('cz.cash.category', string='Cash Category', index=True, copy=False)
     cz_employee_id = fields.Many2one('hr.employee', string='Staff', copy=False)
     cz_receipt_ref = fields.Char(string='Receipt / Fiş No', copy=False)
+    cz_receipt_image = fields.Image(string='Receipt Photo', max_width=1600, max_height=1600, copy=False,
+                                    help="Photo of the receipt taken from the POS (camera) when the movement was recorded.")
+    cz_has_receipt_image = fields.Boolean(compute='_compute_cz_has_receipt_image', string='Photo')
+    cz_envelope_ref = fields.Char(string='Envelope / Bag No', copy=False,
+                                  help="Number written on the envelope or bag that went to the safe (end-of-day transfer).")
+
+    @api.depends('cz_receipt_image')
+    def _compute_cz_has_receipt_image(self):
+        for line in self:
+            line.cz_has_receipt_image = bool(line.cz_receipt_image)
     cz_day_id = fields.Many2one('cz.cash.day', string='Daily Cash Sheet', index=True, copy=False, ondelete='set null')
     cz_safe_move_id = fields.Many2one('cz.cash.safe.move', string='Safe Movement', copy=False, ondelete='set null')
     cz_approved = fields.Boolean(string='Approved by accountant', copy=False, default=False)
@@ -16,6 +26,18 @@ class AccountBankStatementLine(models.Model):
     cz_manager_pin_ok = fields.Boolean(string='Manager PIN given', copy=False)
     cz_end_of_day = fields.Boolean(string='End-of-day drawer transfer', copy=False,
                                    help="The whole counted drawer was moved to the safe at closing (drawer closes at 0).")
+
+    def action_cz_open_form(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Cash Movement'),
+            'res_model': 'account.bank.statement.line',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'view_id': self.env.ref('cz_cash_control.view_cz_statement_line_form').id,
+            'target': 'new',
+        }
 
     def _cz_set_counterpart(self, account, label=None):
         """Replace the suspense leg of a posted statement line with the given account.

@@ -3,8 +3,14 @@ import { patch } from "@web/core/utils/patch";
 import { useService } from "@web/core/utils/hooks";
 import { parseFloat } from "@web/views/fields/parsers";
 import { ClosePosPopup } from "@point_of_sale/app/navbar/closing_popup/closing_popup";
-import { ask } from "@point_of_sale/app/store/make_awaitable_dialog";
+import { ask, makeAwaitable } from "@point_of_sale/app/store/make_awaitable_dialog";
+import { TextInputPopup } from "@point_of_sale/app/utils/input_popups/text_input_popup";
+import { formatDateTime } from "@web/core/l10n/dates";
 import { askManagerPin } from "@cz_cash_control/app/manager_pin/manager_pin";
+import { CzEodReceipt } from "@cz_cash_control/app/eod_receipt/eod_receipt";
+import { czPrint } from "@cz_cash_control/app/printing/cz_print";
+
+const { DateTime } = luxon;
 
 /**
  * Blind count + controlled closing.
@@ -17,6 +23,7 @@ patch(ClosePosPopup.prototype, {
     setup() {
         super.setup(...arguments);
         this.notification = useService("notification");
+        this.printer = useService("printer");
         this.czPinOk = false;
     },
 
@@ -114,11 +121,20 @@ patch(ClosePosPopup.prototype, {
         );
     },
 
+    /** cz.cash.safe is not a POS model, so the many2one is only reliable in the raw data */
+    get czSafeId() {
+        const cfg = this.pos.config;
+        const raw = cfg.raw?.cz_safe_id;
+        const val = raw !== undefined ? raw : cfg.cz_safe_id;
+        return Array.isArray(val) ? val[0] : val?.id || val || false;
+    },
+
     get czShowEndOfDay() {
         return (
             this.czEnabled &&
+            Boolean(this.pos.config.cz_enable_eod) &&
             this.pos.config.cash_control &&
-            Boolean(this.pos.config.cz_safe_id) &&
+            Boolean(this.czSafeId) &&
             Boolean(this.czEodCategory)
         );
     },
@@ -151,8 +167,28 @@ patch(ClosePosPopup.prototype, {
         if (!manager) {
             return;
         }
+        // envelope / bag number written on the cash envelope (optional)
+        const envelopeRaw = await makeAwaitable(this.dialog, TextInputPopup, {
+            title: _t("Zarf / Poşet No"),
+            placeholder: _t("Zarfın üzerindeki numara (boş bırakılabilir)"),
+            rows: 1,
+        });
+        if (envelopeRaw === undefined) {
+            return; // cancelled
+        }
+        const envelope = (envelopeRaw || "").trim();
+        const cashier = this.pos.get_cashier?.();
+        const cashierName = cashier ? cashier.name : this.pos.user?.name || "";
+
+        // figures for the printed slip, taken *before* the drawer is emptied
+        let summary = null;
+        try {
+            summary = await this.pos.data.call("pos.session", "cz_eod_summary", [[this.pos.session.id], counted], {}, true);
+        } catch (e) {
+            console.error("cz_eod_summary failed", e);
+        }
+
         if (counted > 0) {
-            const cashier = this.pos.get_cashier?.();
             const formattedAmount = this.env.utils.formatCurrency(counted);
             await this.pos.data.call(
                 "pos.session",
@@ -168,9 +204,10 @@ patch(ClosePosPopup.prototype, {
                         cz_category_id: cat.id,
                         cz_employee_id: false,
                         cz_receipt_ref: "",
+                        cz_envelope_ref: envelope,
                         cz_pin_ok: true,
                         cz_manager_name: manager.name,
-                        cz_cashier_name: cashier ? cashier.name : this.pos.user?.name || "",
+                        cz_cashier_name: cashierName,
                         cz_end_of_day: true,
                     },
                 ],
@@ -180,7 +217,24 @@ patch(ClosePosPopup.prototype, {
         }
         this.czPinOk = true;
         this.state.payments[this.props.default_cash_details.id].counted = "0";
-        this.state.notes = `${this.state.notes || ""}\n[Gün sonu: ${this.env.utils.formatCurrency(counted)} küçük kasaya — onay ${manager.name}]`.trim();
+        const envelopeNote = envelope ? ` — zarf ${envelope}` : "";
+        this.state.notes = `${this.state.notes || ""}\n[Gün sonu: ${this.env.utils.formatCurrency(counted)} küçük kasaya${envelopeNote} — onay ${manager.name}]`.trim();
+
+        // printed slip for the envelope; a printer problem must never block the closing
+        if (summary) {
+            const printed = await czPrint(this.pos, this.printer, CzEodReceipt, {
+                summary,
+                headerData: this.pos.getReceiptHeaderData(),
+                cashier: cashierName,
+                manager: manager.name,
+                envelope,
+                posName: this.pos.config.name,
+                date: formatDateTime(DateTime.now()),
+            });
+            if (!printed) {
+                this.notification.add(_t("Gün sonu fişi yazdırılamadı (kapanış devam ediyor)."), { type: "warning" });
+            }
+        }
         await this.closeSession();
     },
 
