@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="cz_inventory_dashboard.Dashboard">
+  <div class="cz_dash o_action">
+    <div class="cz_dash_head">
+      <div>
+        <h1 class="cz_dash_title">Sevkiyat Paneli</h1>
+        <div class="cz_dash_sub" t-if="state.data">
+          <span t-esc="state.data.company"/> · <span t-esc="state.data.as_of"/>
+        </div>
+      </div>
+      <div class="cz_dash_tabs">
+        <button class="btn" t-att-class="state.tab==='out' ? 'btn-primary' : 'btn-light'" t-on-click="() => this.setTab('out')">
+          Teslimatlar <span class="badge text-bg-dark" t-if="state.data" t-esc="state.data.totals.ready + state.data.totals.waiting"/>
+        </button>
+        <button class="btn" t-att-class="state.tab==='in' ? 'btn-primary' : 'btn-light'" t-on-click="() => this.setTab('in')">
+          Mal Kabul <span class="badge text-bg-dark" t-if="state.data" t-esc="state.data.totals.receipts"/>
+        </button>
+        <button class="btn" t-att-class="state.tab==='wh' ? 'btn-primary' : 'btn-light'" t-on-click="() => this.setTab('wh')">Depolar</button>
+        <button class="btn btn-light" t-on-click="() => this.load()" title="Yenile"><i class="fa fa-refresh"/></button>
+      </div>
+    </div>
+
+    <div t-if="state.error" class="alert alert-danger m-3"><t t-esc="state.error"/></div>
+    <div t-if="state.loading and !state.data" class="cz_dash_loading"><i class="fa fa-circle-o-notch fa-spin"/> Yükleniyor…</div>
+
+    <t t-if="state.data">
+      <!-- KPI tiles: click = filter -->
+      <div class="cz_dash_tiles">
+        <button class="cz_tile cz_tile_late" t-att-class="state.filter==='late' ? 'active' : ''" t-on-click="() => this.setFilter('late')">
+          <div class="cz_tile_v" t-esc="state.data.totals.late"/><div class="cz_tile_l">Gecikmiş</div>
+        </button>
+        <button class="cz_tile cz_tile_ready" t-att-class="state.filter==='ready' ? 'active' : ''" t-on-click="() => this.setFilter('ready')">
+          <div class="cz_tile_v" t-esc="state.data.totals.ready"/><div class="cz_tile_l">Sevke hazır</div>
+        </button>
+        <button class="cz_tile cz_tile_wait" t-att-class="state.filter==='waiting' ? 'active' : ''" t-on-click="() => this.setFilter('waiting')">
+          <div class="cz_tile_v" t-esc="state.data.totals.waiting"/><div class="cz_tile_l">Bekliyor (rezerve değil)</div>
+        </button>
+        <button class="cz_tile" t-att-class="state.filter==='today' ? 'active' : ''" t-on-click="() => this.setFilter('today')">
+          <div class="cz_tile_v" t-esc="state.data.totals.today"/><div class="cz_tile_l">Bugün planlı</div>
+        </button>
+        <div class="cz_tile cz_tile_done">
+          <div class="cz_tile_v" t-esc="state.data.totals.done_today"/><div class="cz_tile_l">Bugün teslim edildi</div>
+        </div>
+        <div class="cz_tile" t-att-class="state.data.totals.receipts_late ? 'cz_tile_late' : ''">
+          <div class="cz_tile_v" t-esc="state.data.totals.receipts"/><div class="cz_tile_l">Mal kabul bekliyor<t t-if="state.data.totals.receipts_late"> · <t t-esc="state.data.totals.receipts_late"/> gecikmiş</t></div>
+        </div>
+      </div>
+
+      <!-- DELIVERIES by customer -->
+      <div t-if="state.tab==='out'" class="cz_dash_body">
+        <div t-if="!groups.length" class="cz_dash_empty"><i class="fa fa-check-circle"/> Açık teslimat yok.</div>
+        <div t-foreach="groups" t-as="g" t-key="g.partner_id" class="cz_group">
+          <div class="cz_group_head">
+            <button class="cz_group_name" t-on-click="() => this.openPartner(g)"><t t-esc="g.partner"/></button>
+            <span class="cz_pill cz_pill_late" t-if="g.late"><t t-esc="g.late"/> gecikmiş</span>
+            <span class="cz_pill cz_pill_ready" t-if="g.ready"><t t-esc="g.ready"/> hazır</span>
+            <span class="cz_pill cz_pill_wait" t-if="g.waiting"><t t-esc="g.waiting"/> bekliyor</span>
+          </div>
+          <table class="cz_table">
+            <tbody>
+              <tr t-foreach="g.pickings" t-as="p" t-key="p.id" t-att-class="(p.is_late ? 'is_late ' : '') + (p.priority ? 'is_prio' : '')">
+                <td class="cz_ref"><button class="btn-link p-0" t-on-click="() => this.openPicking(p.id)"><t t-esc="p.name"/></button>
+                  <div class="cz_muted"><t t-esc="p.origin"/></div></td>
+                <td class="cz_wh"><span class="cz_tag" t-esc="p.wh"/></td>
+                <td class="cz_when"><i class="fa fa-exclamation-circle text-danger me-1" t-if="p.is_late" title="Gecikmiş"/><t t-esc="p.scheduled"/></td>
+                <td class="cz_lines"><t t-esc="p.lines"/> satır</td>
+                <td class="cz_state"><span class="cz_state_pill" t-att-class="'st_' + p.state" t-esc="stateLabel(p.state)"/></td>
+                <td class="cz_actions">
+                  <button t-if="p.state!=='assigned'" class="btn btn-sm btn-outline-secondary" t-att-disabled="state.busy[p.id]" t-on-click="() => this.act(p,'check')">Stok kontrol</button>
+                  <button t-if="p.state==='assigned' and state.data.can_validate" class="btn btn-sm btn-success" t-att-disabled="state.busy[p.id]" t-on-click="() => this.act(p,'validate')"><i class="fa fa-check me-1"/>Teslim et</button>
+                  <button class="btn btn-sm btn-light" t-on-click="() => this.openPicking(p.id)">Aç</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RECEIPTS -->
+      <div t-if="state.tab==='in'" class="cz_dash_body">
+        <div t-if="!receipts.length" class="cz_dash_empty"><i class="fa fa-check-circle"/> Açık mal kabul yok.</div>
+        <table class="cz_table" t-if="receipts.length">
+          <thead><tr><th>Belge</th><th>Tedarikçi</th><th>Depo</th><th>Planlanan</th><th>Satır</th><th>Durum</th><th></th></tr></thead>
+          <tbody>
+            <tr t-foreach="receipts" t-as="p" t-key="p.id" t-att-class="p.is_late ? 'is_late' : ''">
+              <td class="cz_ref"><button class="btn-link p-0" t-on-click="() => this.openPicking(p.id)"><t t-esc="p.name"/></button><div class="cz_muted" t-esc="p.origin"/></td>
+              <td><t t-esc="p.partner"/></td>
+              <td><span class="cz_tag" t-esc="p.wh"/></td>
+              <td class="cz_when"><i class="fa fa-exclamation-circle text-danger me-1" t-if="p.is_late"/><t t-esc="p.scheduled"/></td>
+              <td><t t-esc="p.lines"/></td>
+              <td><span class="cz_state_pill" t-att-class="'st_' + p.state" t-esc="stateLabel(p.state)"/></td>
+              <td class="cz_actions"><button class="btn btn-sm btn-light" t-on-click="() => this.openPicking(p.id)">Aç</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- WAREHOUSES -->
+      <div t-if="state.tab==='wh'" class="cz_dash_body cz_wh_grid">
+        <div t-foreach="state.data.warehouses" t-as="w" t-key="w.id" class="cz_card">
+          <div class="cz_card_title"><t t-esc="w.name"/> <span class="cz_tag" t-esc="w.code"/></div>
+          <table class="cz_table cz_table_sm">
+            <thead><tr><th>Operasyon</th><th class="n">Hazır</th><th class="n">Bekliyor</th><th class="n">Gecikmiş</th><th class="n">Bugün</th><th class="n">7 gün</th></tr></thead>
+            <tbody>
+              <tr t-foreach="w.types" t-as="t" t-key="t.id">
+                <td><t t-esc="t.name"/></td>
+                <td class="n"><button class="btn-link p-0" t-on-click="() => this.openType(t,'ready')" t-esc="t.ready"/></td>
+                <td class="n"><button class="btn-link p-0" t-on-click="() => this.openType(t,'waiting')" t-esc="t.waiting"/></td>
+                <td class="n" t-att-class="t.late ? 'text-danger fw-bold' : ''"><button class="btn-link p-0" t-on-click="() => this.openType(t,'late')" t-esc="t.late"/></td>
+                <td class="n"><t t-esc="t.done_today"/></td>
+                <td class="n cz_muted"><button class="btn-link p-0" t-on-click="() => this.openType(t,'done_7d')" t-esc="t.done_7d"/></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </t>
+  </div>
+</t>
+
+</templates>
