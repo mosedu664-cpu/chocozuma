@@ -23,7 +23,7 @@
                     <t t-esc="props.result.name"/> · onay: <t t-esc="props.result.manager"/> · günlük kasa sayfasına kaydedildi, değiştirilemez.
                 </div>
                 <div t-if="!isZero" class="alert alert-light border mt-2 mb-0 small">
-                    Kayıtlı masrafları ve nakit ödenen siparişleri kontrol edin (Siparişler ekranı, kapanıştaki Nakit giriş/çıkış listesi). Sebebi bulursanız düzeltip tekrar sayın — her sayım yeni bir kayıt olarak saklanır.
+                    Kayıtlı masrafları (Nakit Giriş/Çıkış → <b>Hareketler</b>) ve nakit ödenen siparişleri (Siparişler ekranı) kontrol edin. Sebebi bulursanız düzeltip tekrar sayın — her sayım yeni bir kayıt olarak saklanır.
                 </div>
                 <div t-if="props.checkType === 'handover'" class="alert alert-info mt-2 mb-0">
                     <b>Vardiya devri:</b> çıkan kasiyer kilide 🔓 bassın, yeni kasiyer kendi adını seçsin.

@@ -28,6 +28,12 @@ class AccountBankStatementLine(models.Model):
                                   help="Manager whose PIN authorised the movement.")
     cz_end_of_day = fields.Boolean(string='End-of-day drawer transfer', copy=False,
                                    help="The whole counted drawer was moved to the safe at closing (drawer closes at 0).")
+    cz_reversal_of_id = fields.Many2one(
+        'account.bank.statement.line', string='Correction of', copy=False, index=True, ondelete='restrict',
+        help="This movement cancels the referenced one (entered in the POS with a manager PIN). "
+             "Both stay on record; together they net to zero.")
+    cz_reversal_ids = fields.One2many('account.bank.statement.line', 'cz_reversal_of_id', string='Corrected by')
+    cz_reversal_reason = fields.Char(string='Correction reason', copy=False)
 
     def action_cz_open_form(self):
         self.ensure_one()
@@ -67,6 +73,13 @@ class AccountBankStatementLine(models.Model):
         if frozen & set(vals) and not self.env.context.get('cz_approval') \
                 and any(l.cz_approved for l in self):
             raise UserError(_("This cash movement was approved by the accountant and can no longer be modified."))
+        if {'amount', 'cz_category_id'} & set(vals) and not self.env.context.get('cz_approval') \
+                and any((l.cz_reversal_of_id or l.cz_reversal_ids) and (
+                    ('amount' in vals and l.currency_id.compare_amounts(vals['amount'], l.amount) != 0)
+                    or ('cz_category_id' in vals and (vals['cz_category_id'] or False) != l.cz_category_id.id)
+                ) for l in self):
+            raise UserError(_("This movement is part of a POS correction pair; its amount and category must stay "
+                              "identical to its pair."))
         return super().write(vals)
 
     def unlink(self):

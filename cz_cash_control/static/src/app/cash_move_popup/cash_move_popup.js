@@ -5,6 +5,7 @@ import { onWillStart, useRef } from "@odoo/owl";
 import { CashMovePopup } from "@point_of_sale/app/navbar/cash_move_popup/cash_move_popup";
 import { askManagerPin } from "@cz_cash_control/app/manager_pin/manager_pin";
 import { czPrint } from "@cz_cash_control/app/printing/cz_print";
+import { CzCashMovesDialog } from "@cz_cash_control/app/cash_moves_list/cash_moves_dialog";
 
 const TILE_LIMIT = 8;
 const PHOTO_MAX_SIDE = 1280;
@@ -171,6 +172,11 @@ patch(CashMovePopup.prototype, {
         this.state.czCategoryId = id;
         this.czPinOk = false;
         this.czManagerName = "";
+    },
+
+    /** "Hareketler": every movement of this session, read-only (corrections need a manager PIN). */
+    czOpenMoves() {
+        this.dialog.add(CzCashMovesDialog, {});
     },
 
     czToggleShowAll() {

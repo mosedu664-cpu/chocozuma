@@ -84,6 +84,23 @@ Replaces the branch "kasa" Excel sheets with a controlled, auditable flow inside
 * **Silent opening carries over** the last counted drawer (cz_customizations) instead of forcing 0,
   which used to book a fake opening difference and drop the cash left in the drawer.
 
+## Movements list in the POS (18.0.1.4.0)
+
+*Nakit Giriş/Çıkış → **Hareketler*** opens every drawer movement of the open session:
+
+- totals (out / in / net drawer effect), the biggest spending categories, filters
+  (out, in, manager-approved, with photo) and a search box;
+- per line: time, category, staff, reason, receipt no., cashier, approving manager,
+  receipt photo (opens full size).
+
+Nothing can be deleted. A wrong movement is **cancelled with an opposite correction**:
+reason → manager PIN (re-checked on the server) → a mirror line with the same category
+is created (`cz_reversal_of_id`), a cancel slip is printed, the daily sheet chatter is
+notified. The pair nets to zero for the drawer, the daily sheet, the per-employee totals
+and the accounting; amount and category of a pair can no longer be changed separately.
+Only movements of the open session that are not approved, not end-of-day and not already
+part of a pair can be corrected.
+
 ## Back office (18.0.1.2.0)
 
 * **Cash Control → Dashboard** – one tile per POS: today's cash sales / drawer expenses /

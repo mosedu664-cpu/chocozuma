@@ -1977,3 +1977,83 @@ msgstr "fazla"
 #: model_terms:ir.ui.view,arch_db:cz_cash_control.view_cz_cash_safe_kanban
 msgid "to approve"
 msgstr "onay bekliyor"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_reversal_of_id
+msgid "Correction of"
+msgstr "Düzeltilen hareket"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_reversal_ids
+msgid "Corrected by"
+msgstr "Düzelten hareket"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_account_bank_statement_line__cz_reversal_reason
+msgid "Correction reason"
+msgstr "Düzeltme sebebi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_account_bank_statement_line__cz_reversal_of_id
+msgid ""
+"This movement cancels the referenced one (entered in the POS with a manager "
+"PIN). Both stay on record; together they net to zero."
+msgstr ""
+"Bu hareket, belirtilen hareketi iptal eder (POS'ta yönetici PIN'i ile "
+"girildi). İkisi de kayıtta kalır; toplamları sıfırdır."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "You don't have the access rights to see the cash movements."
+msgstr "Kasa hareketlerini görme yetkiniz yok."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Please write why the movement is being corrected."
+msgstr "Lütfen hareketin neden iptal edildiğini yazın."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "This movement does not belong to the current session."
+msgstr "Bu hareket açık oturuma ait değil."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "This movement can no longer be corrected from the POS."
+msgstr "Bu hareket artık POS'tan iptal edilemez."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "DÜZELTME: %s"
+msgstr "DÜZELTME: %s"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "↩ İPTAL — %(orig)s — %(reason)s (onay: %(manager)s)"
+msgstr "↩ İPTAL — %(orig)s — %(reason)s (onay: %(manager)s)"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid ""
+"Movement corrected in the POS by %(manager)s: %(orig)s (%(amount)s). Reason:"
+" %(reason)s"
+msgstr ""
+"Hareket POS'ta %(manager)s tarafından iptal edildi: %(orig)s (%(amount)s). "
+"Sebep: %(reason)s"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/account_bank_statement_line.py:0
+msgid ""
+"This movement is part of a POS correction pair; its amount and category must"
+" stay identical to its pair."
+msgstr ""
+"Bu hareket bir POS düzeltme çiftinin parçasıdır; tutarı ve kategorisi "
+"eşiyle aynı kalmalıdır."

@@ -7,12 +7,14 @@
         <field name="priority">99</field>
         <field name="arch" type="xml">
             <list editable="bottom" create="0" delete="0" decoration-danger="not cz_category_id and not cz_approved"
-                  decoration-muted="cz_approved">
+                  decoration-muted="cz_approved" decoration-info="cz_reversal_of_id or cz_reversal_ids">
                 <field name="date" readonly="1"/>
                 <field name="payment_ref" readonly="1"/>
-                <field name="cz_category_id" readonly="cz_approved"
+                <field name="cz_category_id" readonly="cz_approved or cz_reversal_of_id or cz_reversal_ids"
                        domain="[('company_id', '=', company_id)]"/>
                 <field name="cz_employee_id" readonly="cz_approved"/>
+                <field name="cz_reversal_of_id" readonly="1" optional="show" string="Düzeltme"/>
+                <field name="cz_reversal_ids" column_invisible="1"/>
                 <field name="cz_receipt_ref" readonly="cz_approved"/>
                 <field name="cz_has_receipt_image" column_invisible="1"/>
                 <button name="action_cz_open_form" type="object" icon="fa-camera" title="Fiş fotoğrafını aç"
@@ -47,7 +49,7 @@
                             <field name="date" readonly="1"/>
                             <field name="amount" readonly="1"/>
                             <field name="journal_id" readonly="1"/>
-                            <field name="cz_category_id" readonly="cz_approved" domain="[('company_id', '=', company_id)]"/>
+                            <field name="cz_category_id" readonly="cz_approved or cz_reversal_of_id or cz_reversal_ids" domain="[('company_id', '=', company_id)]"/>
                             <field name="cz_employee_id" readonly="cz_approved"/>
                             <field name="company_id" invisible="1"/>
                             <field name="currency_id" invisible="1"/>
@@ -61,6 +63,9 @@
                             <field name="cz_end_of_day" readonly="1"/>
                             <field name="cz_approved" readonly="1"/>
                             <field name="cz_day_id" readonly="1"/>
+                            <field name="cz_reversal_of_id" readonly="1" invisible="not cz_reversal_of_id"/>
+                            <field name="cz_reversal_reason" readonly="1" invisible="not cz_reversal_of_id"/>
+                            <field name="cz_reversal_ids" readonly="1" invisible="not cz_reversal_ids" widget="many2many_tags"/>
                         </group>
                     </group>
                     <group string="Receipt photo">
