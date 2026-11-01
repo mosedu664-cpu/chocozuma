@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="cz_cash_control.CzCashMovesDialog">
+        <Dialog title="'Kasa hareketleri'" size="'lg'" contentClass="'cz-moves-dialog'">
+            <div t-if="state.loading and !state.data" class="text-center text-muted py-5">
+                <i class="fa fa-spinner fa-spin fa-2x" title="Yükleniyor"/>
+            </div>
+            <div t-elif="state.error" class="alert alert-danger d-flex align-items-center gap-2">
+                <i class="fa fa-exclamation-triangle" title="Hata"/>
+                <span t-esc="state.error"/>
+                <button class="btn btn-sm btn-outline-danger ms-auto" t-on-click="() => this.load()">Tekrar dene</button>
+            </div>
+            <t t-else="">
+                <t t-set="d" t-value="state.data"/>
+
+                <!-- summary -->
+                <div class="cz-moves-summary mb-3">
+                    <div class="cz-stat cz-stat-out">
+                        <div class="cz-stat-label"><i class="fa fa-arrow-up me-1" title="Çıkış"/>Çıkış</div>
+                        <div class="cz-stat-value" t-esc="fmt(d.total_out)"/>
+                    </div>
+                    <div class="cz-stat cz-stat-in">
+                        <div class="cz-stat-label"><i class="fa fa-arrow-down me-1" title="Giriş"/>Giriş</div>
+                        <div class="cz-stat-value" t-esc="fmt(d.total_in)"/>
+                    </div>
+                    <div class="cz-stat cz-stat-net">
+                        <div class="cz-stat-label"><i class="fa fa-balance-scale me-1" title="Net"/>Net çekmece etkisi</div>
+                        <div t-attf-class="cz-stat-value #{d.net &lt; 0 ? 'text-danger' : 'text-success'}" t-esc="fmt(d.net)"/>
+                    </div>
+                    <div class="cz-stat">
+                        <div class="cz-stat-label"><i class="fa fa-hashtag me-1" title="Adet"/>Hareket</div>
+                        <div class="cz-stat-value" t-esc="d.count"/>
+                        <div t-if="d.cancelled_count" class="small text-muted">
+                            <i class="fa fa-undo me-1" title="İptal"/><t t-esc="d.cancelled_count"/> iptal (<t t-esc="fmt(d.cancelled_amount)"/>)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- where the money went -->
+                <div t-if="topCategories.length" class="cz-moves-top mb-3">
+                    <t t-foreach="topCategories" t-as="c" t-key="c.name">
+                        <div class="cz-top-row">
+                            <span t-attf-class="cz-dot cz-color-#{c.color % 12}"><i t-att-class="iconClass(c)" t-att-title="c.name"/></span>
+                            <span class="cz-top-name text-truncate" t-esc="c.name"/>
+                            <div class="cz-top-bar flex-grow-1">
+                                <div t-attf-class="cz-top-fill cz-color-#{c.color % 12}" t-attf-style="width: #{Math.round(100 * c.amount / maxTop)}%"/>
+                            </div>
+                            <span class="cz-top-amount" t-esc="fmt(c.amount)"/>
+                        </div>
+                    </t>
+                </div>
+
+                <!-- filters + search -->
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <t t-foreach="filters" t-as="f" t-key="f.key">
+                        <button type="button"
+                                t-attf-class="btn btn-sm rounded-pill #{state.filter === f.key ? 'btn-dark' : 'btn-outline-secondary'}"
+                                t-att-disabled="!f.count and f.key !== 'all'"
+                                t-on-click="() => this.setFilter(f.key)">
+                            <i t-attf-class="fa #{f.icon} me-1" t-att-title="f.label"/><t t-esc="f.label"/>
+                            <span class="badge rounded-pill text-bg-light ms-1" t-esc="f.count"/>
+                        </button>
+                    </t>
+                    <div class="ms-auto cz-moves-search">
+                        <i class="fa fa-search" title="Ara"/>
+                        <input type="text" class="form-control form-control-sm" placeholder="Ara: kategori, personel, açıklama…"
+                               t-model="state.search"/>
+                    </div>
+                </div>
+
+                <!-- list -->
+                <div t-if="!filteredLines.length" class="text-center text-muted py-4">
+                    <i class="fa fa-inbox fa-2x d-block mb-2" title="Boş"/>
+                    <t t-if="lines.length">Bu filtrede hareket yok.</t>
+                    <t t-else="">Bu oturumda henüz kasa hareketi yok.</t>
+                </div>
+                <div t-else="" class="cz-moves-list">
+                    <t t-foreach="filteredLines" t-as="l" t-key="l.id">
+                        <div t-att-class="rowClass(l)">
+                            <div class="cz-move-time" t-esc="l.time"/>
+                            <span t-attf-class="cz-dot cz-color-#{l.color % 12}"><i t-att-class="iconClass(l)" t-att-title="l.category"/></span>
+                            <div class="cz-move-main">
+                                <div class="cz-move-title">
+                                    <span class="fw-bold" t-esc="l.category"/>
+                                    <span t-if="l.employee" class="text-muted"> · <t t-esc="l.employee"/></span>
+                                    <span t-if="l.is_correction" class="badge text-bg-info ms-1"><i class="fa fa-undo me-1" title="Düzeltme"/>Düzeltme</span>
+                                    <span t-if="l.corrected" class="badge text-bg-secondary ms-1">İptal edildi</span>
+                                    <span t-if="l.end_of_day" class="badge text-bg-warning ms-1">Gün sonu</span>
+                                </div>
+                                <div class="cz-move-sub text-muted small">
+                                    <t t-if="l.is_correction and l.correction_reason">
+                                        <t t-set="orig" t-value="originalOf(l)"/>
+                                        Sebep: <t t-esc="l.correction_reason"/>
+                                        <t t-if="orig"> · iptal edilen: <t t-esc="orig.time"/></t>
+                                    </t>
+                                    <t t-elif="l.reason"><t t-esc="l.reason"/></t>
+                                    <span t-if="l.receipt_ref"> · fiş <t t-esc="l.receipt_ref"/></span>
+                                </div>
+                                <div class="cz-move-people small">
+                                    <span t-if="l.cashier" class="me-2"><i class="fa fa-user me-1" title="Kasiyer"/><t t-esc="l.cashier"/></span>
+                                    <span t-if="l.manager" class="text-warning-emphasis"><i class="fa fa-lock me-1" title="Yönetici onayı"/><t t-esc="l.manager"/></span>
+                                </div>
+                            </div>
+                            <div t-attf-class="cz-move-amount #{l.type === 'out' ? 'text-danger' : 'text-success'}">
+                                <t t-esc="l.type === 'out' ? '−' : '+'"/><t t-esc="fmt(l.amount)"/>
+                            </div>
+                            <div class="cz-move-actions">
+                                <button t-if="l.has_photo" type="button" class="btn btn-sm btn-outline-success"
+                                        t-on-click="() => this.openPhoto(l)" title="Fiş fotoğrafı">
+                                    <i class="fa fa-camera" title="Fiş fotoğrafı"/>
+                                </button>
+                                <button t-if="l.reversible" type="button" class="btn btn-sm btn-outline-danger"
+                                        t-att-disabled="state.busyId"
+                                        t-on-click="() => this.correct(l)" title="Hatalı hareketi iptal et (yönetici PIN)">
+                                    <i t-attf-class="fa #{state.busyId === l.id ? 'fa-spinner fa-spin' : 'fa-undo'}" title="İptal et"/>
+                                </button>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+                <div class="text-muted small mt-2">
+                    <i class="fa fa-info-circle me-1" title="Bilgi"/>
+                    Hareketler silinmez. Hatalı bir hareket, yönetici PIN'i ile ters kayıtla iptal edilir; ikisi de kayıtta kalır.
+                </div>
+            </t>
+            <t t-set-slot="footer">
+                <button class="btn btn-lg btn-primary" t-on-click="props.close">Kapat</button>
+                <button class="btn btn-lg btn-secondary" t-on-click="() => this.load()" t-att-disabled="state.loading">
+                    <i t-attf-class="fa fa-refresh #{state.loading ? 'fa-spin' : ''}" title="Yenile"/> Yenile
+                </button>
+            </t>
+        </Dialog>
+    </t>
+
+    <t t-name="cz_cash_control.CzReceiptPhotoDialog">
+        <Dialog title="props.title" size="'lg'">
+            <div class="text-center">
+                <img t-att-src="props.src" class="img-fluid rounded border cz-photo-full" alt="Fiş fotoğrafı"/>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-lg btn-primary" t-on-click="props.close">Kapat</button>
+            </t>
+        </Dialog>
+    </t>
+
+</templates>
