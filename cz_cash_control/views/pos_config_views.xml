@@ -13,6 +13,7 @@
                         <field name="cz_opening_float" invisible="not cz_cash_control"/>
                         <field name="cz_blind_count" invisible="not cz_cash_control"/>
                         <field name="cz_enable_eod" invisible="not cz_cash_control"/>
+                        <field name="cz_show_recent" invisible="not cz_cash_control"/>
                     </group>
                     <group>
                         <field name="cz_zero_count_pin" invisible="not cz_cash_control"/>

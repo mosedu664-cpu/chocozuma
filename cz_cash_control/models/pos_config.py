@@ -23,6 +23,8 @@ class PosConfig(models.Model):
                                    help="Show the one-PIN 'empty the whole drawer into the safe and close at 0' button in the "
                                         "closing popup. Off: the cashier only counts; transfers to the safe are recorded with "
                                         "Masraf → 'Küçük Kasaya Aktar'.")
+    cz_show_recent = fields.Boolean(string='"Recent movements" chips in the cash popup', default=False,
+                                    help="One-tap repeat of the last movements. Off by default (Mo: not practical).")
     cz_opening_float = fields.Float(string='Standard opening float', default=2000.0,
                                     help="Expected cash left in the drawer at closing (devir).")
     cz_accountant_ids = fields.Many2many('res.users', 'cz_pos_config_accountant_rel', 'config_id', 'user_id',
