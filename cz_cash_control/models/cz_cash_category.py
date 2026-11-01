@@ -46,6 +46,8 @@ class CzCashCategory(models.Model):
              "For 'Transfer to branch safe' use the internal transfer clearing account.")
     requires_employee = fields.Boolean(string='Employee required', default=False,
                                        help="Cashier must pick the staff member (taxi, food, advance...).")
+    requires_reason = fields.Boolean(string='Description required', default=False,
+                                     help="The cashier must write what the money is (e.g. who brought it and why).")
     requires_receipt_above = fields.Monetary(
         string='Receipt no. required above', currency_field='currency_id', default=0.0,
         help="Above this amount the cashier must type the receipt / fiş number. 0 = never.")
@@ -103,6 +105,6 @@ class CzCashCategory(models.Model):
 
     @api.model
     def _load_pos_data_fields(self, config_id):
-        return ['name', 'code', 'sequence', 'kind', 'direction', 'requires_employee',
+        return ['name', 'code', 'sequence', 'kind', 'direction', 'requires_employee', 'requires_reason',
                 'requires_receipt_above', 'requires_pin', 'pin_above', 'max_amount', 'color',
                 'icon', 'usage_count']

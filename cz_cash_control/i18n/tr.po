@@ -2057,3 +2057,20 @@ msgid ""
 msgstr ""
 "Bu hareket bir POS düzeltme çiftinin parçasıdır; tutarı ve kategorisi "
 "eşiyle aynı kalmalıdır."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__requires_reason
+msgid "Description required"
+msgstr "Açıklama zorunlu"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__requires_reason
+msgid ""
+"The cashier must write what the money is (e.g. who brought it and why)."
+msgstr "Kasiyer paranın ne olduğunu yazmak zorundadır (ör. kim getirdi, neden)."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Category %s requires a description."
+msgstr "%s kategorisi için açıklama zorunludur."
