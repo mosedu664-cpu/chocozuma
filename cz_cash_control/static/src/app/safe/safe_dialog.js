@@ -11,6 +11,8 @@ import { czPrint } from "@cz_cash_control/app/printing/cz_print";
 const { DateTime } = luxon;
 const PHOTO_MAX_SIDE = 1280;
 const PHOTO_QUALITY = 0.8;
+// shown first; the others (rent, tax, utilities…) stay one tap away behind "+"
+const PRIMARY_CODES = ["GUNLUK", "AVANS", "MAAS", "SEF", "TEMIZLIK", "MARKET", "TAMIR", "DIGER", "YEMEK", "TAKSI"];
 
 /**
  * "Küçük Kasa" — the branch safe inside the POS, for managers only (PIN asked
@@ -46,6 +48,7 @@ export class CzSafeDialog extends Component {
             photoBusy: false,
             saving: false,
             lastResult: null,
+            showAll: false,
         });
     }
 
@@ -60,6 +63,26 @@ export class CzSafeDialog extends Component {
 
     get info() {
         return this.state.info;
+    }
+
+    _isPrimary(c) {
+        return PRIMARY_CODES.includes((c.code || "").toUpperCase()) || c.usage > 0;
+    }
+
+    /** Usual safe payments first; the rest behind the "+" tile (the selected one always stays visible). */
+    get visibleCategories() {
+        const all = this.info.categories;
+        if (this.state.showAll) return all;
+        const shown = all.filter((c) => this._isPrimary(c) || c.id === this.state.categoryId);
+        return shown.length ? shown : all;
+    }
+
+    get hiddenCount() {
+        return this.info.categories.length - this.visibleCategories.length;
+    }
+
+    toggleAll() {
+        this.state.showAll = !this.state.showAll;
     }
 
     get category() {

@@ -42,7 +42,7 @@
                 <t t-else="">
                     <label class="form-label fw-bold">Ne ödendi? <span class="text-danger">*</span></label>
                     <div class="cz-tiles mb-3">
-                        <t t-foreach="info.categories" t-as="c" t-key="c.id">
+                        <t t-foreach="visibleCategories" t-as="c" t-key="c.id">
                             <button type="button"
                                     t-attf-class="cz-tile cz-color-#{c.color % 12} #{state.categoryId === c.id ? 'cz-tile-selected' : ''}"
                                     t-on-click="() => this.selectCategory(c.id)">
@@ -50,6 +50,13 @@
                                 <span class="cz-tile-name" t-esc="c.name"/>
                             </button>
                         </t>
+                        <button t-if="hiddenCount or state.showAll" type="button" class="cz-tile cz-tile-more" t-on-click="() => this.toggleAll()">
+                            <i t-attf-class="fa fa-fw #{state.showAll ? 'fa-minus' : 'fa-plus'}" title="Diğerleri"/>
+                            <span class="cz-tile-name">
+                                <t t-if="state.showAll">Daha az</t>
+                                <t t-else="">+<t t-esc="hiddenCount"/> diğer</t>
+                            </span>
+                        </button>
                     </div>
                     <div class="row g-2">
                         <div class="col-md-4">
