@@ -12,6 +12,8 @@
                 <field name="category_id"/>
                 <field name="note"/>
                 <field name="employee_id"/>
+                <field name="cz_from_pos" optional="show" string="POS"/>
+                <field name="cz_manager_id" optional="show"/>
                 <field name="partner_id" optional="hide"/>
                 <field name="amount" sum="Total"/>
                 <field name="count_difference" optional="hide"/>
@@ -55,6 +57,9 @@
                             <field name="employee_id" invisible="move_type == 'count'" readonly="state != 'draft'"/>
                             <field name="partner_id" invisible="move_type == 'count'" readonly="state != 'draft'"/>
                             <field name="receipt_ref" invisible="move_type == 'count'" readonly="state != 'draft'"/>
+                            <field name="cz_from_pos" invisible="not cz_from_pos"/>
+                            <field name="cz_manager_id" invisible="not cz_from_pos"/>
+                            <field name="cz_pos_session_id" invisible="not cz_from_pos"/>
                             <field name="origin_day_id" invisible="not origin_day_id"/>
                             <field name="statement_line_id" invisible="not statement_line_id"/>
                             <field name="approved_by" invisible="state != 'approved'"/>
@@ -80,6 +85,7 @@
                 <field name="category_id"/>
                 <filter name="draft" string="To approve" domain="[('state', '=', 'draft')]"/>
                 <filter name="approved" string="Approved" domain="[('state', '=', 'approved')]"/>
+                <filter name="from_pos" string="Entered in the POS" domain="[('cz_from_pos', '=', True)]"/>
                 <separator/>
                 <filter name="this_month" string="This month" date="date" default_period="month"/>
                 <group expand="0" string="Group By">
