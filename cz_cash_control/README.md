@@ -101,6 +101,24 @@ and the accounting; amount and category of a pair can no longer be changed separ
 Only movements of the open session that are not approved, not end-of-day and not already
 part of a pair can be corrected.
 
+## Branch safe in the POS (18.0.1.5.0)
+
+**Küçük Kasa** button in the POS bar (only when the POS has a branch safe). Manager PIN →
+the safe screen:
+
+- **Expected in safe** = book balance + drawer transfers of daily sheets still to approve
+  (also shown on the Branch Safes card) — what should physically be there now;
+- **Kasadan ödeme**: categories flagged *Safe payments (POS)* (tiles), amount, description
+  (required), staff, receipt no. or photo. Same rules as the drawer (staff required, receipt
+  above, max amount) plus "not more than the expected cash". Booked at once (safe movement
+  approved, photo attached, cancel slip printed) and marked *Entered in the POS* with the
+  manager for the accountant's review (filter on Safe Movements; the accountant can cancel);
+- **Son hareketler**: the last 15 safe movements.
+
+The drawer is never touched. A safe **count** is refused while daily sheets of that safe are
+still to approve (their transfers are not in the book balance yet, the count would book a
+false difference).
+
 ## Back office (18.0.1.2.0)
 
 * **Cash Control → Dashboard** – one tile per POS: today's cash sales / drawer expenses /

@@ -43,6 +43,9 @@ class CzCashSafeMove(models.Model):
         ('approved', 'Approved'),
         ('cancelled', 'Cancelled'),
     ], default='draft', required=True, tracking=True, index=True)
+    cz_from_pos = fields.Boolean(string='Entered in the POS', readonly=True, copy=False, index=True)
+    cz_manager_id = fields.Many2one('hr.employee', string='Manager (PIN)', readonly=True, copy=False)
+    cz_pos_session_id = fields.Many2one('pos.session', string='POS session', readonly=True, copy=False)
     approved_by = fields.Many2one('res.users', readonly=True)
     approved_at = fields.Datetime(readonly=True)
 
@@ -139,6 +142,12 @@ class CzCashSafeMove(models.Model):
         """Book the count difference to the journal's profit/loss account."""
         self.ensure_one()
         safe = self.safe_id
+        days, lines = safe._cz_pending_day_lines()
+        if lines:
+            raise UserError(_(
+                "%(n)s daily cash sheet(s) of this safe are not approved yet (%(amount)s of drawer transfers are not "
+                "in the book balance). Approve them first, otherwise the count would book a false difference.",
+                n=len(days), amount=safe.currency_id.format(-sum(lines.mapped('amount')))))
         diff = self.currency_id.round(self.amount - safe.balance)
         self.count_difference = diff
         if not self.currency_id.is_zero(diff):

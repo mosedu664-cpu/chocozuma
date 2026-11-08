@@ -10,9 +10,14 @@
                 <i class="fa fa-fw fa-money"/><span t-if="!ui.isSmall" class="ms-1">Masraf</span>
             </button>
             <button t-if="pos.czShowDrawerCheck"
-                    class="btn btn-light border btn-lg lh-lg fw-bold ms-1"
+                    class="btn btn-light border btn-lg lh-lg fw-bold ms-1 text-nowrap"
                     t-on-click="() => this.pos.czDrawerCheck()" title="Kapatmadan kasa sayımı (yönetici PIN)">
                 <i class="fa fa-fw fa-calculator"/><span t-if="!ui.isSmall" class="ms-1">Sayım</span>
+            </button>
+            <button t-if="pos.czShowSafe"
+                    class="btn btn-light border btn-lg lh-lg fw-bold ms-1 text-nowrap"
+                    t-on-click="() => this.pos.czOpenSafe()" title="Küçük kasa: bakiye ve kasadan ödeme (yönetici PIN)">
+                <i class="fa fa-fw fa-lock"/><span t-if="!ui.isSmall" class="ms-1 text-nowrap">Küçük Kasa</span>
             </button>
         </xpath>
     </t>

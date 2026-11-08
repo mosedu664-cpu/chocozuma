@@ -2074,3 +2074,117 @@ msgstr "Kasiyer paranın ne olduğunu yazmak zorundadır (ör. kim getirdi, nede
 #: code:addons/cz_cash_control/models/pos_session.py:0
 msgid "Category %s requires a description."
 msgstr "%s kategorisi için açıklama zorunludur."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_category__safe_pos_available
+msgid "Safe payments (POS)"
+msgstr "Küçük kasa ödemeleri (POS)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,help:cz_cash_control.field_cz_cash_category__safe_pos_available
+msgid ""
+"Offered in the POS 'Küçük Kasa' screen, where a manager pays directly from "
+"the branch safe."
+msgstr ""
+"POS'taki 'Küçük Kasa' ekranında sunulur; yönetici doğrudan şube kasasından "
+"öder."
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__cz_from_pos
+msgid "Entered in the POS"
+msgstr "POS'ta girildi"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__cz_manager_id
+msgid "Manager (PIN)"
+msgstr "Yönetici (PIN)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe_move__cz_pos_session_id
+msgid "POS session"
+msgstr "POS oturumu"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__pending_day_amount
+msgid "From days to approve"
+msgstr "Onay bekleyen günlerden"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__expected_balance
+msgid "Expected in safe"
+msgstr "Kasada olması gereken"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_safe__pending_day_count
+msgid "Pending Day Count"
+msgstr "Onay bekleyen gün sayısı"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "No branch safe is set on this point of sale."
+msgstr "Bu satış noktasında şube kasası tanımlı değil."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "This category cannot be used for a payment from the safe."
+msgstr "Bu kategori kasadan ödeme için kullanılamaz."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Invalid amount."
+msgstr "Geçersiz tutar."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Please write what was paid and to whom."
+msgstr "Lütfen ne ödendiğini ve kime ödendiğini yazın."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Maximum for %(cat)s is %(max)s."
+msgstr "%(cat)s için azami tutar %(max)s."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid ""
+"Expected cash in the safe is %s: this payment is larger. Count the safe or "
+"ask the accountant."
+msgstr ""
+"Kasada olması gereken nakit %s: bu ödeme daha büyük. Kasayı sayın veya "
+"muhasebeye sorun."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "A receipt number or photo is required above %s."
+msgstr "%s üzerindeki ödemelerde fiş numarası veya fotoğraf zorunludur."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Paid from the safe in the POS (%(session)s) — manager %(manager)s."
+msgstr "POS'ta kasadan ödendi (%(session)s) — yönetici %(manager)s."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Çekmeceden"
+msgstr "Çekmeceden"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_safe_move.py:0
+msgid ""
+"%(n)s daily cash sheet(s) of this safe are not approved yet (%(amount)s of "
+"drawer transfers are not in the book balance). Approve them first, otherwise"
+" the count would book a false difference."
+msgstr ""
+"Bu kasanın %(n)s günlük kasa sayfası henüz onaylanmadı (%(amount)s çekmece "
+"aktarımı muhasebe bakiyesinde değil). Önce onaylayın, yoksa sayım yanlış bir"
+" fark kaydeder."

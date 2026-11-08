@@ -1,0 +1,66 @@
+// Choco Zuma Cash Control — "Küçük Kasa" (branch safe) screen in the POS
+.cz-safe-dialog {
+    .cz-safe-balance {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 0.8rem 1rem;
+        border-radius: 0.75rem;
+        background: linear-gradient(135deg, #2c3e50, #475577);
+        color: #fff;
+        .cz-safe-label {
+            font-size: 0.85rem;
+            opacity: 0.85;
+        }
+        .cz-safe-amount {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+        .text-muted {
+            color: rgba(255, 255, 255, 0.75) !important;
+        }
+    }
+    .cz-safe-input-amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-align: right;
+        background: #e9f7ef;
+        border: 2px solid #28a745;
+    }
+    .cz-safe-input-note {
+        background: #fff8e1;
+        border: 2px solid #f0ad4e;
+    }
+    // reuse of the "Hareketler" list look (those styles are scoped to .cz-moves-dialog)
+    .cz-moves-list {
+        max-height: 50vh;
+        overflow-y: auto;
+        border: 1px solid #e9ecef;
+        border-radius: 0.75rem;
+    }
+    .cz-move-row {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.55rem 0.75rem;
+        border-bottom: 1px solid #f1f3f5;
+        &:last-child { border-bottom: 0; }
+        .cz-move-time { width: 3rem; font-weight: 600; color: #495057; }
+        .cz-move-main { flex: 1 1 auto; min-width: 0; }
+        .cz-move-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cz-move-amount { font-size: 1.05rem; font-weight: 700; white-space: nowrap; }
+    }
+    .cz-dot {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.1rem;
+        height: 2.1rem;
+        border-radius: 50%;
+        background: var(--cz-tile-bg, #8f8f8f);
+        color: #fff;
+    }
+}

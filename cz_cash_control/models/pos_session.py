@@ -310,6 +310,128 @@ class PosSession(models.Model):
                 amount=session.currency_id.format(line.amount), reason=reason))
         return {'id': new_line.id, 'amount': amount, 'type': _type}
 
+    # ----------------------------------------------------------------- branch safe in the POS
+    def _cz_pos_safe(self):
+        self._cz_check_pos_access()
+        safe = self.config_id.sudo().cz_safe_id
+        if not safe:
+            raise UserError(_("No branch safe is set on this point of sale."))
+        return safe
+
+    def cz_safe_info(self, manager_id, pin):
+        """Safe screen for a manager (PIN re-checked): balance, payment categories,
+        staff and the last movements. Accounts are never sent to the POS."""
+        safe = self._cz_pos_safe()
+        self._cz_check_manager(manager_id, pin)
+        cats = self.env['cz.cash.category'].sudo().search([
+            ('company_id', '=', safe.company_id.id),
+            ('safe_pos_available', '=', True),
+            ('direction', 'in', ('out', 'both')),
+            ('kind', 'in', ('expense', 'advance', 'bank_deposit', 'salary', 'other')),
+        ])
+        usage = dict(self.env['cz.cash.safe.move'].sudo()._read_group(
+            [('safe_id', '=', safe.id), ('state', '=', 'approved'), ('category_id', 'in', cats.ids),
+             ('date', '>=', fields.Date.subtract(fields.Date.context_today(self), days=60))],
+            ['category_id'], ['__count']))
+        cats = cats.sorted(lambda c: (-usage.get(c, 0), c.sequence, c.name))
+        moves = self.env['cz.cash.safe.move'].sudo().search(
+            [('safe_id', '=', safe.id), ('state', '!=', 'cancelled'), ('move_type', '!=', 'count')], limit=15)
+        employees = self.env['hr.employee'].sudo().search([('company_id', 'in', [safe.company_id.id, False])])
+        return {
+            'safe_name': safe.name,
+            'balance': safe.currency_id.round(safe.balance),
+            'pending': safe.currency_id.round(safe.pending_day_amount),
+            'expected': safe.currency_id.round(safe.expected_balance),
+            'categories': [{
+                'id': c.id, 'name': c.name, 'code': c.code, 'icon': c.icon or 'fa-tag', 'color': c.color or 0,
+                'usage': usage.get(c, 0),
+                'requires_employee': c.requires_employee, 'requires_receipt_above': c.requires_receipt_above,
+                'max_amount': c.max_amount,
+            } for c in cats],
+            'employees': [{'id': e.id, 'name': e.name} for e in employees.sorted('name')],
+            'moves': [{
+                'id': m.id,
+                'name': m.name,
+                'date': fields.Date.to_string(m.date),
+                'type': m.move_type,
+                'amount': m.amount,
+                'category': m.category_id.name or (_('Çekmeceden') if m.move_type == 'in' else ''),
+                'icon': m.category_id.icon or ('fa-arrow-down' if m.move_type == 'in' else 'fa-tag'),
+                'color': m.category_id.color or 0,
+                'note': m.note or '',
+                'employee': m.employee_id.name or '',
+                'manager': m.cz_manager_id.name or '',
+                'from_pos': m.cz_from_pos,
+                'state': m.state,
+                'has_photo': bool(m.attachment_ids),
+            } for m in moves],
+        }
+
+    def cz_safe_payment(self, manager_id, pin, category_id, amount, note, employee_id=False,
+                        receipt_ref=False, receipt_image=False):
+        """A manager pays directly from the branch safe (never from the drawer).
+        Booked at once so the safe balance stays true; the accountant reviews
+        'Entered in the POS' movements and can cancel one."""
+        safe = self._cz_pos_safe()
+        manager = self._cz_check_manager(manager_id, pin)
+        cat = self.env['cz.cash.category'].sudo().browse(int(category_id or 0)).exists()
+        if not cat or cat.company_id != safe.company_id or not cat.safe_pos_available \
+                or cat.direction not in ('out', 'both') \
+                or cat.kind not in ('expense', 'advance', 'bank_deposit', 'salary', 'other'):
+            raise UserError(_("This category cannot be used for a payment from the safe."))
+        try:
+            amount = float(amount)
+        except (TypeError, ValueError):
+            raise UserError(_("Invalid amount."))
+        amount = safe.currency_id.round(amount)
+        if amount <= 0:
+            raise UserError(_("Amount must be positive."))
+        note = (note or '').strip()
+        if len(note) < 3:
+            raise UserError(_("Please write what was paid and to whom."))
+        if cat.max_amount and amount > cat.max_amount:
+            raise UserError(_("Maximum for %(cat)s is %(max)s.", cat=cat.name,
+                              max=safe.currency_id.format(cat.max_amount)))
+        if safe.currency_id.compare_amounts(amount, safe.expected_balance) > 0:
+            raise UserError(_("Expected cash in the safe is %s: this payment is larger. "
+                              "Count the safe or ask the accountant.", safe.currency_id.format(safe.expected_balance)))
+        employee = self.env['hr.employee'].sudo().browse(int(employee_id or 0)).exists()
+        if cat.requires_employee and not employee:
+            raise UserError(_("Category %s requires the staff member.", cat.name))
+        receipt_ref = (receipt_ref or '').strip()
+        if cat.requires_receipt_above and amount > cat.requires_receipt_above and not (receipt_ref or receipt_image):
+            raise UserError(_("A receipt number or photo is required above %s.",
+                              safe.currency_id.format(cat.requires_receipt_above)))
+        move = self.env['cz.cash.safe.move'].sudo().create({
+            'safe_id': safe.id,
+            'date': fields.Date.context_today(self),
+            'move_type': 'out',
+            'amount': amount,
+            'category_id': cat.id,
+            'employee_id': employee.id or False,
+            'note': note,
+            'receipt_ref': receipt_ref or False,
+            'cz_from_pos': True,
+            'cz_manager_id': manager.id,
+            'cz_pos_session_id': self.id,
+        })
+        if receipt_image:
+            image = self._cz_clean_image(receipt_image)
+            if image:
+                att = self.env['ir.attachment'].sudo().create({
+                    'name': f"{move.name.replace('/', '-')}.jpg",
+                    'datas': image,
+                    'mimetype': 'image/jpeg',
+                    'res_model': 'cz.cash.safe.move',
+                    'res_id': move.id,
+                })
+                move.attachment_ids = [(4, att.id)]
+        move.action_approve()
+        move.message_post(body=_("Paid from the safe in the POS (%(session)s) — manager %(manager)s.",
+                                 session=self.name, manager=manager.name))
+        safe.invalidate_recordset(['balance', 'expected_balance', 'pending_day_amount'])
+        return {'name': move.name, 'amount': amount, 'expected': safe.currency_id.round(safe.expected_balance)}
+
     def cz_eod_summary(self, counted):
         """Figures printed on the end-of-day slip (before the drawer is emptied)."""
         self.ensure_one()
