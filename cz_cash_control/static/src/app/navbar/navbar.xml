@@ -2,23 +2,25 @@
 <templates id="template" xml:space="preserve">
 
     <t t-name="cz_cash_control.Navbar" t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
-        <!-- One-tap "Masraf / Nakit Çıkışı" button for the cashier -->
+        <!-- Cash Control buttons, kept together and never squeezed (labels hide on narrower screens) -->
         <xpath expr="//CashierName" position="before">
-            <button t-if="pos.config.cz_cash_control and pos.config.cash_control"
-                    class="btn btn-warning btn-lg lh-lg fw-bold"
-                    t-on-click="() => this.pos.cashMove()" title="Kasadan masraf / küçük kasaya aktarım">
-                <i class="fa fa-fw fa-money"/><span t-if="!ui.isSmall" class="ms-1">Masraf</span>
-            </button>
-            <button t-if="pos.czShowDrawerCheck"
-                    class="btn btn-light border btn-lg lh-lg fw-bold ms-1 text-nowrap"
-                    t-on-click="() => this.pos.czDrawerCheck()" title="Kapatmadan kasa sayımı (yönetici PIN)">
-                <i class="fa fa-fw fa-calculator"/><span t-if="!ui.isSmall" class="ms-1">Sayım</span>
-            </button>
-            <button t-if="pos.czShowSafe"
-                    class="btn btn-light border btn-lg lh-lg fw-bold ms-1 text-nowrap"
-                    t-on-click="() => this.pos.czOpenSafe()" title="Küçük kasa: bakiye ve kasadan ödeme (yönetici PIN)">
-                <i class="fa fa-fw fa-lock"/><span t-if="!ui.isSmall" class="ms-1 text-nowrap">Küçük Kasa</span>
-            </button>
+            <div t-if="pos.config.cz_cash_control" class="cz-nav-buttons d-flex align-items-center gap-1 flex-shrink-0">
+                <button t-if="pos.config.cash_control"
+                        class="btn btn-warning btn-lg lh-lg fw-bold text-nowrap"
+                        t-on-click="() => this.pos.cashMove()" title="Masraf: kasadan masraf / küçük kasaya aktarım">
+                    <i class="fa fa-fw fa-money"/><span t-if="!ui.isSmall" class="cz-nav-label cz-nav-label-main ms-1">Masraf</span>
+                </button>
+                <button t-if="pos.czShowDrawerCheck"
+                        class="btn btn-light border btn-lg lh-lg fw-bold text-nowrap"
+                        t-on-click="() => this.pos.czDrawerCheck()" title="Sayım: kapatmadan kasa sayımı (yönetici PIN)">
+                    <i class="fa fa-fw fa-calculator"/><span t-if="!ui.isSmall" class="cz-nav-label ms-1">Sayım</span>
+                </button>
+                <button t-if="pos.czShowSafe"
+                        class="btn btn-light border btn-lg lh-lg fw-bold text-nowrap"
+                        t-on-click="() => this.pos.czOpenSafe()" title="Küçük Kasa: bakiye ve kasadan ödeme (yönetici PIN)">
+                    <i class="fa fa-fw fa-lock"/><span t-if="!ui.isSmall" class="cz-nav-label ms-1">Küçük Kasa</span>
+                </button>
+            </div>
         </xpath>
     </t>
 
