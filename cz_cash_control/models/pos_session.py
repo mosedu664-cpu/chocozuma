@@ -344,6 +344,7 @@ class PosSession(models.Model):
             'expected': safe.currency_id.round(safe.expected_balance),
             'categories': [{
                 'id': c.id, 'name': c.name, 'code': c.code, 'icon': c.icon or 'fa-tag', 'color': c.color or 0,
+                'usage': usage.get(c, 0),
                 'requires_employee': c.requires_employee, 'requires_receipt_above': c.requires_receipt_above,
                 'max_amount': c.max_amount,
             } for c in cats],
