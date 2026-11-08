@@ -1,0 +1,46 @@
+// Choco Zuma Cash Control — keep the POS top bar usable at 100% zoom.
+// Odoo gives the right header a fixed 45% with overflow:hidden and right alignment,
+// so extra buttons pushed the first one (Masraf) out of sight. With Cash Control the
+// right header takes the free space instead and the logo gives way first.
+.pos-topheader:has(.cz-nav-buttons) {
+    .pos-leftheader {
+        width: auto;
+        flex: 0 1 auto;
+        min-width: 0;
+    }
+    .pos-centerheader {
+        width: auto;
+        flex: 0 3 auto;
+        min-width: 0;
+    }
+    .pos-rightheader {
+        width: auto;
+        flex: 1 0 auto;
+        max-width: 75%;
+    }
+    .status-buttons {
+        flex-wrap: nowrap;
+        > * {
+            flex-shrink: 0;
+        }
+    }
+    // the cashier name may shorten, the buttons may not
+    .status-buttons .cashier-name .username {
+        max-width: 9rem;
+    }
+}
+
+// narrower screens: icons only (tooltips keep the names), "Masraf" keeps its word longest
+@media (max-width: 1500px) {
+    .cz-nav-buttons .cz-nav-label:not(.cz-nav-label-main) {
+        display: none;
+    }
+    .pos-topheader:has(.cz-nav-buttons) .pos-centerheader {
+        display: none !important;
+    }
+}
+@media (max-width: 1100px) {
+    .cz-nav-buttons .cz-nav-label-main {
+        display: none;
+    }
+}
