@@ -60,6 +60,9 @@ class CzCashCategory(models.Model):
     typical_amount = fields.Monetary(string='Typical amount', currency_field='currency_id', default=0.0,
                                      help="Used for the 'unusual expense' alert (2x typical). 0 = no alert.")
     pos_available = fields.Boolean(string='Show in POS', default=True)
+    safe_pos_available = fields.Boolean(
+        string='Safe payments (POS)', default=False,
+        help="Offered in the POS 'Küçük Kasa' screen, where a manager pays directly from the branch safe.")
     color = fields.Integer(default=0, help="Tile colour in the POS (0-11, Odoo colour palette).")
     icon = fields.Char(default='fa-tag', help="FontAwesome 4 icon class shown on the POS tile, e.g. fa-taxi, fa-cutlery, fa-lock.")
     usage_count = fields.Integer(compute='_compute_usage_count', string='Used (30 days)',

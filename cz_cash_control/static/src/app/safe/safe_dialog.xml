@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <t t-name="cz_cash_control.CzSafeDialog">
+        <Dialog title="'Küçük Kasa — ' + info.safe_name" size="'lg'" contentClass="'cz-safe-dialog cz-cash-move'">
+            <!-- balance -->
+            <div class="cz-safe-balance mb-3">
+                <div>
+                    <div class="cz-safe-label"><i class="fa fa-lock me-1" title="Kasa"/>Kasada olması gereken</div>
+                    <div class="cz-safe-amount" t-esc="fmt(info.expected)"/>
+                    <div t-if="info.pending" class="small text-muted">
+                        Muhasebe bakiyesi <t t-esc="fmt(info.balance)"/> + onay bekleyen günlerden <t t-esc="fmt(info.pending)"/>
+                    </div>
+                </div>
+                <div class="text-end small text-muted">
+                    <i class="fa fa-user-circle me-1" title="Yönetici"/><t t-esc="props.auth.manager.name"/>
+                </div>
+            </div>
+
+            <ul class="nav nav-tabs mb-3">
+                <li class="nav-item">
+                    <a t-attf-class="nav-link #{state.tab === 'pay' ? 'active' : ''}" href="#" t-on-click.prevent="() => state.tab = 'pay'">
+                        <i class="fa fa-arrow-up me-1" title="Ödeme"/>Kasadan ödeme
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a t-attf-class="nav-link #{state.tab === 'history' ? 'active' : ''}" href="#" t-on-click.prevent="() => state.tab = 'history'">
+                        <i class="fa fa-history me-1" title="Hareketler"/>Son hareketler
+                    </a>
+                </li>
+            </ul>
+
+            <!-- pay -->
+            <t t-if="state.tab === 'pay'">
+                <div t-if="state.lastResult" class="alert alert-success py-2">
+                    <i class="fa fa-check-circle me-1" title="Tamam"/>
+                    <b t-esc="state.lastResult.name"/> — <t t-esc="state.lastResult.category"/> <t t-esc="fmt(state.lastResult.amount)"/> ödendi.
+                </div>
+                <div t-if="!info.categories.length" class="alert alert-warning">
+                    Kasadan ödeme için kategori tanımlı değil. Muhasebe: Kategoriler → "Safe payments (POS)".
+                </div>
+                <t t-else="">
+                    <label class="form-label fw-bold">Ne ödendi? <span class="text-danger">*</span></label>
+                    <div class="cz-tiles mb-3">
+                        <t t-foreach="info.categories" t-as="c" t-key="c.id">
+                            <button type="button"
+                                    t-attf-class="cz-tile cz-color-#{c.color % 12} #{state.categoryId === c.id ? 'cz-tile-selected' : ''}"
+                                    t-on-click="() => this.selectCategory(c.id)">
+                                <i t-att-class="iconClass(c)" t-att-title="c.name"/>
+                                <span class="cz-tile-name" t-esc="c.name"/>
+                            </button>
+                        </t>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Tutar <span class="text-danger">*</span></label>
+                            <input type="text" inputmode="decimal" class="form-control form-control-lg cz-safe-input-amount"
+                                   placeholder="0" t-model="state.amount"/>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Açıklama <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-lg cz-safe-input-note"
+                                   placeholder="Örn: 3 günlük temizlik personeli — Ayşe" t-model="state.note"/>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Personel <span t-if="needsEmployee" class="text-danger">*</span></label>
+                            <select class="form-select" t-model="state.employeeId">
+                                <option value="">—</option>
+                                <t t-foreach="info.employees" t-as="e" t-key="e.id">
+                                    <option t-att-value="e.id" t-esc="e.name"/>
+                                </t>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fiş / Fatura No <span t-if="needsReceipt" class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Fiş numarası" t-model="state.receiptRef"/>
+                                <button type="button" class="btn btn-outline-secondary" t-on-click="() => this.takePhoto()" title="Fiş fotoğrafı çek">
+                                    <i t-attf-class="fa #{state.photoBusy ? 'fa-spinner fa-spin' : 'fa-camera'}" title="Fotoğraf"/>
+                                </button>
+                            </div>
+                            <input type="file" accept="image/*" capture="environment" class="d-none"
+                                   t-ref="czSafePhoto" t-on-change="(ev) => this.onPhoto(ev)"/>
+                            <div t-if="state.photo" class="d-flex align-items-center gap-2 mt-2">
+                                <img t-att-src="state.photo" class="cz-receipt-thumb rounded border" alt="Fiş"/>
+                                <button type="button" class="btn btn-sm btn-link text-danger" t-on-click="() => this.removePhoto()">Kaldır</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div t-if="problems.length and (state.categoryId or state.amount)" class="alert alert-warning py-1 mt-3 mb-0 small">
+                        <i class="fa fa-info-circle me-1" title="Eksik"/><t t-esc="problems.join(' · ')"/>
+                    </div>
+                    <div class="text-muted small mt-2">
+                        <i class="fa fa-shield me-1" title="Bilgi"/>Bu ödeme çekmeceyi etkilemez; küçük kasadan düşer, fiş yazdırılır ve muhasebe "POS'ta girilen" olarak kontrol eder.
+                    </div>
+                </t>
+            </t>
+
+            <!-- history -->
+            <t t-else="">
+                <div t-if="!info.moves.length" class="text-center text-muted py-4">Henüz hareket yok.</div>
+                <div t-else="" class="cz-moves-list">
+                    <t t-foreach="info.moves" t-as="m" t-key="m.id">
+                        <div class="cz-move-row">
+                            <div class="cz-move-time small" t-esc="m.date.slice(8,10) + '/' + m.date.slice(5,7)"/>
+                            <span t-attf-class="cz-dot cz-color-#{m.color % 12}"><i t-att-class="iconClass(m)" t-att-title="m.category"/></span>
+                            <div class="cz-move-main">
+                                <div class="cz-move-title">
+                                    <span class="fw-bold" t-esc="m.category"/>
+                                    <span t-if="m.employee" class="text-muted"> · <t t-esc="m.employee"/></span>
+                                    <span t-if="m.from_pos" class="badge text-bg-light border ms-1">POS</span>
+                                    <span t-if="m.state === 'draft'" class="badge text-bg-warning ms-1">Onay bekliyor</span>
+                                </div>
+                                <div class="cz-move-sub text-muted small">
+                                    <t t-esc="m.name"/> · <t t-esc="m.note"/>
+                                    <span t-if="m.manager"> · <i class="fa fa-lock" title="Yönetici"/> <t t-esc="m.manager"/></span>
+                                    <span t-if="m.has_photo"> · <i class="fa fa-camera" title="Fiş"/></span>
+                                </div>
+                            </div>
+                            <div t-attf-class="cz-move-amount #{m.type === 'out' ? 'text-danger' : 'text-success'}">
+                                <t t-esc="m.type === 'out' ? '−' : '+'"/><t t-esc="fmt(m.amount)"/>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+                <div class="text-muted small mt-2">Çekmeceden kasaya aktarımlar günlük kasa sayfası onaylanınca burada görünür.</div>
+            </t>
+
+            <t t-set-slot="footer">
+                <button t-if="state.tab === 'pay'" class="btn btn-lg btn-primary" t-att-disabled="!canConfirm" t-on-click="() => this.confirm()">
+                    <i t-attf-class="fa #{state.saving ? 'fa-spinner fa-spin' : 'fa-check'} me-1" title="Onayla"/>Kasadan öde
+                </button>
+                <button class="btn btn-lg btn-secondary" t-on-click="props.close">Kapat</button>
+            </t>
+        </Dialog>
+    </t>
+
+</templates>

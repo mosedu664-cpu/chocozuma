@@ -42,6 +42,14 @@ class CzCashSafe(models.Model):
         help="Alert the responsible when the safe holds more than this (bank deposit due). 0 = off.")
     move_ids = fields.One2many('cz.cash.safe.move', 'safe_id', string='Movements')
     pending_move_count = fields.Integer(compute='_compute_pending_move_count')
+    pending_day_amount = fields.Monetary(
+        compute='_compute_pending_day', currency_field='currency_id', string='From days to approve',
+        help="Drawer → safe transfers (minus change taken from the safe) of daily sheets not approved yet. "
+             "They reach the book balance when the accountant approves the day.")
+    pending_day_count = fields.Integer(compute='_compute_pending_day')
+    expected_balance = fields.Monetary(
+        compute='_compute_pending_day', currency_field='currency_id', string='Expected in safe',
+        help="Book balance + movements of daily sheets still to approve: what should physically be in the safe now.")
 
     _sql_constraints = [
         ('journal_uniq', 'unique(journal_id)', 'A journal can only be one safe.'),
@@ -67,6 +75,29 @@ class CzCashSafe(models.Model):
             res = AML._read_group(safe._balance_domain(), aggregates=['balance:sum'])
             safe.balance = res[0][0] or 0.0
             safe.balance_date = fields.Datetime.now()
+
+    def _cz_pending_day_lines(self):
+        """Drawer lines of unapproved daily sheets that will move cash in/out of this safe."""
+        self.ensure_one()
+        days = self.env['cz.cash.day'].sudo().search([
+            ('config_id.cz_safe_id', '=', self.id), ('state', '!=', 'approved')])
+        lines = days.statement_line_ids.filtered(lambda l: l.cz_category_id and (
+            l.cz_category_id.kind == 'safe_transfer'
+            or (l.cz_category_id.kind == 'cash_in' and l.cz_category_id.account_id == self.transfer_account_id)))
+        return days, lines
+
+    @api.depends('journal_id')
+    def _compute_pending_day(self):
+        for safe in self:
+            if not safe.id:
+                safe.pending_day_amount = safe.pending_day_count = 0
+                safe.expected_balance = safe.balance
+                continue
+            days, lines = safe._cz_pending_day_lines()
+            pending = -sum(lines.mapped('amount'))  # transfers are negative drawer lines, change is positive
+            safe.pending_day_amount = pending
+            safe.pending_day_count = len(days.filtered(lambda d: d.state == 'to_approve'))
+            safe.expected_balance = safe.balance + pending
 
     def _compute_pending_move_count(self):
         groups = self.env['cz.cash.safe.move']._read_group(

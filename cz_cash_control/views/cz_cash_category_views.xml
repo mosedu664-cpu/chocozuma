@@ -22,6 +22,7 @@
                 <field name="max_amount"/>
                 <field name="typical_amount"/>
                 <field name="pos_available"/>
+                <field name="safe_pos_available" optional="show"/>
                 <field name="company_id" groups="base.group_multi_company"/>
                 <field name="currency_id" column_invisible="1"/>
             </list>
@@ -42,6 +43,7 @@
                             <field name="kind"/>
                             <field name="direction"/>
                             <field name="pos_available"/>
+                            <field name="safe_pos_available"/>
                             <field name="sequence"/>
                             <field name="icon" placeholder="fa-taxi"/>
                             <field name="color" widget="color_picker"/>

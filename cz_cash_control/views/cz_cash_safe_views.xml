@@ -11,6 +11,9 @@
                 <field name="responsible_id"/>
                 <field name="last_count_date"/>
                 <field name="pending_move_count"/>
+                <field name="pending_day_amount"/>
+                <field name="pending_day_count"/>
+                <field name="expected_balance"/>
                 <templates>
                     <t t-name="card">
                         <div class="p-2">
@@ -21,6 +24,11 @@
                                 </span>
                             </div>
                             <div class="fs-2 fw-bold mt-2"><field name="balance" widget="monetary"/></div>
+                            <div t-if="record.pending_day_amount.raw_value" class="small mb-1">
+                                <span class="text-warning-emphasis">+ <field name="pending_day_amount" widget="monetary"/> from
+                                <field name="pending_day_count"/> daily sheet(s) to approve</span><br/>
+                                <strong>Expected in safe: <field name="expected_balance" widget="monetary"/></strong>
+                            </div>
                             <div class="text-muted small">
                                 Responsible: <field name="responsible_id"/><br/>
                                 Last count: <field name="last_count_date"/>
