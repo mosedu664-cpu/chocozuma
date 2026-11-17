@@ -83,6 +83,14 @@
                     <div t-if="czNeedsReason and !czHasReason" class="alert alert-warning py-1 mt-2 mb-0">
                         <i class="fa fa-pencil me-1" title="Açıklama"/> Bu kategori için açıklama zorunlu: paranın nereden geldiğini ve kimin getirdiğini yazın.
                     </div>
+                    <div t-if="czDiffWording === 'bare'" class="alert alert-danger py-2 mt-2 mb-0">
+                        <i class="fa fa-ban me-1" title="Kasa farkı"/> <b>Kasa eksiği / fazlası buraya yazılmaz.</b><br/>
+                        Kasayı kapatırken saydığınız tutarı olduğu gibi girin — fark kendiliğinden kaydedilir, yönetici onaylar.
+                        Gün içinde kontrol için <b>Sayım</b> düğmesini kullanın.
+                    </div>
+                    <div t-elif="czDiffWording === 'mixed'" class="alert alert-warning py-1 mt-2 mb-0">
+                        <i class="fa fa-lock me-1" title="PIN"/> Açıklamada "eksik / fazla" geçiyor: bu gerçek bir ödeme ise yönetici PIN'i ile kaydedilir ve muhasebeye bildirilir.
+                    </div>
                     <div t-if="czOverMax" class="alert alert-danger py-1 mt-2 mb-0">
                         Bu kategori için tek işlem limiti <t t-esc="env.utils.formatCurrency(czCategory.max_amount)"/>.
                     </div>

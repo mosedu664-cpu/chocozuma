@@ -155,3 +155,22 @@ false difference).
   managers to their own safes.
 * Server-side validation of every POS rule (`_cz_validate_cash_move`) — the POS UI
   is a convenience, not the guard.
+
+## 18.0.1.6.0 — guards found in the November Metrokent review
+
+The cash itself matched the parallel Excel sheet; the recording did not. Three fixes:
+
+* **Staff on a movement = the whole branch.** The POS only loads the employees allowed to log in,
+  so cashiers picked "ADMIN" and typed the real name in the note (54 of 85 taxi lines). The server now
+  sends `pos.config.cz_staff` (every active employee of the branch, administrators excluded) and
+  refuses an administrator as staff. Adding an employee in *Employees* is enough — no POS rights needed.
+* **A shortage / surplus is not an expense.** "Eksik 42", "Fazla"… as the description is refused in the
+  POS and on the server (`cz_difference_wording`), with the instruction to count at closing. The word
+  inside a longer description needs a manager PIN and is flagged on the sheet.
+  Category kind **Cash difference** (`difference`, accountant only, never in the POS): lines moved there
+  leave *Expenses* and are added to the day's *Difference*. The migration converts codes `FARK` and `HATA`.
+* **Morning approval digest.** `_cron_daily` no longer posts one reminder per sheet; it sends one message
+  per branch to *Accountants to notify* with every closed day still to approve (figures, difference,
+  alerts, safe position, button). Older than 3 days: *Managers to notify* are copied.
+  Language per POS: *Language of the daily approval digest* (Arabic by default).
+

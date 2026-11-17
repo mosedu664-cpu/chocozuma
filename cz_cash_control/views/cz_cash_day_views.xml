@@ -66,6 +66,7 @@
                             <field name="expected_cash" class="fw-bold"/>
                             <field name="counted_cash" class="fw-bold"/>
                             <field name="difference" class="fw-bold" decoration-danger="difference != 0"/>
+                            <field name="booked_diff_total" invisible="not booked_diff_total" class="text-muted"/>
                             <field name="currency_id" invisible="1"/>
                             <field name="company_id" invisible="1"/>
                             <field name="alert_level" invisible="1"/>

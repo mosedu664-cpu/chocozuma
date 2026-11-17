@@ -2188,3 +2188,37 @@ msgstr ""
 "Bu kasanın %(n)s günlük kasa sayfası henüz onaylanmadı (%(amount)s çekmece "
 "aktarımı muhasebe bakiyesinde değil). Önce onaylayın, yoksa sayım yanlış bir"
 " fark kaydeder."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "Choose the staff member the money was paid for — an administrator account cannot be used as staff."
+msgstr "Paranın kimin için ödendiğini seçin — yönetici (admin) hesabı personel olarak seçilemez."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "A cash shortage or surplus is not recorded here. Count the drawer at closing and type exactly what you counted — the difference is recorded by itself and the manager approves it."
+msgstr "Kasa eksiği / fazlası buraya yazılmaz. Kasayı kapatırken saydığınız tutarı olduğu gibi girin — fark kendiliğinden kaydedilir ve yönetici onaylar."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/pos_session.py:0
+msgid "A cash shortage or surplus is not a payment. Count the safe instead."
+msgstr "Kasa eksiği / fazlası bir ödeme değildir. Bunun yerine küçük kasayı sayın."
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Possible cash shortage / surplus recorded as a movement: %s"
+msgstr "Olası kasa eksiği / fazlası hareket olarak yazılmış: %s"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_cz_cash_day__booked_diff_total
+msgid "of which typed as a movement"
+msgstr "bunun hareket olarak yazılan kısmı"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_digest_lang
+msgid "Language of the daily approval digest"
+msgstr "Günlük onay özetinin dili"
