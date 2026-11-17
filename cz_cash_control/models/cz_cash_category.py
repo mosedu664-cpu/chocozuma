@@ -31,6 +31,7 @@ class CzCashCategory(models.Model):
         ('bank_deposit', 'Bank deposit (from safe)'),
         ('salary', 'Salary / wage payment (from safe)'),
         ('cash_in', 'Cash in (float / change)'),
+        ('difference', 'Cash difference booked as a movement (accountant only)'),
         ('other', 'Other'),
     ], required=True, default='expense')
     direction = fields.Selection([

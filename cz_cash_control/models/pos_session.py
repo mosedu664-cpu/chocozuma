@@ -6,6 +6,8 @@ import pytz
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 
+from .cz_cash_day import cz_difference_wording
+
 
 class PosSession(models.Model):
     _inherit = 'pos.session'
@@ -26,6 +28,9 @@ class PosSession(models.Model):
             return vals
         category = self.env['cz.cash.category'].browse(extras.get('cz_category_id') or False)
         employee = self.env['hr.employee'].browse(extras.get('cz_employee_id') or False)
+        if employee.exists() and not self.env.context.get('cz_reversal') \
+                and employee not in session.config_id._cz_staff_employees():
+            employee = employee.browse()  # e.g. ADMIN picked on a category that needs no staff
         if category.exists():
             self._cz_validate_cash_move(session, category, sign, amount, extras, reason=reason)
             parts = [f"[{category.code}] {category.name}"]
@@ -97,11 +102,22 @@ class PosSession(models.Model):
             raise UserError(_("Category %s requires a description.", category.name))
         if category.requires_employee and not extras.get('cz_employee_id'):
             raise UserError(_("Category %s requires the staff member.", category.name))
+        if extras.get('cz_employee_id') and category.requires_employee \
+                and int(extras['cz_employee_id']) not in session.config_id._cz_staff_employees().ids:
+            raise UserError(_("Choose the staff member the money was paid for — an administrator account "
+                              "cannot be used as staff."))
+        # A shortage / surplus is never a movement: it is what the closing count is for.
+        wording = cz_difference_wording(reason) if category.kind not in ('safe_transfer', 'difference') else False
+        if wording == 'bare':
+            raise UserError(_("A cash shortage or surplus is not recorded here. Count the drawer at closing and "
+                              "type exactly what you counted — the difference is recorded by itself and the "
+                              "manager approves it."))
         has_receipt = (extras.get('cz_receipt_ref') or '').strip() or extras.get('cz_receipt_image')
         if category.requires_receipt_above and amount > category.requires_receipt_above and not has_receipt:
             raise UserError(_("A receipt number or receipt photo is required above %s.", category.requires_receipt_above))
         pin_needed = category.requires_pin or (category.pin_above and amount > category.pin_above) \
-            or (session.config_id.cz_cash_out_pin_above and sign < 0 and amount > session.config_id.cz_cash_out_pin_above)
+            or (session.config_id.cz_cash_out_pin_above and sign < 0 and amount > session.config_id.cz_cash_out_pin_above) \
+            or wording == 'mixed'
         if pin_needed and not extras.get('cz_pin_ok'):
             raise UserError(_("A manager PIN is required for this movement."))
 
@@ -336,7 +352,7 @@ class PosSession(models.Model):
         cats = cats.sorted(lambda c: (-usage.get(c, 0), c.sequence, c.name))
         moves = self.env['cz.cash.safe.move'].sudo().search(
             [('safe_id', '=', safe.id), ('state', '!=', 'cancelled'), ('move_type', '!=', 'count')], limit=15)
-        employees = self.env['hr.employee'].sudo().search([('company_id', 'in', [safe.company_id.id, False])])
+        employees = self.config_id._cz_staff_employees()
         return {
             'safe_name': safe.name,
             'balance': safe.currency_id.round(safe.balance),
@@ -396,6 +412,10 @@ class PosSession(models.Model):
             raise UserError(_("Expected cash in the safe is %s: this payment is larger. "
                               "Count the safe or ask the accountant.", safe.currency_id.format(safe.expected_balance)))
         employee = self.env['hr.employee'].sudo().browse(int(employee_id or 0)).exists()
+        if employee and employee not in self.config_id._cz_staff_employees():
+            employee = employee.browse()
+        if cz_difference_wording(note) == 'bare':
+            raise UserError(_("A cash shortage or surplus is not a payment. Count the safe instead."))
         if cat.requires_employee and not employee:
             raise UserError(_("Category %s requires the staff member.", cat.name))
         receipt_ref = (receipt_ref or '').strip()

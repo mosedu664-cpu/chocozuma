@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 from collections import defaultdict
 from datetime import timedelta
 
@@ -7,6 +8,28 @@ from markupsafe import Markup, escape
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_compare, float_is_zero
+
+# --- "eksik / fazla" written as an expense -------------------------------------------------
+# Cashiers used to plug a count difference with a small expense ("Eksik 42", "Fazla").
+# cz_difference_wording() recognises that wording; the POS mirrors it in cash_move_popup.js.
+_CZ_DIFF_RE = re.compile(
+    r"(?<![a-zçğıöşü])("
+    r"eks[iı][kğg]\w*|fazla(?!\s*mesai)\w*|kasa\s*a[cç][ıi][kğg]\w*|kasa\s*fark\w*|say[ıi]m\s*fark\w*"
+    r"|tutmuyor|tutmad[ıi]|shortage"
+    r")|(ناقص|نقص|زياد[ةه]|عجز)", re.UNICODE)
+_CZ_DIFF_FILLER_RE = re.compile(
+    r"(?<![a-zçğıöşü])(kasa\w*|para\w*|nakit\w*|var|yok|oldu|[çc][ıi]kt[ıi]|bug[üu]n|tl|lira|try)(?![a-zçğıöşü])"
+    r"|[\d\W_]+", re.UNICODE)
+
+
+def cz_difference_wording(text):
+    """False: ordinary description. 'bare': the description is nothing but "shortage / surplus"
+    (refused). 'mixed': the word appears inside a longer description (manager PIN + flagged on the sheet)."""
+    text = (text or '').replace('İ', 'i').replace('I', 'ı').lower()
+    if not _CZ_DIFF_RE.search(text):
+        return False
+    rest = _CZ_DIFF_FILLER_RE.sub(' ', _CZ_DIFF_RE.sub(' ', text))
+    return 'mixed' if len(rest.replace(' ', '')) >= 3 else 'bare'
 
 
 class CzCashDay(models.Model):
@@ -50,7 +73,11 @@ class CzCashDay(models.Model):
     uncategorised_count = fields.Integer(readonly=True)
     expected_cash = fields.Monetary(string='Expected in Drawer', currency_field='currency_id', readonly=True)
     counted_cash = fields.Monetary(string='Counted at Closing', currency_field='currency_id', readonly=True)
-    difference = fields.Monetary(string='Difference', currency_field='currency_id', readonly=True)
+    difference = fields.Monetary(string='Difference', currency_field='currency_id', readonly=True,
+                                 help="Counted minus expected, plus the differences that had been typed as movements.")
+    booked_diff_total = fields.Monetary(string='of which typed as a movement', currency_field='currency_id', readonly=True,
+                                        help="Shortages / surpluses the cashier had recorded as an expense or refund; the "
+                                             "accountant moved them to a 'cash difference' category. Already inside 'Difference'.")
     closing_notes = fields.Text(readonly=True)
     non_cash_total = fields.Monetary(string='Card / Online', currency_field='currency_id', readonly=True)
     total_sales = fields.Monetary(string='Total Sales', currency_field='currency_id', readonly=True)
@@ -174,6 +201,7 @@ class CzCashDay(models.Model):
             uncategorised_count = 0
             diff_lines_total = 0.0
             system_total = 0.0
+            booked_diff = 0.0
             for line in lines:
                 if day._is_diff_line(line):
                     diff_lines_total += line.amount
@@ -182,6 +210,12 @@ class CzCashDay(models.Model):
                     system_total += line.amount
                     continue
                 cat = line.cz_category_id
+                if cat and cat.kind == 'difference':
+                    # not a real movement: the drawer was short / over by this much
+                    booked_diff += line.amount
+                    per_cat[cat.id]['count'] += 1
+                    per_cat[cat.id]['amount'] += line.amount
+                    continue
                 if cat:
                     kind = cat.kind
                     # 'Other' works both ways: money coming in is cash in, not a negative expense
@@ -198,12 +232,12 @@ class CzCashDay(models.Model):
             first = sessions.sorted('start_at')[:1]
             opening = first.cash_register_balance_start if first else 0.0
             # Expected = what Odoo expected at the last closing (before its own diff line)
-            expected = opening + cash_sales + sum(lines.mapped('amount')) - diff_lines_total - system_total
+            expected = opening + cash_sales + sum(lines.mapped('amount')) - diff_lines_total - system_total - booked_diff
             closed = sessions.filtered(lambda s: s.state == 'closed').sorted('stop_at')
             # several sessions in one day: each closing counted its own drawer; the last count is the drawer
             counted = closed[-1].cash_register_balance_end_real if closed else 0.0
             # an open session has no count yet: its 'difference' is just minus the expected cash
-            difference = sum(closed.mapped('cash_register_difference'))
+            difference = sum(closed.mapped('cash_register_difference')) + (booked_diff if closed else 0.0)
             # End-of-day transfer: show the figures as they were *before* the drawer was emptied
             # (expected vs physically counted); the difference is identical either way.
             eod_total = -sum(lines.filtered('cz_end_of_day').mapped('amount'))
@@ -226,6 +260,7 @@ class CzCashDay(models.Model):
                 'expected_cash': expected,
                 'counted_cash': counted,
                 'difference': difference,
+                'booked_diff_total': booked_diff,
                 'closing_notes': '\n'.join(filter(None, sessions.mapped('closing_notes'))),
             })
             # summary lines
@@ -267,6 +302,11 @@ class CzCashDay(models.Model):
                 if cat and cat.requires_receipt_above and abs(line.amount) > cat.requires_receipt_above \
                         and not line.cz_receipt_ref and not line.cz_receipt_image:
                     alerts.append(('warning', _("Missing receipt number: %s", line.payment_ref)))
+                if cat and cat.kind not in ('difference', 'safe_transfer') and not line.cz_reversal_of_id \
+                        and not line.cz_reversal_ids and cz_difference_wording(
+                            self.env['pos.session']._cz_reason_from_ref(line, cat)):
+                    alerts.append(('warning', _("Possible cash shortage / surplus recorded as a movement: %s",
+                                                line.payment_ref)))
             for check in day.check_ids.sorted('check_time'):
                 if abs(check.difference) > (cfg.cz_diff_pin_above or 50.0):
                     alerts.append(('warning', _("Drawer check %(ref)s at %(time)s (%(cashier)s): difference %(diff)s.",
@@ -390,7 +430,8 @@ class CzCashDay(models.Model):
 
     def _post_difference(self):
         self.ensure_one()
-        if float_is_zero(self.difference, precision_rounding=self.currency_id.rounding):
+        closing_diff = self.difference - self.booked_diff_total
+        if float_is_zero(closing_diff, precision_rounding=self.currency_id.rounding):
             return
         diff_lines = self.statement_line_ids.sudo().filtered(lambda l: self._is_diff_line(l))
         if self.difference_action == 'keep' or not diff_lines:
@@ -401,7 +442,7 @@ class CzCashDay(models.Model):
             for line in diff_lines:
                 line._cz_set_counterpart(account, label=label)
             # the shortage in the drawer is cash sitting in the safe
-            self._create_safe_in(-self.difference, label)
+            self._create_safe_in(-closing_diff, label)
         elif self.difference_action == 'reclass':
             label = self.difference_note or _("Cash difference reclassified")
             for line in diff_lines:
@@ -431,15 +472,128 @@ class CzCashDay(models.Model):
     # ------------------------------------------------------------------ cron
     @api.model
     def _cron_daily(self):
-        """Refresh open sheets, chase unapproved ones, check safes."""
+        """Refresh open sheets, send the morning approval digest, check safes."""
         for day in self.search([('state', 'in', ('open', 'to_approve'))]):
             day._compute_all()
-            if day.state == 'to_approve' and (fields.Date.today() - day.date).days >= 2:
-                partners = (day.config_id.cz_accountant_ids | day.config_id.cz_manager_ids).partner_id
-                day.message_post(body=_("Reminder: this daily cash sheet is still waiting for approval."),
-                                 partner_ids=partners.ids, subtype_xmlid='mail.mt_comment')
+        self._cz_send_approval_digest()
         self.env['cz.cash.safe'].search([])._check_alerts()
         return True
+
+    # one message per branch per morning — not one per sheet
+    _CZ_DIGEST_LABELS = {
+        'ar': {
+            'dir': 'rtl',
+            'subject': "%(pos)s — %(n)s يوم كاش بانتظار الاعتماد",
+            'subject_late': "⚠ %(pos)s — %(n)s يوم كاش بانتظار الاعتماد (أقدمها منذ %(days)s أيام)",
+            'intro': "صباح الخير، هذه أيام الكاش (Daily Cash Sheets) المغلقة التي لم تُعتمد بعد في %(pos)s. "
+                     "رصيد الخزنة في الدفاتر لا يتحدث إلا بعد الاعتماد.",
+            'cols': ["اليوم", "مبيعات كاش", "مصاريف", "إلى الخزنة", "العدّ", "الفرق", "تنبيهات"],
+            'total': "المجموع",
+            'safe': "الخزنة (%(safe)s): في الدفاتر %(book)s + بانتظار الاعتماد %(pending)s = المتوقع فعلياً %(expected)s",
+            'late': "أقدم يوم غير معتمد عمره %(days)s أيام — أُرسلت نسخة للإدارة.",
+            'button': "فتح الأيام واعتمادها",
+            'how': "الطريقة: Cash Control ← Daily Cash Sheets ← افتح اليوم ← راجع الحركات والتنبيهات ← Approve & Post.",
+        },
+        'tr': {
+            'dir': 'ltr',
+            'subject': "%(pos)s — onay bekleyen %(n)s kasa günü",
+            'subject_late': "⚠ %(pos)s — onay bekleyen %(n)s kasa günü (en eskisi %(days)s gün)",
+            'intro': "Günaydın, %(pos)s için kapatılmış ama henüz onaylanmamış günlük kasa sayfaları aşağıdadır. "
+                     "Küçük kasanın muhasebe bakiyesi ancak onaydan sonra güncellenir.",
+            'cols': ["Gün", "Nakit satış", "Masraf", "Kasaya", "Sayım", "Fark", "Uyarı"],
+            'total': "Toplam",
+            'safe': "Küçük kasa (%(safe)s): muhasebe %(book)s + onay bekleyen %(pending)s = olması gereken %(expected)s",
+            'late': "En eski onaysız gün %(days)s günlük — yönetime de bildirildi.",
+            'button': "Günleri aç ve onayla",
+            'how': "Yol: Cash Control → Daily Cash Sheets → günü açın → hareketleri ve uyarıları kontrol edin → Approve & Post.",
+        },
+        'en': {
+            'dir': 'ltr',
+            'subject': "%(pos)s — %(n)s cash day(s) waiting for approval",
+            'subject_late': "⚠ %(pos)s — %(n)s cash day(s) waiting for approval (oldest: %(days)s days)",
+            'intro': "Good morning. These closed daily cash sheets of %(pos)s are not approved yet. "
+                     "The safe's book balance only moves once they are approved.",
+            'cols': ["Day", "Cash sales", "Expenses", "To safe", "Counted", "Difference", "Alerts"],
+            'total': "Total",
+            'safe': "Safe (%(safe)s): book %(book)s + waiting for approval %(pending)s = expected %(expected)s",
+            'late': "The oldest unapproved day is %(days)s days old — management was copied.",
+            'button': "Open the days and approve",
+            'how': "Path: Cash Control → Daily Cash Sheets → open the day → check movements and alerts → Approve & Post.",
+        },
+    }
+    _CZ_DIGEST_ESCALATE_DAYS = 3
+
+    @api.model
+    def _cz_send_approval_digest(self):
+        """Every morning: one message per branch to its accountants listing the closed days still
+        to approve (figures, difference, alerts, safe position). Nothing is sent when all is approved.
+        Older than _CZ_DIGEST_ESCALATE_DAYS: the branch managers are copied."""
+        today = fields.Date.context_today(self)
+        sent = self.browse()
+        for cfg in self.env['pos.config'].sudo().search([('cz_cash_control', '=', True)]):
+            days = self.sudo().search([('config_id', '=', cfg.id), ('state', '=', 'to_approve'), ('date', '<', today)],
+                                      order='date, seq')
+            if not days:
+                continue
+            age = (today - days[0].date).days
+            late = age > self._CZ_DIGEST_ESCALATE_DAYS
+            users = cfg.cz_accountant_ids | (cfg.cz_manager_ids if late else self.env['res.users'])
+            if not users:
+                continue
+            L = self._CZ_DIGEST_LABELS.get(cfg.cz_digest_lang) or self._CZ_DIGEST_LABELS['ar']
+            subject = (L['subject_late'] if late else L['subject']) % {'pos': cfg.name, 'n': len(days), 'days': age}
+            days[-1].with_company(cfg.company_id).message_notify(
+                partner_ids=users.partner_id.ids, subject=subject,
+                body=days._cz_digest_body(cfg, L, age if late else 0),
+                subtype_xmlid='mail.mt_comment', email_layout_xmlid='mail.mail_notification_light')
+            sent |= days
+        return sent
+
+    def _cz_digest_body(self, cfg, L, late_days):
+        cur = cfg.currency_id
+        money = cur.format
+        td = Markup('<td style="padding:4px 8px;border-bottom:1px solid #e5e5e5;white-space:nowrap;%s">%s</td>')
+        th = Markup('<th style="padding:4px 8px;border-bottom:2px solid #999;text-align:start;">%s</th>')
+        rows = Markup('')
+        for day in self:
+            diff_style = 'color:#c0392b;font-weight:bold;' if not cur.is_zero(day.difference) else ''
+            rows += Markup('<tr>%s</tr>') % Markup('').join([
+                td % ('', day.date.strftime('%d.%m.%Y') + (f" ({day.seq})" if day.seq > 1 else '')),
+                td % ('', money(day.cash_sales)),
+                td % ('', money(day.expense_total)),
+                td % ('', money(day.safe_transfer_total)),
+                td % ('', money(day.counted_cash)),
+                td % (diff_style, money(day.difference)),
+                td % ('color:#b9770e;' if day.alert_count else '', day.alert_count or ''),
+            ])
+        bold = 'font-weight:bold;'
+        rows += Markup('<tr>%s</tr>') % Markup('').join([
+            td % (bold, L['total']),
+            td % (bold, money(sum(self.mapped('cash_sales')))),
+            td % (bold, money(sum(self.mapped('expense_total')))),
+            td % (bold, money(sum(self.mapped('safe_transfer_total')))),
+            td % ('', ''),
+            td % (bold, money(sum(self.mapped('difference')))),
+            td % (bold, sum(self.mapped('alert_count')) or ''),
+        ])
+        body = Markup('<div dir="%s">') % L['dir']
+        body += Markup('<p>%s</p>') % (L['intro'] % {'pos': cfg.name})
+        body += Markup('<table style="border-collapse:collapse;font-size:13px;"><thead><tr>%s</tr></thead><tbody>%s</tbody></table>') % (
+            Markup('').join(th % c for c in L['cols']), rows)
+        safe = cfg.cz_safe_id
+        if safe:
+            body += Markup('<p style="margin-top:12px;">%s</p>') % (L['safe'] % {
+                'safe': safe.name, 'book': money(safe.balance), 'pending': money(safe.pending_day_amount),
+                'expected': money(safe.expected_balance)})
+        if late_days:
+            body += Markup('<p style="color:#c0392b;"><b>%s</b></p>') % (L['late'] % {'days': late_days})
+        action = self.env.ref('cz_cash_control.action_cz_cash_day', raise_if_not_found=False)
+        if action:
+            url = f"{cfg.get_base_url()}/odoo/action-{action.id}"
+            body += Markup('<p><a href="%s" style="display:inline-block;padding:8px 16px;background:#714B67;color:#fff;'
+                           'text-decoration:none;border-radius:4px;">%s</a></p>') % (url, L['button'])
+        body += Markup('<p style="color:#777;font-size:12px;">%s</p></div>') % L['how']
+        return body
 
 
 class CzCashDayLine(models.Model):

@@ -22,6 +22,7 @@
                         <field name="cz_drawer_alert_above" invisible="not cz_cash_control"/>
                         <field name="cz_accountant_ids" widget="many2many_tags" invisible="not cz_cash_control"/>
                         <field name="cz_manager_ids" widget="many2many_tags" invisible="not cz_cash_control"/>
+                        <field name="cz_digest_lang" invisible="not cz_cash_control"/>
                     </group>
                 </group>
             </xpath>
