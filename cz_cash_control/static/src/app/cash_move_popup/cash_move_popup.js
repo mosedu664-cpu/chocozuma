@@ -21,6 +21,22 @@ const PHOTO_QUALITY = 0.8;
  * Sensitive movements require a manager PIN. The accounting side of the category
  * is never shown in the POS.
  */
+const CZ_DIFF_RE =
+    /(?<![a-zçğıöşü])(eks[iı][kğg][a-zçğıöşü]*|fazla(?!\s*mesai)[a-zçğıöşü]*|kasa\s*a[cç][ıi][kğg][a-zçğıöşü]*|kasa\s*fark[a-zçğıöşü]*|say[ıi]m\s*fark[a-zçğıöşü]*|tutmuyor|tutmad[ıi]|shortage)|(ناقص|نقص|زياد[ةه]|عجز)/gu;
+const CZ_DIFF_FILLER_RE =
+    /(?<![a-zçğıöşü])(kasa[a-zçğıöşü]*|para[a-zçğıöşü]*|nakit[a-zçğıöşü]*|var|yok|oldu|[çc][ıi]kt[ıi]|bug[üu]n|tl|lira|try)(?![a-zçğıöşü])|[^\p{L}]+/gu;
+
+/** false | "bare" (nothing but "shortage / surplus") | "mixed" (the word inside a longer text). */
+export function czDifferenceWording(text) {
+    const t = (text || "").replace(/İ/g, "i").replace(/I/g, "ı").toLowerCase();
+    CZ_DIFF_RE.lastIndex = 0;
+    if (!CZ_DIFF_RE.test(t)) {
+        return false;
+    }
+    const rest = t.replace(CZ_DIFF_RE, " ").replace(CZ_DIFF_FILLER_RE, " ");
+    return rest.replace(/\s/g, "").length >= 3 ? "mixed" : "bare";
+}
+
 patch(CashMovePopup.prototype, {
     setup() {
         super.setup(...arguments);
@@ -103,9 +119,35 @@ patch(CashMovePopup.prototype, {
         return this.pos.models["cz.cash.category"].get(this.state.czCategoryId);
     },
 
+    /**
+     * Staff a movement can be recorded for: the whole branch (sent by the server in
+     * pos.config.cz_staff), not only the few employees allowed to log in to the POS —
+     * and never an administrator account.
+     */
     get czEmployees() {
+        const staff = this.pos.config.cz_staff;
+        if (Array.isArray(staff)) {
+            return staff;
+        }
         const model = this.pos.models["hr.employee"];
         return model ? [...model.getAll()].sort((a, b) => a.name.localeCompare(b.name)) : [];
+    },
+
+    czEmployeeName(id) {
+        const emp = id && this.czEmployees.find((e) => e.id === id);
+        return emp ? emp.name : "";
+    },
+
+    /**
+     * "Eksik 42", "Fazla"… a count difference typed as an expense (mirror of
+     * cz_difference_wording() on the server). "bare" is refused, "mixed" needs a manager PIN.
+     */
+    get czDiffWording() {
+        const c = this.czCategory;
+        if (!c || ["safe_transfer", "difference"].includes(c.kind)) {
+            return false;
+        }
+        return czDifferenceWording(this.state.reason);
     },
 
     get czAmount() {
@@ -143,7 +185,8 @@ patch(CashMovePopup.prototype, {
         return Boolean(
             c.requires_pin ||
                 (c.pin_above && this.czAmount > c.pin_above) ||
-                (this.state.type === "out" && cfgLimit && this.czAmount > cfgLimit)
+                (this.state.type === "out" && cfgLimit && this.czAmount > cfgLimit) ||
+                this.czDiffWording === "mixed"
         );
     },
 
@@ -197,8 +240,7 @@ patch(CashMovePopup.prototype, {
             this.onClickButton(r.type);
         }
         this.czSelectCategory(r.category_id);
-        const emp = r.employee_id ? this.pos.models["hr.employee"]?.get(r.employee_id) : null;
-        this.state.czEmployeeId = emp ? r.employee_id : false;
+        this.state.czEmployeeId = this.czEmployeeName(r.employee_id) ? r.employee_id : false;
         this.state.amount = String(r.amount);
         this.state.reason = r.reason || "";
         this.state.czReceiptRef = "";
@@ -293,6 +335,9 @@ patch(CashMovePopup.prototype, {
         if (this.czOverMax || this.state.czPhotoBusy) {
             return false;
         }
+        if (this.czDiffWording === "bare") {
+            return false;
+        }
         return true;
     },
 
@@ -336,9 +381,9 @@ patch(CashMovePopup.prototype, {
         if (this.czEnabled && this.czCategory) {
             const parts = [`[${this.czCategory.code}] ${this.czCategory.name}`];
             if (this.state.czEmployeeId) {
-                const emp = this.pos.models["hr.employee"]?.get(this.state.czEmployeeId);
-                if (emp) {
-                    parts.push(emp.name);
+                const empName = this.czEmployeeName(this.state.czEmployeeId);
+                if (empName) {
+                    parts.push(empName);
                 }
             }
             if (this.state.reason.trim()) {

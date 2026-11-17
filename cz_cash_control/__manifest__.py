@@ -24,11 +24,14 @@ Replaces the side Excel "kasa" sheets with a controlled flow inside Odoo:
   a wrong movement is cancelled by an opposite correction (manager PIN + reason).
 * "Küçük Kasa" in the POS: managers see the expected safe cash and pay directly
   from the safe (PIN, photo, printed slip); the drawer is never touched.
+* Guards (1.6.0): the staff list on a movement is the whole branch (not only POS logins) and
+  never an administrator; a shortage / surplus cannot be typed as an expense; one morning
+  digest per branch lists the days still waiting for approval.
     """,
     'author': 'Choco Zuma Yönetim',
     'website': 'https://chocozuma.com',
     'category': 'Accounting/Point of Sale',
-    'version': '18.0.1.5.2',
+    'version': '18.0.1.6.0',
     'license': 'LGPL-3',
     'depends': ['point_of_sale', 'pos_hr', 'account', 'hr'],
     'data': [
