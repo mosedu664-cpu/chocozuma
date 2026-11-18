@@ -133,34 +133,47 @@ class CzPlatformAccount(models.Model):
         return created, updated, reached, limited
 
     def _run_sync(self, start_ms, end_ms):
+        """Fetch + process. One run per account at a time: a session-level
+        advisory lock (survives the per-order commits of the cron) makes the
+        cron and the manual buttons never overlap."""
+        cr = self.env.cr
         for acc in self:
-            # one sync per account at a time (cron + manual button never overlap)
-            self.env.cr.execute("SELECT pg_try_advisory_xact_lock(%s, %s)", (874201, acc.id))
-            if not self.env.cr.fetchone()[0]:
+            cr.execute("SELECT pg_try_advisory_lock(%s, %s)", (874201, acc.id))
+            if not cr.fetchone()[0]:
                 continue
             try:
-                with self.env.cr.savepoint():
-                    created, updated, reached, limited = acc._fetch_range(start_ms, end_ms)
-                with self.env.cr.savepoint():
-                    acc._process_orders()
-                msg = "OK — %s yeni, %s güncellenen sipariş." % (created, updated)
-                if limited:
-                    days = (end_ms - reached) / (24.0 * HOUR_MS)
-                    msg += " Trendyol geçmişi sınırlı: en fazla %.1f gün geriye okunabildi." % days
-                acc.write({'last_sync_ms': end_ms, 'last_sync': fields.Datetime.now(),
-                           'last_result': msg})
-            except (TrendyolYemekError, UserError) as e:
-                acc.write({'last_result': "HATA: %s" % e})
-                _logger.warning("cz_platform_orders %s: %s", acc.name, e)
+                try:
+                    with cr.savepoint():
+                        created, updated, reached, limited = acc._fetch_range(start_ms, end_ms)
+                    msg = "OK — %s yeni, %s güncellenen sipariş." % (created, updated)
+                    if limited:
+                        days = (end_ms - reached) / (24.0 * HOUR_MS)
+                        msg += " Trendyol geçmişi sınırlı: en fazla %.1f gün geriye okunabildi." % days
+                    acc.write({'last_sync_ms': end_ms, 'last_sync': fields.Datetime.now(),
+                               'last_result': msg})
+                except (TrendyolYemekError, UserError) as e:
+                    acc.write({'last_result': "HATA: %s" % e})
+                    _logger.warning("cz_platform_orders %s: %s", acc.name, e)
+                if self.env.context.get('cz_commit'):
+                    cr.commit()
+                # posting runs even if the fetch failed (retries of waiting orders)
+                acc._process_orders()
+            finally:
+                cr.execute("SELECT pg_advisory_unlock(%s, %s)", (874201, acc.id))
+
+    PROCESS_BATCH = 20
 
     def _process_orders(self):
+        """Post at most PROCESS_BATCH orders per run (oldest first); the 2-min
+        cron drains any backlog. In the cron every order is committed on its
+        own, so a long backlog never hits the worker time limit."""
         self.ensure_one()
         Order = self.env['cz.platform.order'].sudo()
         todo = Order.search([
             ('account_id', '=', self.id), '|',
             ('state', 'in', ('new', 'waiting_session', 'needs_mapping')),
             '&', ('state', '=', 'posted'), ('status', 'in', ('Cancelled', 'UnSupplied')),
-        ], order='order_date asc, id asc')
+        ], order='order_date asc, id asc', limit=self.PROCESS_BATCH)
         todo._cz_process()
 
     # --- buttons ----------------------------------------------------------
@@ -223,6 +236,7 @@ class CzPlatformAccount(models.Model):
     @api.model
     def _cron_sync(self):
         now = int(time.time() * 1000)
+        self = self.with_context(cz_commit=True)
         for acc in self.search([('platform', '=', 'trendyol_yemek')]):
             start = int(acc.last_sync_ms or 0) - OVERLAP_MS
             if start <= 0 or now - start > 7 * 24 * HOUR_MS:

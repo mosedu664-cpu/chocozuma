@@ -301,6 +301,9 @@ class CzPlatformOrderPos(models.Model):
             except Exception as e:  # noqa: BLE001 - one bad order must not stop the others
                 _logger.exception("cz_platform_orders: processing %s failed", rec.package_ref)
                 rec.write({'state': 'error', 'error': str(e)[:250]})
+            if self.env.context.get('cz_commit'):
+                # cron only: each order is its own unit of work
+                self.env.cr.commit()
 
     def action_retry(self):
         self.filtered(lambda r: r.state in ('error', 'review', 'needs_mapping', 'waiting_session'))\
