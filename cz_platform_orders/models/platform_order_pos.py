@@ -139,7 +139,7 @@ class CzPlatformOrderPos(models.Model):
     def _cz_line_vals(self, line, config, fpos):
         product = line['product']
         taxes = product.taxes_id.filtered(lambda t: t.company_id == config.company_id)
-        if not taxes:
+        if not taxes and line['price']:
             raise UserError("Ürünün %s şirketi için KDV'si yok: %s" % (
                 config.company_id.name, product.display_name))
         taxes_fp = fpos.map_tax(taxes) if fpos else taxes
