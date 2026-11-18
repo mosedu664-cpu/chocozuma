@@ -5,7 +5,8 @@
     'description': """
 Platform Orders
 ===============
-Step 1 (this version): READ-ONLY intake.
+Step 1: READ-ONLY intake.  Step 2 (18.0.2): POS sales, kitchen display,
+automatic refunds, cashier toast. See models/platform_order_pos.py.
 
 * One "Platform Account" record per platform account (platform, company,
   branch/POS, sales line, credentials). Today: Trendyol Yemek / Choco Zuma /
@@ -24,7 +25,7 @@ Credentials are visible to administrators only.
     'author': 'Choco Zuma Yönetim',
     'website': 'https://chocozuma.com',
     'category': 'Sales/Point of Sale',
-    'version': '18.0.1.0.2',
+    'version': '18.0.2.0.0',
     'license': 'LGPL-3',
     'depends': ['point_of_sale'],
     'data': [
@@ -32,6 +33,11 @@ Credentials are visible to administrators only.
         'data/cron.xml',
         'views/platform_views.xml',
     ],
+    'assets': {
+        'point_of_sale._assets_pos': [
+            'cz_platform_orders/static/src/platform_notify.js',
+        ],
+    },
     'installable': True,
     'application': False,
 }

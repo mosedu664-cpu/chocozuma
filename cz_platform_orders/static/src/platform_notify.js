@@ -1,0 +1,44 @@
+/** @odoo-module **/
+
+import { PosStore } from "@point_of_sale/app/store/pos_store";
+import { patch } from "@web/core/utils/patch";
+import { _t } from "@web/core/l10n/translation";
+
+/**
+ * Platform orders (Trendyol) in the cashier screen:
+ *  - a short toast when a new platform order has been recorded as a sale
+ *    (no action needed, nothing printed, no table used);
+ *  - a gentle reminder when the cashier picks *TRENDYOL by hand, because
+ *    chocolate Trendyol orders now arrive automatically.
+ */
+patch(PosStore.prototype, {
+    async initServerData() {
+        const res = await super.initServerData(...arguments);
+        this.data.connectWebSocket("CZ_PLATFORM_ORDER", (payload) => {
+            try {
+                const amount = this.env.utils.formatCurrency(payload.amount || 0);
+                this.notification.add(
+                    `🛵 ${payload.ref}${payload.code ? " · " + payload.code : ""} · ${amount}\n${payload.items || ""}`,
+                    { title: _t("Yeni Trendyol siparişi kasaya işlendi"), type: "info" }
+                );
+            } catch (e) {
+                console.warn("cz_platform_orders notification", e);
+            }
+        });
+        return res;
+    },
+
+    async selectPartner() {
+        const res = await super.selectPartner(...arguments);
+        const partner = this.get_order()?.get_partner?.();
+        if (partner && (partner.name || "").toUpperCase().startsWith("*TRENDYOL")) {
+            this.notification.add(
+                _t(
+                    "Trendyol ÇİKOLATA siparişleri artık otomatik olarak kasaya düşüyor — elle girmeyin. Sadece kahvaltı siparişlerini elle girin."
+                ),
+                { title: _t("Dikkat: çift kayıt"), type: "warning", sticky: true }
+            );
+        }
+        return res;
+    },
+});

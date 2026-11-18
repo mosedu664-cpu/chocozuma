@@ -59,6 +59,7 @@ class CzPlatformOrder(models.Model):
     sales_line = fields.Selection(related='account_id.sales_line', store=True)
     package_ref = fields.Char('Package ID', required=True, index=True)
     order_number = fields.Char(index=True)
+    order_code = fields.Char('Order code', help="Short code shown to the courier/kitchen, e.g. 01A")
     store_ref = fields.Char('Store ID')
     status = fields.Selection(STATUSES, index=True)
     status_raw = fields.Char()
@@ -72,9 +73,20 @@ class CzPlatformOrder(models.Model):
     raw_json = fields.Text(groups='base.group_system')
     # step 2
     pos_order_id = fields.Many2one('pos.order', readonly=True, copy=False)
-    state = fields.Selection([('new', 'Stored'), ('posted', 'POS order created'), ('error', 'Error')],
-                             default='new', index=True)
+    state = fields.Selection([
+        ('new', 'Stored'),
+        ('skipped', 'Before go-live (not posted)'),
+        ('waiting_session', 'Waiting for open POS session'),
+        ('needs_mapping', 'Needs product mapping'),
+        ('posted', 'POS sale created'),
+        ('refunded', 'Cancelled -> refunded'),
+        ('cancelled', 'Cancelled (never posted)'),
+        ('review', 'Needs review'),
+        ('error', 'Error'),
+    ], default='new', index=True)
     error = fields.Char()
+    refund_order_id = fields.Many2one('pos.order', readonly=True, copy=False)
+    customer_note = fields.Char()
 
     _sql_constraints = [
         ('package_account_uniq', 'unique(account_id, package_ref)',
@@ -123,12 +135,14 @@ class CzPlatformOrder(models.Model):
             'amount_total': _num(pkg.get('totalPrice') or pkg.get('amount') or payment.get('amount')),
             'lines_total': lines_total,
             'payment_type': payment.get('paymentType') or False,
+            'customer_note': (pkg.get('customerNote') or '')[:250] or False,
+            'order_code': str(pkg.get('orderCode') or '') or False,
             'store_pickup': bool(pkg.get('storePickupSelected') or pkg.get('isStorePickup')),
             'raw_json': json.dumps(_strip_personal(pkg), ensure_ascii=False, indent=1)[:200000],
         }
         existing = self.search([('account_id', '=', account.id), ('package_ref', '=', package_ref)], limit=1)
         if existing:
-            if existing.state == 'posted':
+            if existing.state in ('posted', 'refunded'):
                 # never touch lines of an order already turned into a POS sale
                 vals.pop('raw_json', None)
                 existing.write({k: v for k, v in vals.items()

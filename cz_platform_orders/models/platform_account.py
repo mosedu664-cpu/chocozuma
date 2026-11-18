@@ -51,6 +51,23 @@ class CzPlatformAccount(models.Model):
         default='muhasebeonline@chocozuma.com',
         help="Sent in the x-executor-user header (who performs the call).")
 
+    # --- POS posting (step 2) --------------------------------------------
+    auto_post = fields.Boolean(
+        'Create POS sales', default=False,
+        help="ON: every new platform order becomes a POS sale of the branch "
+             "(and goes to the kitchen display). OFF: orders are only stored.")
+    post_from = fields.Datetime(
+        'Go-live from',
+        help="Only orders created after this moment become POS sales. Earlier "
+             "orders were typed by the cashier and are never posted again.")
+    payment_method_id = fields.Many2one(
+        'pos.payment.method', string='POS payment method',
+        help="Payment method used for platform sales (Kayaşehir: Online Payment).")
+    partner_id = fields.Many2one('res.partner', string='POS customer', help="E.g. *TRENDYOL")
+    map_ids = fields.One2many('cz.platform.product.map', 'account_id', string='Product mapping')
+    map_count = fields.Integer(compute='_compute_map_count')
+    attention_count = fields.Integer(compute='_compute_order_count')
+
     # --- status ---------------------------------------------------------
     last_sync_ms = fields.Float('Last sync (epoch ms)', readonly=True, digits=(16, 0))
     last_sync = fields.Datetime(readonly=True)
@@ -62,8 +79,18 @@ class CzPlatformAccount(models.Model):
         data = self.env['cz.platform.order']._read_group(
             [('account_id', 'in', self.ids)], ['account_id'], ['__count'])
         counts = {acc.id: n for acc, n in data}
+        att = self.env['cz.platform.order']._read_group(
+            [('account_id', 'in', self.ids),
+             ('state', 'in', ('needs_mapping', 'review', 'error', 'waiting_session'))],
+            ['account_id'], ['__count'])
+        att = {acc.id: n for acc, n in att}
         for rec in self:
             rec.order_count = counts.get(rec.id, 0)
+            rec.attention_count = att.get(rec.id, 0)
+
+    def _compute_map_count(self):
+        for rec in self:
+            rec.map_count = len(rec.map_ids)
 
     # ------------------------------------------------------------------
     def _client(self):
@@ -107,9 +134,15 @@ class CzPlatformAccount(models.Model):
 
     def _run_sync(self, start_ms, end_ms):
         for acc in self:
+            # one sync per account at a time (cron + manual button never overlap)
+            self.env.cr.execute("SELECT pg_try_advisory_xact_lock(%s, %s)", (874201, acc.id))
+            if not self.env.cr.fetchone()[0]:
+                continue
             try:
                 with self.env.cr.savepoint():
                     created, updated, reached, limited = acc._fetch_range(start_ms, end_ms)
+                with self.env.cr.savepoint():
+                    acc._process_orders()
                 msg = "OK — %s yeni, %s güncellenen sipariş." % (created, updated)
                 if limited:
                     days = (end_ms - reached) / (24.0 * HOUR_MS)
@@ -120,7 +153,41 @@ class CzPlatformAccount(models.Model):
                 acc.write({'last_result': "HATA: %s" % e})
                 _logger.warning("cz_platform_orders %s: %s", acc.name, e)
 
+    def _process_orders(self):
+        self.ensure_one()
+        Order = self.env['cz.platform.order'].sudo()
+        todo = Order.search([
+            ('account_id', '=', self.id), '|',
+            ('state', 'in', ('new', 'waiting_session', 'needs_mapping')),
+            '&', ('state', '=', 'posted'), ('status', 'in', ('Cancelled', 'UnSupplied')),
+        ], order='order_date asc, id asc')
+        todo._cz_process()
+
     # --- buttons ----------------------------------------------------------
+    def action_load_default_mapping(self):
+        self.ensure_one()
+        created, missing = self.env['cz.platform.product.map'].sudo()._load_default_trendyol_map(self)
+        msg = "%s eşleştirme eklendi." % created
+        if missing:
+            msg += " Bulunamayan ürün kodları: %s" % ', '.join(missing)
+        return {'type': 'ir.actions.client', 'tag': 'display_notification',
+                'params': {'title': self.name, 'message': msg,
+                           'type': 'warning' if missing else 'success', 'sticky': bool(missing)}}
+
+    def action_open_mapping(self):
+        self.ensure_one()
+        action = self.env['ir.actions.act_window']._for_xml_id(
+            'cz_platform_orders.action_cz_platform_product_map')
+        action['domain'] = [('account_id', '=', self.id)]
+        action['context'] = {'default_account_id': self.id}
+        return action
+
+    def action_open_attention(self):
+        action = self.action_open_orders()
+        action['domain'] = [('account_id', '=', self.id),
+                            ('state', 'in', ('needs_mapping', 'review', 'error', 'waiting_session'))]
+        return action
+
     def action_fetch_last_24h(self):
         now = int(time.time() * 1000)
         self._run_sync(now - 24 * HOUR_MS, now)
