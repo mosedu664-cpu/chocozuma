@@ -86,6 +86,7 @@ class CzPlatformOrder(models.Model):
     ], default='new', index=True)
     error = fields.Char()
     refund_order_id = fields.Many2one('pos.order', readonly=True, copy=False)
+    attempts = fields.Integer(readonly=True, help="Automatic retries after an error (max 5).")
     customer_note = fields.Char()
 
     _sql_constraints = [

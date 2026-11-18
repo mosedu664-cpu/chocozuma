@@ -30,7 +30,10 @@ AGENT_NAME = 'ChocoZumaOdoo'
 
 
 class TrendyolYemekError(Exception):
-    pass
+    def __init__(self, message, status=None, history_limit=False):
+        super().__init__(message)
+        self.status = status
+        self.history_limit = history_limit
 
 
 class TrendyolYemekClient:
@@ -59,9 +62,14 @@ class TrendyolYemekClient:
             raise TrendyolYemekError(
                 "Yetki hatası (HTTP %s): Satıcı ID / API Key / API Secret kontrol edin." % resp.status_code)
         if resp.status_code == 429:
-            raise TrendyolYemekError("Trendyol hız sınırı (HTTP 429). Birkaç dakika sonra tekrar deneyin.")
+            raise TrendyolYemekError("Trendyol hız sınırı (HTTP 429). Birkaç dakika sonra tekrar deneyin.", status=429)
         if not resp.ok:
-            raise TrendyolYemekError("HTTP %s: %s" % (resp.status_code, (resp.text or '')[:800]))
+            body = resp.text or ''
+            # Trendyol answers 400 'external.domain.rejects.request' for dates
+            # older than its history window (31 days) - only that is a limit.
+            limit = resp.status_code == 400 and 'external.domain.rejects.request' in body
+            raise TrendyolYemekError("HTTP %s: %s" % (resp.status_code, body[:800]),
+                                     status=resp.status_code, history_limit=limit)
         try:
             return resp.json()
         except ValueError:

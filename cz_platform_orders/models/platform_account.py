@@ -88,6 +88,15 @@ class CzPlatformAccount(models.Model):
             rec.order_count = counts.get(rec.id, 0)
             rec.attention_count = att.get(rec.id, 0)
 
+    @api.constrains('auto_post', 'store_ref', 'pos_config_id', 'payment_method_id', 'post_from')
+    def _check_auto_post(self):
+        for rec in self.sudo():
+            if rec.auto_post and not (rec.store_ref and rec.pos_config_id
+                                      and rec.payment_method_id and rec.post_from):
+                raise UserError("POS satışını açmak için Store ID, Branch/POS, ödeme yöntemi ve "
+                                "başlangıç zamanı zorunludur (Store ID boşsa kahvaltı hesabının "
+                                "siparişleri de karışabilir).")
+
     def _compute_map_count(self):
         for rec in self:
             rec.map_count = len(rec.map_ids)
@@ -123,11 +132,11 @@ class CzPlatformAccount(models.Model):
                         created += 1
                     else:
                         updated += 1
-            except TrendyolYemekError:
-                if reached < int(end_ms):
+            except TrendyolYemekError as e:
+                if e.history_limit and reached < int(end_ms):
                     limited = True
                     break
-                raise
+                raise  # 429 / timeout / auth: last_sync is NOT advanced
             reached = begin
             cursor = begin
         return created, updated, reached, limited
@@ -169,12 +178,27 @@ class CzPlatformAccount(models.Model):
         own, so a long backlog never hits the worker time limit."""
         self.ensure_one()
         Order = self.env['cz.platform.order'].sudo()
-        todo = Order.search([
-            ('account_id', '=', self.id), '|',
-            ('state', 'in', ('new', 'waiting_session', 'needs_mapping')),
-            '&', ('state', '=', 'posted'), ('status', 'in', ('Cancelled', 'UnSupplied')),
-        ], order='order_date asc, id asc', limit=self.PROCESS_BATCH)
+        # refunds of posted+cancelled orders always run (even if posting is off)
+        domain = ['&', ('state', '=', 'posted'), ('status', 'in', ('Cancelled', 'UnSupplied'))]
+        if self.auto_post:
+            domain = ['|', '|',
+                      ('state', 'in', ('new', 'waiting_session', 'needs_mapping')),
+                      '&', ('state', '=', 'error'), ('attempts', '<', 5)] + domain
+        todo = Order.search([('account_id', '=', self.id)] + domain,
+                            order='order_date asc, id asc', limit=self.PROCESS_BATCH)
         todo._cz_process()
+
+    def _process_orders_locked(self):
+        """Same lock as _run_sync, for the manual retry button."""
+        cr = self.env.cr
+        for acc in self:
+            cr.execute("SELECT pg_try_advisory_lock(%s, %s)", (874201, acc.id))
+            if not cr.fetchone()[0]:
+                raise UserError("Senkronizasyon şu an çalışıyor, birkaç saniye sonra tekrar deneyin.")
+            try:
+                acc._process_orders()
+            finally:
+                cr.execute("SELECT pg_advisory_unlock(%s, %s)", (874201, acc.id))
 
     # --- buttons ----------------------------------------------------------
     def action_load_default_mapping(self):

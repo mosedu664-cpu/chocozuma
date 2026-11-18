@@ -19,7 +19,10 @@ import json
 import logging
 import uuid
 
+import psycopg2
+
 from odoo import fields, models
+from odoo.exceptions import UserError
 from odoo.tools import float_compare
 
 _logger = logging.getLogger(__name__)
@@ -34,13 +37,32 @@ class CzPlatformOrderPos(models.Model):
     # ------------------------------------------------------------------
     def _cz_uuid(self):
         self.ensure_one()
-        return str(uuid.uuid5(uuid.NAMESPACE_URL, 'cz-platform-order:%s:%s' % (self.account_id.id, self.package_ref)))
+        acc = self.account_id.sudo()
+        return str(uuid.uuid5(uuid.NAMESPACE_URL, 'cz-platform-order:%s:%s:%s' % (
+            acc.platform, (acc.supplier_ref or '').strip(), self.package_ref)))
 
     def _cz_ref(self):
         self.ensure_one()
         return 'TRENDYOL %s' % (self.order_number or self.package_ref[:12])
 
     # ------------------------------------------------------------------
+    def _cz_lock_open_session(self, config):
+        """Return the open session, row-locked so it cannot be closed while
+        we add an order to it; None if closed/closing or being closed now."""
+        session = config.current_session_id
+        if not session or session.state != 'opened':
+            return None
+        try:
+            with self.env.cr.savepoint(flush=False):
+                self.env.cr.execute(
+                    "SELECT id FROM pos_session WHERE id = %s AND state = 'opened' "
+                    "FOR NO KEY UPDATE NOWAIT", (session.id,))
+                if not self.env.cr.fetchone():
+                    return None
+        except (psycopg2.errors.LockNotAvailable, psycopg2.errors.SerializationFailure):
+            return None
+        return session
+
     def _cz_build_lines(self, config):
         """Return (lines, missing): lines = list of dicts ready for POS."""
         self.ensure_one()
@@ -68,7 +90,14 @@ class CzPlatformOrderPos(models.Model):
             base_price = float(pl.get('price') or pl.get('unitSellingPrice') or 0.0)
             removed = ', '.join('-' + str(r.get('name', '')).strip() for r in pl.get('removedIngredients') or [])
             if m.product_id.type == 'combo':
-                lines += self._cz_combo_lines(m, qty, base_price, removed)
+                if pl.get('modifierProducts'):
+                    missing.append('%s: müşteri seçimi (modifier) eşleştirilmedi' % pl.get('name'))
+                    continue
+                combo_lines = self._cz_combo_lines(m, qty, base_price, removed)
+                if combo_lines is None:
+                    missing.append('%s: kombo seçimleri eksik' % pl.get('name'))
+                    continue
+                lines += combo_lines
             else:
                 lines.append({'product': m.product_id, 'qty': qty, 'price': base_price,
                               'note': removed or False})
@@ -92,9 +121,10 @@ class CzPlatformOrderPos(models.Model):
             if len(items) == 1:
                 item = items
             else:
-                item = next((i for i in items if i.product_id in choices), items[:1])
-                if item.product_id in choices:
-                    choices.remove(item.product_id)
+                item = next((i for i in items if i.product_id in choices), None)
+                if not item:
+                    return None  # never guess a sauce: ask for mapping
+                choices.remove(item.product_id)
             children.append({'product': item.product_id, 'qty': qty,
                              'price': item.extra_price, 'combo_item': item})
         # the platform price is the truth: put any difference on the priced step
@@ -109,6 +139,9 @@ class CzPlatformOrderPos(models.Model):
     def _cz_line_vals(self, line, config, fpos):
         product = line['product']
         taxes = product.taxes_id.filtered(lambda t: t.company_id == config.company_id)
+        if not taxes:
+            raise UserError("Ürünün %s şirketi için KDV'si yok: %s" % (
+                config.company_id.name, product.display_name))
         taxes_fp = fpos.map_tax(taxes) if fpos else taxes
         res = taxes_fp.compute_all(line['price'], config.currency_id, line['qty'], product=product)
         vals = {
@@ -123,7 +156,8 @@ class CzPlatformOrderPos(models.Model):
             'price_subtotal_incl': res['total_included'],
         }
         if line.get('note'):
-            vals['customer_note'] = line['note']
+            vals['note'] = line['note']           # kitchen / preparation note
+            vals['customer_note'] = line['note']  # receipt note
         if line.get('combo_item'):
             vals['combo_item_id'] = line['combo_item'].id
         return vals, res['total_included'] - res['total_excluded']
@@ -141,9 +175,9 @@ class CzPlatformOrderPos(models.Model):
         if existing:
             self.write({'state': 'posted', 'pos_order_id': existing.id, 'error': False})
             return True
-        session = config.current_session_id
-        if not session or session.state != 'opened':
-            self.write({'state': 'waiting_session', 'error': 'POS session is not open.'})
+        session = self._cz_lock_open_session(config)
+        if not session:
+            self.write({'state': 'waiting_session', 'error': 'POS oturumu açık değil (veya kapanıyor).'})
             return False
         lines, missing = self._cz_build_lines(config)
         if missing:
@@ -208,9 +242,9 @@ class CzPlatformOrderPos(models.Model):
         }
         Order.with_context(cz_platform_post=True, preparation=False).sync_from_ui([order_vals])
         pos_order = Order.search([('uuid', '=', self._cz_uuid())], limit=1)
-        if not pos_order:
-            self.write({'state': 'error', 'error': 'POS order was not created.'})
-            return False
+        if not pos_order or pos_order.state not in ('paid', 'done', 'invoiced'):
+            # roll back (savepoint in _cz_process): never leave a draft order in the till
+            raise UserError("POS siparişi ödenmiş duruma geçmedi (%s)." % (pos_order.state if pos_order else 'yok'))
         # link combo children to their parent line, exactly like a cashier combo
         for parent_uuid, child_uuids in children_by_parent.items():
             parent = pos_order.lines.filtered(lambda l: l.uuid == parent_uuid)
@@ -225,21 +259,24 @@ class CzPlatformOrderPos(models.Model):
     def _cz_send_to_kitchen(self, pos_order):
         """Kitchen display (Enterprise pos_preparation_display), if one is
         linked to this POS. Never blocks the sale."""
+        self._cz_kitchen(pos_order, cancelled=False)
+
+    def _cz_kitchen(self, pos_order, cancelled=False):
         if 'pos_preparation_display.order' not in self.env:
-            return
-        Display = self.env['pos_preparation_display.display'].sudo()
-        if not Display.search_count([('pos_config_ids', 'in', pos_order.config_id.ids)]):
             return
         try:
             with self.env.cr.savepoint():
+                Display = self.env['pos_preparation_display.display'].sudo()
+                if not Display.search_count([('pos_config_ids', 'in', pos_order.config_id.ids)]):
+                    return
                 self.env['pos_preparation_display.order'].sudo().process_order(
-                    pos_order.id, False, pos_order.general_note or '', {})
+                    pos_order.id, cancelled, pos_order.general_note or '', {})
         except Exception as e:  # noqa: BLE001 - kitchen display must never break a sale
             _logger.warning("cz_platform_orders: kitchen display failed for %s: %s", pos_order.name, e)
 
     def _cz_notify_pos(self, pos_order):
         config = pos_order.config_id
-        items = ', '.join('%s× %s' % (int(l.qty) if l.qty == int(l.qty) else l.qty, l.full_product_name)
+        items = ' · '.join('%s× %s' % (int(l.qty) if l.qty == int(l.qty) else l.qty, l.full_product_name)
                           for l in pos_order.lines if not l.combo_parent_id)
         try:
             config._notify('CZ_PLATFORM_ORDER', {
@@ -258,11 +295,16 @@ class CzPlatformOrderPos(models.Model):
         self.ensure_one()
         pos_order = self.pos_order_id.sudo()
         config = pos_order.config_id
-        session = config.current_session_id
-        if not session or session.state != 'opened':
+        if not self._cz_lock_open_session(config):
             self.write({'error': 'İptal: iade için açık POS oturumu bekleniyor.'})
             return False
         refund = pos_order.with_company(pos_order.company_id)._refund()
+        # core copies combo_parent_id from the original: re-link to the refund's own parent
+        by_origin = {l.refunded_orderline_id.id: l for l in refund.lines}
+        for line in refund.lines.filtered('combo_parent_id'):
+            own_parent = by_origin.get(line.combo_parent_id.id)
+            if own_parent:
+                line.combo_parent_id = own_parent.id
         refund.add_payment({
             'pos_order_id': refund.id,
             'amount': refund.amount_total,
@@ -273,6 +315,7 @@ class CzPlatformOrderPos(models.Model):
         refund.action_pos_order_paid()
         refund._create_order_picking()
         self.write({'state': 'refunded', 'refund_order_id': refund.id, 'error': False})
+        self._cz_kitchen(pos_order, cancelled=True)
         return True
 
     # ------------------------------------------------------------------
@@ -287,25 +330,33 @@ class CzPlatformOrderPos(models.Model):
                         continue
                     if rec.state in ('posted', 'refunded', 'cancelled', 'skipped'):
                         continue
+                    if rec.pos_order_id:  # safety: a sale exists, never treat as unposted
+                        rec.write({'state': 'posted'})
+                        continue
                     if rec.status in CANCELLED:
                         rec.write({'state': 'cancelled', 'error': False})
                         continue
                     if rec.status not in POSTABLE:
                         continue
-                    if not account.auto_post or not account.post_from or \
-                            not rec.order_date or rec.order_date < account.post_from:
-                        if rec.state == 'new':
-                            rec.write({'state': 'skipped'})
+                    if not account.auto_post or not account.post_from:
+                        continue  # stays 'new' until posting is switched on
+                    if not rec.order_date or rec.order_date < account.post_from:
+                        rec.write({'state': 'skipped'})
                         continue
                     rec._cz_post_to_pos()
             except Exception as e:  # noqa: BLE001 - one bad order must not stop the others
                 _logger.exception("cz_platform_orders: processing %s failed", rec.package_ref)
-                rec.write({'state': 'error', 'error': str(e)[:250]})
+                vals = {'error': str(e)[:250], 'attempts': rec.attempts + 1}
+                if not rec.pos_order_id:
+                    vals['state'] = 'error'
+                # a posted order keeps state 'posted' so the refund is retried
+                rec.write(vals)
             if self.env.context.get('cz_commit'):
                 # cron only: each order is its own unit of work
                 self.env.cr.commit()
 
     def action_retry(self):
-        self.filtered(lambda r: r.state in ('error', 'review', 'needs_mapping', 'waiting_session'))\
-            .write({'state': 'new'})
-        self._cz_process()
+        todo = self.filtered(lambda r: r.state in ('error', 'review', 'needs_mapping', 'waiting_session'))
+        for rec in todo:
+            rec.write({'state': 'posted' if rec.pos_order_id else 'new', 'attempts': 0})
+        todo.account_id._process_orders_locked()
