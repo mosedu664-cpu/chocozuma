@@ -1,3 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_cz_wa_report_admin,cz.wa.report admin,model_cz_wa_report,base.group_system,1,1,1,1
-access_cz_wa_report_log_admin,cz.wa.report.log admin,model_cz_wa_report_log,base.group_system,1,1,1,1
