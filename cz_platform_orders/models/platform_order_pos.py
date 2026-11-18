@@ -114,7 +114,7 @@ class CzPlatformOrderPos(models.Model):
         vals = {
             'uuid': str(uuid.uuid4()),
             'product_id': product.id,
-            'full_product_name': product.display_name,
+            'full_product_name': product.with_context(display_default_code=False).display_name,
             'qty': line['qty'],
             'price_unit': line['price'],
             'discount': 0.0,
@@ -168,6 +168,8 @@ class CzPlatformOrderPos(models.Model):
                 amount_total += cvals['price_subtotal_incl']
 
         currency = config.currency_id
+        amount_tax = currency.round(amount_tax)
+        amount_total = currency.round(amount_total)
         if float_compare(amount_total, self.amount_total, precision_rounding=currency.rounding) != 0:
             self.write({'state': 'review',
                         'error': 'Tutar farkı: Odoo %.2f / Trendyol %.2f' % (amount_total, self.amount_total)})
