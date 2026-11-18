@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cz_wa_report_list" model="ir.ui.view">
+        <field name="name">cz.wa.report.list</field>
+        <field name="model">cz.wa.report</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="config_ids" widget="many2many_tags"/>
+                <field name="preview_date"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cz_wa_report_form" model="ir.ui.view">
+        <field name="name">cz.wa.report.form</field>
+        <field name="model">cz.wa.report</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_preview" type="object" string="Preview" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="config_ids" widget="many2many_tags"/>
+                            <field name="partner_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <group string="Thresholds">
+                        <group>
+                            <field name="cost_days"/>
+                            <field name="cancel_alert_amount"/>
+                        </group>
+                        <group>
+                            <field name="cashier_share_alert"/>
+                            <field name="preview_date"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Preview">
+                            <field name="preview_text" nolabel="1"/>
+                        </page>
+                        <page string="Log">
+                            <field name="log_ids">
+                                <list>
+                                    <field name="create_date"/>
+                                    <field name="state"/>
+                                    <field name="note"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cz_wa_report" model="ir.actions.act_window">
+        <field name="name">WhatsApp Reports</field>
+        <field name="res_model">cz.wa.report</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_cz_wa_report_root" name="CZ Reports" sequence="95"
+              groups="base.group_system" action="action_cz_wa_report"/>
+</odoo>
