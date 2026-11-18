@@ -61,7 +61,7 @@ class TrendyolYemekClient:
         if resp.status_code == 429:
             raise TrendyolYemekError("Trendyol hız sınırı (HTTP 429). Birkaç dakika sonra tekrar deneyin.")
         if not resp.ok:
-            raise TrendyolYemekError("HTTP %s: %s" % (resp.status_code, (resp.text or '')[:300]))
+            raise TrendyolYemekError("HTTP %s: %s" % (resp.status_code, (resp.text or '')[:800]))
         try:
             return resp.json()
         except ValueError:

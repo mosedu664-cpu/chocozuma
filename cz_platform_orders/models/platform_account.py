@@ -75,29 +75,45 @@ class CzPlatformAccount(models.Model):
                                    acc.executor_user, acc.environment)
 
     def _fetch_range(self, start_ms, end_ms):
-        """Read every package modified in the range and store it. Read-only."""
+        """Read every package modified in the range and store it. Read-only.
+
+        Windows are read newest -> oldest. Trendyol only serves a limited
+        history: when an older window is refused after at least one window
+        succeeded, we stop there and report how far back we got.
+        """
         self.ensure_one()
         client = self._client()
         Order = self.env['cz.platform.order'].sudo()
         created = updated = 0
-        cursor = int(start_ms)
-        while cursor < end_ms:
-            stop = min(cursor + WINDOW_MS, int(end_ms))
-            for pkg in client.iter_packages(cursor, stop, store_id=self.sudo().store_ref or None):
-                is_new = Order._upsert_from_trendyol(self, pkg)
-                if is_new:
-                    created += 1
-                else:
-                    updated += 1
-            cursor = stop
-        return created, updated
+        reached = int(end_ms)
+        cursor = int(end_ms)
+        limited = False
+        while cursor > start_ms:
+            begin = max(cursor - WINDOW_MS, int(start_ms))
+            try:
+                for pkg in client.iter_packages(begin, cursor, store_id=self.sudo().store_ref or None):
+                    if Order._upsert_from_trendyol(self, pkg):
+                        created += 1
+                    else:
+                        updated += 1
+            except TrendyolYemekError:
+                if reached < int(end_ms):
+                    limited = True
+                    break
+                raise
+            reached = begin
+            cursor = begin
+        return created, updated, reached, limited
 
     def _run_sync(self, start_ms, end_ms):
         for acc in self:
             try:
                 with self.env.cr.savepoint():
-                    created, updated = acc._fetch_range(start_ms, end_ms)
+                    created, updated, reached, limited = acc._fetch_range(start_ms, end_ms)
                 msg = "OK — %s yeni, %s güncellenen sipariş." % (created, updated)
+                if limited:
+                    days = (end_ms - reached) / (24.0 * HOUR_MS)
+                    msg += " Trendyol geçmişi sınırlı: en fazla %.1f gün geriye okunabildi." % days
                 acc.write({'last_sync_ms': end_ms, 'last_sync': fields.Datetime.now(),
                            'last_result': msg})
             except (TrendyolYemekError, UserError) as e:
