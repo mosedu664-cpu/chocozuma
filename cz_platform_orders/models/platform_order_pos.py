@@ -214,9 +214,11 @@ class CzPlatformOrderPos(models.Model):
             self.write({'state': 'error', 'error': 'Payment method %s is not on POS %s.' % (method.name, config.name)})
             return False
 
-        note = '🛵 %s · %s' % (self._cz_ref(), self.order_code or '')
+        note = 'TRENDYOL GO | Sipariş %s' % (self.order_number or self.package_ref[:12])
+        if self.order_code:
+            note += ' | Kod %s' % self.order_code
         if self.customer_note:
-            note += ' · ' + self.customer_note
+            note += ' | Not: %s' % self.customer_note
         order_vals = {
             'uuid': self._cz_uuid(),
             'name': self._cz_ref(),
@@ -240,7 +242,7 @@ class CzPlatformOrderPos(models.Model):
             'to_invoice': False,
             'general_note': note,
             # header of the kitchen-display card and name in the orders list
-            'floating_order_name': '🛵 TRENDYOL %s' % (self.order_code or (self.order_number or '')[-5:]),
+            'floating_order_name': 'TRENDYOL GO | %s' % (self.order_code or (self.order_number or '')[-5:]),
         }
         Order.with_context(cz_platform_post=True, preparation=False).sync_from_ui([order_vals])
         pos_order = Order.search([('uuid', '=', self._cz_uuid())], limit=1)

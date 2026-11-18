@@ -25,8 +25,8 @@ patch(PosStore.prototype, {
         this.data.connectWebSocket("CZ_PLATFORM_ORDER", (payload) => {
             try {
                 notification.add(
-                    `🛵 ${payload.ref}${payload.code ? " · " + payload.code : ""} · ${fmt(payload.amount)} — ${payload.items || ""}`,
-                    { title: _t("Yeni Trendyol siparişi kasaya işlendi"), type: "info" }
+                    `${payload.code ? "Kod " + payload.code + " | " : ""}${fmt(payload.amount)} | ${payload.items || ""}`,
+                    { title: _t("TRENDYOL GO | Sipariş kasaya işlendi"), type: "info" }
                 );
             } catch (e) {
                 console.warn("cz_platform_orders notification", e);
