@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo noupdate="1">
-    <record id="report_ceo_daily" model="cz.wa.report">
-        <field name="name">CEO Daily Brief</field>
-        <field name="code">ceo_daily</field>
-    </record>
-</odoo>
