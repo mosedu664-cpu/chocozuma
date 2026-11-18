@@ -239,6 +239,8 @@ class CzPlatformOrderPos(models.Model):
             'state': 'paid',
             'to_invoice': False,
             'general_note': note,
+            # header of the kitchen-display card and name in the orders list
+            'floating_order_name': '🛵 TRENDYOL %s' % (self.order_code or (self.order_number or '')[-5:]),
         }
         Order.with_context(cz_platform_post=True, preparation=False).sync_from_ui([order_vals])
         pos_order = Order.search([('uuid', '=', self._cz_uuid())], limit=1)
