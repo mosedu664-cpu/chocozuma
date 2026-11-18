@@ -115,6 +115,11 @@ class CzPlatformAccount(models.Model):
         self._run_sync(now - 7 * 24 * HOUR_MS, now)
         return self._notify()
 
+    def action_fetch_last_35d(self):
+        now = int(time.time() * 1000)
+        self._run_sync(now - 35 * 24 * HOUR_MS, now)
+        return self._notify()
+
     def action_open_orders(self):
         self.ensure_one()
         action = self.env['ir.actions.act_window']._for_xml_id(

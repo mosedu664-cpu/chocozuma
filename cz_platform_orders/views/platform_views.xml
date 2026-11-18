@@ -28,6 +28,8 @@
                             class="btn-primary" groups="base.group_system"/>
                     <button name="action_fetch_last_7d" type="object" string="Son 7 günü oku"
                             groups="base.group_system"/>
+                    <button name="action_fetch_last_35d" type="object" string="Son 35 günü oku"
+                            groups="base.group_system"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
