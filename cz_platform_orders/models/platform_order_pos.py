@@ -268,8 +268,11 @@ class CzPlatformOrderPos(models.Model):
             return
         try:
             with self.env.cr.savepoint():
+                # A display with no POS selected serves every POS of its company
+                # (Kayaşehir 'TONALLİ' works like that): let Odoo pick the displays.
                 Display = self.env['pos_preparation_display.display'].sudo()
-                if not Display.search_count([('pos_config_ids', 'in', pos_order.config_id.ids)]):
+                if not Display.search_count(['|', ('pos_config_ids', 'in', pos_order.config_id.ids),
+                                             ('pos_config_ids', '=', False)]):
                     return
                 self.env['pos_preparation_display.order'].sudo().process_order(
                     pos_order.id, cancelled, pos_order.general_note or '', {})
