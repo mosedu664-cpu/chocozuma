@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_cz_platform_account_admin,cz.platform.account admin,model_cz_platform_account,base.group_system,1,1,1,1
+access_cz_platform_account_pos,cz.platform.account pos manager,model_cz_platform_account,point_of_sale.group_pos_manager,1,0,0,0
+access_cz_platform_order_admin,cz.platform.order admin,model_cz_platform_order,base.group_system,1,1,1,1
+access_cz_platform_order_pos,cz.platform.order pos manager,model_cz_platform_order,point_of_sale.group_pos_manager,1,0,0,0
+access_cz_platform_order_line_admin,cz.platform.order.line admin,model_cz_platform_order_line,base.group_system,1,1,1,1
+access_cz_platform_order_line_pos,cz.platform.order.line pos manager,model_cz_platform_order_line,point_of_sale.group_pos_manager,1,0,0,0
+access_cz_platform_product_map_admin,cz.platform.product.map admin,model_cz_platform_product_map,base.group_system,1,1,1,1
+access_cz_platform_product_map_pos,cz.platform.product.map pos manager,model_cz_platform_product_map,point_of_sale.group_pos_manager,1,0,0,0

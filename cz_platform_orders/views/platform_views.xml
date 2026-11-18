@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================= Platform accounts ================= -->
+    <record id="view_cz_platform_account_list" model="ir.ui.view">
+        <field name="name">cz.platform.account.list</field>
+        <field name="model">cz.platform.account</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="platform"/>
+                <field name="company_id"/>
+                <field name="pos_config_id"/>
+                <field name="sales_line"/>
+                <field name="last_sync"/>
+                <field name="last_result"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cz_platform_account_form" model="ir.ui.view">
+        <field name="name">cz.platform.account.form</field>
+        <field name="model">cz.platform.account</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_fetch_last_24h" type="object" string="Son 24 saati oku"
+                            class="btn-primary" groups="base.group_system"/>
+                    <button name="action_fetch_last_7d" type="object" string="Son 7 günü oku"
+                            groups="base.group_system"/>
+                    <button name="action_fetch_last_35d" type="object" string="Son 31 günü oku"
+                            groups="base.group_system"/>
+                    <button name="action_load_default_mapping" type="object" string="Varsayılan ürün eşleştirmesini yükle"
+                            groups="base.group_system"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_orders" type="object" class="oe_stat_button" icon="fa-shopping-bag">
+                            <field name="order_count" widget="statinfo" string="Orders"/>
+                        </button>
+                        <button name="action_open_mapping" type="object" class="oe_stat_button" icon="fa-link">
+                            <field name="map_count" widget="statinfo" string="Eşleştirme"/>
+                        </button>
+                        <button name="action_open_attention" type="object" class="oe_stat_button text-danger"
+                                icon="fa-exclamation-triangle" invisible="attention_count == 0">
+                            <field name="attention_count" widget="statinfo" string="Dikkat"/>
+                        </button>
+                    </div>
+                    <div class="alert alert-info" role="alert">
+                        Salt okuma: bu bağlantı Trendyol'a yalnızca okuma (GET) isteği gönderir.
+                        Siparişi kabul etmez, iptal etmez, değiştirmez. Sepet Takip aynen çalışmaya devam eder.
+                        "POS satışı" açıkken, başlangıç zamanından sonraki her sipariş kasaya masasız satış olarak
+                        düşer (müşteri *TRENDYOL) ve mutfak ekranına gider; mutfak yazıcıları kullanılmaz.
+                    </div>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="platform"/>
+                            <field name="company_id"/>
+                            <field name="pos_config_id"/>
+                            <field name="sales_line"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                        <group string="Bağlantı (yalnız yönetici)" groups="base.group_system">
+                            <field name="environment"/>
+                            <field name="supplier_ref"/>
+                            <field name="store_ref"/>
+                            <field name="api_key" password="True"/>
+                            <field name="api_secret" password="True"/>
+                            <field name="executor_user"/>
+                        </group>
+                    </group>
+                    <group string="POS satışı (Adım 2)">
+                        <group>
+                            <field name="auto_post" widget="boolean_toggle"/>
+                            <field name="post_from" required="auto_post"/>
+                        </group>
+                        <group>
+                            <field name="payment_method_id" required="auto_post"/>
+                            <field name="partner_id" required="auto_post"/>
+                        </group>
+                    </group>
+                    <group string="Son durum">
+                        <field name="last_sync"/>
+                        <field name="last_result"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cz_platform_account" model="ir.actions.act_window">
+        <field name="name">Platform Accounts</field>
+        <field name="res_model">cz.platform.account</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ================= Platform orders ================= -->
+    <record id="view_cz_platform_order_list" model="ir.ui.view">
+        <field name="name">cz.platform.order.list</field>
+        <field name="model">cz.platform.order</field>
+        <field name="arch" type="xml">
+            <list create="false" decoration-muted="status in ('Cancelled','UnSupplied')"
+                  decoration-danger="state == 'error'">
+                <field name="order_date"/>
+                <field name="order_number"/>
+                <field name="account_id"/>
+                <field name="status"/>
+                <field name="amount_total" sum="Total"/>
+                <field name="lines_total" sum="Lines" optional="hide"/>
+                <field name="payment_type" optional="show"/>
+                <field name="store_pickup" optional="hide"/>
+                <field name="order_code" optional="show"/>
+                <field name="state" decoration-success="state == 'posted'" decoration-warning="state in ('waiting_session','needs_mapping','review')" decoration-danger="state == 'error'" widget="badge"/>
+                <field name="pos_order_id" optional="show"/>
+                <field name="error" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cz_platform_order_form" model="ir.ui.view">
+        <field name="name">cz.platform.order.form</field>
+        <field name="model">cz.platform.order</field>
+        <field name="arch" type="xml">
+            <form create="false" edit="false">
+                <header>
+                    <button name="action_retry" type="object" string="Tekrar dene" class="btn-primary"
+                            invisible="state not in ('error','review','needs_mapping','waiting_session')"
+                            groups="base.group_system"/>
+                    <field name="state" widget="statusbar" statusbar_visible="new,posted"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-warning" role="alert" invisible="not error">
+                        <field name="error" readonly="1"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="order_number"/>
+                            <field name="package_ref"/>
+                            <field name="account_id"/>
+                            <field name="company_id"/>
+                            <field name="store_ref"/>
+                        </group>
+                        <group>
+                            <field name="status"/>
+                            <field name="order_date"/>
+                            <field name="modified_date"/>
+                            <field name="amount_total"/>
+                            <field name="lines_total"/>
+                            <field name="payment_type"/>
+                            <field name="order_code"/>
+                            <field name="customer_note"/>
+                            <field name="pos_order_id"/>
+                            <field name="refund_order_id" invisible="not refund_order_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Ürünler">
+                            <field name="line_ids">
+                                <list>
+                                    <field name="platform_product_ref"/>
+                                    <field name="name"/>
+                                    <field name="options"/>
+                                    <field name="qty"/>
+                                    <field name="price_unit"/>
+                                    <field name="subtotal" sum="Total"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Raw JSON" groups="base.group_system">
+                            <field name="raw_json"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_cz_platform_order_search" model="ir.ui.view">
+        <field name="name">cz.platform.order.search</field>
+        <field name="model">cz.platform.order</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="order_number"/>
+                <field name="account_id"/>
+                <filter name="delivered" string="Teslim edildi" domain="[('status','=','Delivered')]"/>
+                <filter name="cancelled" string="İptal" domain="[('status','in',('Cancelled','UnSupplied'))]"/>
+                <filter name="attention" string="Dikkat gerekiyor"
+                        domain="[('state','in',('needs_mapping','review','error','waiting_session'))]"/>
+                <filter name="posted" string="Kasaya düştü" domain="[('state','=','posted')]"/>
+                <separator/>
+                <filter name="today" string="Bugün"
+                        domain="[('order_date','&gt;=', (context_today()).strftime('%Y-%m-%d'))]"/>
+                <group expand="0" string="Group By">
+                    <filter name="by_account" string="Account" context="{'group_by': 'account_id'}"/>
+                    <filter name="by_status" string="Status" context="{'group_by': 'status'}"/>
+                    <filter name="by_day" string="Day" context="{'group_by': 'order_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cz_platform_order" model="ir.actions.act_window">
+        <field name="name">Platform Orders</field>
+        <field name="res_model">cz.platform.order</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ================= Product mapping ================= -->
+    <record id="view_cz_platform_product_map_list" model="ir.ui.view">
+        <field name="name">cz.platform.product.map.list</field>
+        <field name="model">cz.platform.product.map</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="account_id" column_invisible="context.get('default_account_id')"/>
+                <field name="kind"/>
+                <field name="platform_ref"/>
+                <field name="platform_name"/>
+                <field name="last_price"/>
+                <field name="product_id"/>
+                <field name="is_combo" column_invisible="1"/>
+                <field name="combo_choice_ids" widget="many2many_tags" readonly="not is_combo"/>
+                <field name="note" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_cz_platform_product_map" model="ir.actions.act_window">
+        <field name="name">Platform Product Mapping</field>
+        <field name="res_model">cz.platform.product.map</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <!-- ================= Menus (Point of Sale) ================= -->
+    <menuitem id="menu_cz_platform_root" name="Platform Orders"
+              parent="point_of_sale.menu_point_root" sequence="45"
+              groups="point_of_sale.group_pos_manager"/>
+    <menuitem id="menu_cz_platform_orders" name="Orders" parent="menu_cz_platform_root"
+              action="action_cz_platform_order" sequence="10"/>
+    <menuitem id="menu_cz_platform_accounts" name="Platform Accounts" parent="menu_cz_platform_root"
+              action="action_cz_platform_account" sequence="20" groups="base.group_system"/>
+    <menuitem id="menu_cz_platform_mapping" name="Product Mapping" parent="menu_cz_platform_root"
+              action="action_cz_platform_product_map" sequence="30" groups="base.group_system"/>
+</odoo>
