@@ -14,11 +14,18 @@ import { _t } from "@web/core/l10n/translation";
 patch(PosStore.prototype, {
     async initServerData() {
         const res = await super.initServerData(...arguments);
+        const notification = this.notification;
+        const fmt = (value) => {
+            try {
+                return this.env.utils.formatCurrency(value || 0);
+            } catch {
+                return `${Number(value || 0).toFixed(2)} ₺`;
+            }
+        };
         this.data.connectWebSocket("CZ_PLATFORM_ORDER", (payload) => {
             try {
-                const amount = this.env.utils.formatCurrency(payload.amount || 0);
-                this.notification.add(
-                    `🛵 ${payload.ref}${payload.code ? " · " + payload.code : ""} · ${amount}\n${payload.items || ""}`,
+                notification.add(
+                    `🛵 ${payload.ref}${payload.code ? " · " + payload.code : ""} · ${fmt(payload.amount)} — ${payload.items || ""}`,
                     { title: _t("Yeni Trendyol siparişi kasaya işlendi"), type: "info" }
                 );
             } catch (e) {
