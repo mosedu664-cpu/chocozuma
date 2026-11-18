@@ -214,11 +214,9 @@ class CzPlatformOrderPos(models.Model):
             self.write({'state': 'error', 'error': 'Payment method %s is not on POS %s.' % (method.name, config.name)})
             return False
 
-        note = 'TRENDYOL GO | Sipariş %s' % (self.order_number or self.package_ref[:12])
-        if self.order_code:
-            note += ' | Kod %s' % self.order_code
+        note = 'TRENDYOL GO | %s | Sipariş %s' % (self.order_code or '-', self.order_number or self.package_ref[:12])
         if self.customer_note:
-            note += ' | Not: %s' % self.customer_note
+            note += '\n' + self.customer_note
         order_vals = {
             'uuid': self._cz_uuid(),
             'name': self._cz_ref(),

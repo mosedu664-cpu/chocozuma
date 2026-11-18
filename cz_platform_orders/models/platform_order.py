@@ -39,9 +39,38 @@ def _num(value):
         return 0.0
 
 
+_STD = {
+    'servis istiyorum': 'SERVİS: EVET',
+    'servis istemiyorum': 'SERVİS: HAYIR',
+    'temassız teslimat istiyorum': 'TEMASSIZ TESLİMAT',
+}
+
+
+def clean_customer_note(text):
+    """Split Trendyol's note into standard flags + free text, and hide every
+    number of 2+ digits (door codes, flat numbers, phones) in the free text.
+    Returns a single kitchen-friendly line."""
+    if not text:
+        return ''
+    import re
+    flags, free = [], []
+    for part in [p.strip() for p in str(text).split(' - ') if p.strip()]:
+        key = part.lower().replace('i̇', 'i')
+        std = next((v for k, v in _STD.items() if k == key), None)
+        if std:
+            flags.append(std)
+        else:
+            free.append(re.sub(r'\d[\d\s]{1,}\d|\d{2,}', '••', part))
+    out = ' · '.join(flags)
+    if free:
+        out = (out + ' | ' if out else '') + 'Not: ' + ' / '.join(free)
+    return out[:250]
+
+
 def _strip_personal(obj):
     if isinstance(obj, dict):
-        return {k: _strip_personal(v) for k, v in obj.items() if k not in PERSONAL_KEYS}
+        return {k: (clean_customer_note(v) if k == 'customerNote' else _strip_personal(v))
+                for k, v in obj.items() if k not in PERSONAL_KEYS}
     if isinstance(obj, list):
         return [_strip_personal(v) for v in obj]
     return obj
@@ -136,7 +165,7 @@ class CzPlatformOrder(models.Model):
             'amount_total': _num(pkg.get('totalPrice') or pkg.get('amount') or payment.get('amount')),
             'lines_total': lines_total,
             'payment_type': payment.get('paymentType') or False,
-            'customer_note': (pkg.get('customerNote') or '')[:250] or False,
+            'customer_note': clean_customer_note(pkg.get('customerNote')) or False,
             'order_code': str(pkg.get('orderCode') or '') or False,
             'store_pickup': bool(pkg.get('storePickupSelected') or pkg.get('isStorePickup')),
             'raw_json': json.dumps(_strip_personal(pkg), ensure_ascii=False, indent=1)[:200000],
