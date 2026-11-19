@@ -31,6 +31,9 @@ POSTABLE = ('Created', 'Picking', 'Invoiced', 'Shipped', 'Delivered')
 CANCELLED = ('Cancelled', 'UnSupplied')
 
 
+# Trendyol paymentType values that mean the platform collected the money.
+ONLINE_PAYMENT_TYPES = ('PAY_WITH_CARD', 'PAY_WITH_MEAL_CARD_ONLINE', 'ONLINE')
+
 class CzPlatformOrderPos(models.Model):
     _inherit = 'cz.platform.order'
 
@@ -186,6 +189,12 @@ class CzPlatformOrderPos(models.Model):
         if existing:
             self.write({'state': 'posted', 'pos_order_id': existing.id, 'error': False})
             return True
+        if (self.payment_type or '').upper() not in ONLINE_PAYMENT_TYPES:
+            # Platform orders are online-paid only. A pay-at-door order may have
+            # been collected in the shop: never post it as online payment.
+            self.write({'state': 'review',
+                        'error': 'Kapıda ödeme (%s): otomatik girilmedi, kasada elle girin.' % (self.payment_type or '?')})
+            return False
         session = self._cz_lock_open_session(config)
         if not session:
             self.write({'state': 'waiting_session', 'error': 'POS oturumu açık değil (veya kapanıyor).'})
@@ -370,6 +379,11 @@ class CzPlatformOrderPos(models.Model):
             if self.env.context.get('cz_commit'):
                 # cron only: each order is its own unit of work
                 self.env.cr.commit()
+
+    def action_mark_manual(self):
+        """The cashier entered this order by hand: close it without posting."""
+        self.filtered(lambda r: r.state in ('review', 'needs_mapping', 'error') and not r.pos_order_id).write(
+            {'state': 'skipped', 'error': 'Kasada elle girildi (%s).' % self.env.user.name})
 
     def action_retry(self):
         todo = self.filtered(lambda r: r.state in ('error', 'review', 'needs_mapping', 'waiting_session'))
