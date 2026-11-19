@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Choco Zuma WhatsApp Reports",
-    "version": "18.0.1.2.0",
+    "version": "18.0.1.2.1",
     "summary": "Real-cost engine and CEO daily brief (slice 3: preview, PDF, WhatsApp template and sending)",
     "author": "Choco Zuma",
     "license": "LGPL-3",
