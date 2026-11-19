@@ -1,17 +1,30 @@
 # -*- coding: utf-8 -*-
 import re
-from datetime import timedelta
+from datetime import datetime, time, timedelta
+
+import pytz
 
 from markupsafe import Markup
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
-from . import brief_render
+from . import brief_render, marketing_data, marketing_render
 
 PAID = ("paid", "done", "invoiced")
 PLATFORM_RE = re.compile(r"trendyol|yemek|getir", re.I)
 STAFF_RE = re.compile(r"personel", re.I)
+TZ = pytz.timezone("Europe/Istanbul")
+CHANNELS = {
+    "salon": "Salon", "teras": "Teras", "whatsapp": "WhatsApp", "yemeksepeti": "Yemeksepeti",
+    "trendyolgo": "Trendyol Go", "trendyol": "Trendyol Go", "getir": "Getir", "migrosyemek": "Migros Yemek",
+    "personel": "STAFF", "pazarlama": "MKT",
+}
+MK_BODY = (
+    "Merhaba, Choco Zuma pazarlama raporu hazır: {{1}} iş günü.\n"
+    "Kayaşehir ve Metrokent toplam net satış {{2}} TL, {{3}} sipariş.\n"
+    "Günlük, haftalık, aylık ayrıntılar ve müşteri bilgileri ekteki PDF dosyasında."
+)
 
 
 class CzWaReport(models.Model):
@@ -20,7 +33,11 @@ class CzWaReport(models.Model):
     _order = "sequence, id"
 
     name = fields.Char(required=True)
-    code = fields.Selection([("ceo_daily", "CEO Daily Brief")], required=True, default="ceo_daily")
+    code = fields.Selection(
+        [("ceo_daily", "CEO Daily Brief"), ("marketing", "Marketing Report (TR)")], required=True, default="ceo_daily")
+    report_day = fields.Date(
+        string="Report day (test)", help="Leave empty: the last business day whose sessions are closed. "
+        "Only used by Preview and PDF; scheduled sending always uses the last closed day.")
     sequence = fields.Integer(default=10)
     active = fields.Boolean(default=True)
     config_ids = fields.Many2many("pos.config", string="Branches (POS)")
@@ -166,6 +183,170 @@ class CzWaReport(models.Model):
             branches.append(cur)
         return {"branches": branches, "skipped": skipped}
 
+    # ------------------------------------------------------- marketing data
+    @staticmethod
+    def _channel(floor_name):
+        key = re.sub(r"\s+", "", floor_name or "").lower()
+        if not key:
+            return "Tezgah"
+        if key.startswith("hatal"):
+            return "ERR"
+        return CHANNELS.get(key, (floor_name or "").strip().title())
+
+    @staticmethod
+    def _utc(day, hour=6):
+        local = TZ.localize(datetime.combine(day, time(hour)))
+        return local.astimezone(pytz.utc).replace(tzinfo=None)
+
+    @staticmethod
+    def _local(dt):
+        return pytz.utc.localize(dt).astimezone(TZ).replace(tzinfo=None)
+
+    def _business_day(self, dt):
+        return (self._local(dt) - timedelta(hours=6)).date()
+
+    def _marketing_orders(self, config, start, end):
+        """Orders of one branch between two business days (dates, inclusive), reduced for marketing_data."""
+        env = self.env
+        orders = env["pos.order"].search_read(
+            [("config_id", "=", config.id), ("state", "in", PAID),
+             ("create_date", ">=", self._utc(start)), ("create_date", "<", self._utc(end + timedelta(days=1)))],
+            ["create_date", "amount_total", "amount_tax", "table_id", "partner_id"])
+        tables = env["restaurant.table"].with_context(active_test=False).browse(
+            list({o["table_id"][0] for o in orders if o["table_id"]}))
+        floor = {t.id: (t.floor_id.name or "") for t in tables}
+        partners = env["res.partner"].with_context(active_test=False).browse(
+            list({o["partner_id"][0] for o in orders if o["partner_id"]}))
+        generic = {p.id for p in partners if (p.name or "").strip()[:1] in ("*", "!")}
+        Line = env["pos.order.line"]
+        line_fields = ["order_id", "product_id", "qty", "price_subtotal", "price_unit"]
+        if "is_reward_line" in Line._fields:
+            line_fields += ["is_reward_line", "reward_id"]
+        lines = Line.search_read([("order_id", "in", [o["id"] for o in orders])], line_fields)
+        products = env["product.product"].with_context(active_test=False, lang="tr_TR").browse(list({l["product_id"][0] for l in lines if l["product_id"]}))
+        pinfo = {}
+        for p in products:
+            # families are read from the English category names (the Turkish translations differ)
+            cats = [c.name or "" for c in p.with_context(lang="en_US").pos_categ_ids] if "pos_categ_ids" in p._fields else []
+            name = marketing_data.clean_name(p.name)
+            pinfo[p.id] = (name, marketing_data.family(name, cats), marketing_data.is_extra(name, cats))
+        rewards = {}
+        if "is_reward_line" in Line._fields:
+            rw = env["loyalty.reward"].with_context(active_test=False).browse(list({l["reward_id"][0] for l in lines if l.get("reward_id")}))
+            rewards = {r.id: (r.program_id.name or r.description or "") for r in rw}
+        out = {}
+        for o in orders:
+            local = self._local(o["create_date"])
+            channel = self._channel(floor.get(o["table_id"][0]) if o["table_id"] else "")
+            partner = o["partner_id"][0] if o["partner_id"] else 0
+            out[o["id"]] = {
+                "day": (local - timedelta(hours=6)).date().isoformat(),
+                "hour": local.hour + (24 if local.hour < 6 else 0),
+                "ch": channel,
+                "net": o["amount_total"] - o["amount_tax"],
+                "tot": o["amount_total"],
+                "partner": 0 if partner in generic else partner,
+                "lines": [],
+            }
+        mk_lines = [l["id"] for l in lines if out[l["order_id"][0]]["ch"] == "MKT"]
+        list_value = {}
+        for line in Line.browse(mk_lines):
+            taxes = line.tax_ids_after_fiscal_position
+            total = line.price_unit * line.qty
+            if taxes:
+                total = taxes.compute_all(line.price_unit, line.order_id.currency_id, line.qty, product=line.product_id)["total_excluded"]
+            list_value[line.id] = total
+        for l in lines:
+            name, fam, extra = pinfo.get(l["product_id"][0] if l["product_id"] else 0, ("", "Diğer", False))
+            out[l["order_id"][0]]["lines"].append({
+                "name": name, "fam": fam, "extra": extra, "qty": l["qty"], "sub": l["price_subtotal"],
+                "reward": bool(l.get("is_reward_line")),
+                "program": rewards.get(l["reward_id"][0], "") if l.get("reward_id") else "",
+                "list": list_value.get(l["id"], 0.0),
+            })
+        return list(out.values())
+
+    def _first_days(self, partner_ids):
+        """Business day of each customer's first ever paid order (all branches)."""
+        if not partner_ids:
+            return {}
+        groups = self.env["pos.order"]._read_group(
+            [("partner_id", "in", list(partner_ids)), ("state", "in", PAID)], ["partner_id"], ["create_date:min"])
+        return {p.id: self._business_day(first).isoformat() for p, first in groups if first}
+
+    def _marketing_last_day(self, fresh_since=None):
+        """(business day, skipped branch names) from the last closed sessions of the branches."""
+        stops, skipped = [], []
+        for config in self.config_ids:
+            sessions = self._last_sessions(config, count=1)
+            if not sessions or (fresh_since and sessions.stop_at and sessions.stop_at < fresh_since):
+                skipped.append(config.name)
+                continue
+            stops.append(sessions.stop_at)
+        return (self._business_day(max(stops)) if stops else None), skipped
+
+    def _marketing_data(self, day=None):
+        self.ensure_one()
+        companies = self.env["res.company"].sudo().search([])
+        self = self.sudo().with_context(allowed_company_ids=companies.ids)
+        if not self.config_ids:
+            raise UserError(_("Choose the POS branches on the report."))
+        if not day:
+            day = self.report_day or self._marketing_last_day()[0]
+        if not day:
+            raise UserError(_("No closed POS session found."))
+        D = day.isoformat()
+        start = marketing_data.window_start(D)
+        branches, partners = {}, set()
+        for i, config in enumerate(self.config_ids.sorted("id")):
+            orders = self._marketing_orders(config, start, day)
+            partners |= {o["partner"] for o in orders if o["partner"] and o["ch"] == "WhatsApp"}
+            name = (config.name or "").replace("Choco Zuma", "").strip()
+            name = name[:1].upper() + name[1:] if name else config.display_name
+            branches["%02d" % i] = {"name": name, "orders": orders}
+        first = self._first_days(partners)
+        for b in branches.values():
+            b["first_day"] = first
+        return marketing_data.build(D, branches)
+
+    def get_marketing_data(self, day=None):
+        """JSON of the marketing view-model (used to cross-check the report from the browser)."""
+        self.ensure_one()
+        if not self.env.user.has_group("base.group_system"):
+            raise UserError(_("Only administrators."))
+        return self._marketing_data(fields.Date.to_date(day) if day else None)
+
+    def _marketing_text(self, data):
+        d = data["D"]
+        lines = ["Choco Zuma · Pazarlama Raporu · %s" % ".".join(reversed(d.split("-")))]
+        for b in [data["br"][k] for k in sorted(data["br"])]:
+            day = b["day"]
+            pct = brief_render.pct_change(day["net"], b["avg4"][0])[0] if b["avg4"][2] else "-"
+            lines.append("%s: net %s TL, %s sipariş, 4 hafta ortalamasına göre %s" % (
+                b["name"], marketing_render.num(day["net"]), day["n"], pct))
+        return "\n".join(lines)
+
+    def _payload(self, data=None):
+        """What one send needs: business day text, totals for the template and the PDF html."""
+        self.ensure_one()
+        if self.code == "marketing":
+            data = data or self._marketing_data()
+            total = sum(b["day"]["net"] for b in data["br"].values())
+            orders = sum(b["day"]["n"] for b in data["br"].values())
+            return {
+                "day": ".".join(reversed(data["D"].split("-"))),
+                "net_text": marketing_render.num(total),
+                "orders_text": str(orders),
+                "html": marketing_render.render_html(data),
+            }
+        if not data["branches"]:
+            raise UserError(_("No closed POS session found."))
+        vm = self._ceo_brief_vm(data)
+        return {
+            "day": vm["date"], "net_text": brief_render.money(vm["net"]), "orders_text": str(vm["orders"]),
+            "html": brief_render.render_html(vm),
+        }
+
     # ------------------------------------------------------------- rendering
     def _ceo_brief_vm(self, data):
         """Plain view-model (numbers and names only) shared by text and PDF."""
@@ -243,6 +424,8 @@ class CzWaReport(models.Model):
     def _ceo_brief_html(self):
         """HTML body of the PDF brief (used by the QWeb report)."""
         self.ensure_one()
+        if self.code == "marketing":
+            return Markup(marketing_render.render_html(self._marketing_data()))
         data = self._ceo_brief_data()
         if not data["branches"]:
             raise UserError(_("No closed POS session found."))
@@ -252,6 +435,11 @@ class CzWaReport(models.Model):
         for report in self:
             log = self.env["cz.wa.report.log"].create({"report_id": report.id, "state": "preview"})
             try:
+                if report.code == "marketing":
+                    report.write({"preview_text": report._marketing_text(report._marketing_data()),
+                                  "preview_date": fields.Datetime.now()})
+                    log.write({"note": "ok"})
+                    continue
                 data = report._ceo_brief_data()
                 if data["branches"]:
                     text = brief_render.render_text(report._ceo_brief_vm(data))
@@ -282,23 +470,26 @@ class CzWaReport(models.Model):
         account = self.env["whatsapp.account"].search([], limit=1)
         if not account:
             raise UserError(_("No WhatsApp account is configured."))
+        marketing = self.code == "marketing"
         template = self.env["whatsapp.template"].create({
-            "name": "CZ CEO Daily Brief",
-            "template_name": "cz_ceo_daily_brief",
+            "name": "CZ Marketing Report" if marketing else "CZ CEO Daily Brief",
+            "template_name": "cz_marketing_daily" if marketing else "cz_ceo_daily_brief",
             "wa_account_id": account.id,
             "model_id": self.env["ir.model"]._get_id("cz.wa.report.log"),
             "phone_field": "mobile",
-            "lang_code": "ar",
+            "lang_code": "tr" if marketing else "ar",
             "template_type": "utility",
             "header_type": "document",
-            "report_id": self.env.ref("cz_whatsapp_reports.action_report_ceo_brief_log").id,
-            "body": self.WA_BODY,
+            "report_id": self.env.ref(
+                "cz_whatsapp_reports.action_report_marketing_log" if marketing
+                else "cz_whatsapp_reports.action_report_ceo_brief_log").id,
+            "body": MK_BODY if marketing else self.WA_BODY,
             "footer_text": "Choco Zuma Reports",
         })
         wanted = {
-            "{{1}}": ("business_day", "18/11/2026"),
-            "{{2}}": ("net_text", "200,983"),
-            "{{3}}": ("orders_text", "230"),
+            "{{1}}": ("business_day", "18.11.2026" if marketing else "18/11/2026"),
+            "{{2}}": ("net_text", "199.788" if marketing else "200,983"),
+            "{{3}}": ("orders_text", "217" if marketing else "230"),
         }
         Variable = self.env["whatsapp.template.variable"]
         for name, (field_name, demo) in wanted.items():
@@ -344,20 +535,17 @@ class CzWaReport(models.Model):
         recipients = self._recipient_numbers()
         if not recipients:
             raise UserError(_("No WhatsApp number on the report."))
-        if not data["branches"]:
-            raise UserError(_("No closed POS session found."))
-        vm = self._ceo_brief_vm(data)
-        html = brief_render.render_html(vm)
+        pay = self._payload(data)
         Log = self.env["cz.wa.report.log"]
         logs = Log.create([{
             "report_id": self.id,
             "state": "sent",
             "partner_id": partner_id,
             "mobile": number,
-            "business_day": vm["date"],
-            "net_text": brief_render.money(vm["net"]),
-            "orders_text": str(vm["orders"]),
-            "brief_html": html,
+            "business_day": pay["day"],
+            "net_text": pay["net_text"],
+            "orders_text": pay["orders_text"],
+            "brief_html": pay["html"],
         } for partner_id, number in recipients])
         composer = self.env["whatsapp.composer"].with_context(active_model=Log._name, active_ids=logs.ids).create({
             "res_model": Log._name,
@@ -381,7 +569,8 @@ class CzWaReport(models.Model):
 
     def action_send_now(self):
         self.ensure_one()
-        logs = self._send_brief(self._ceo_brief_data())
+        data = self._marketing_data() if self.code == "marketing" else self._ceo_brief_data()
+        logs = self._send_brief(data)
         failed = logs.filtered(lambda l: l.state == "error")
         return {
             "type": "ir.actions.client", "tag": "display_notification",
@@ -398,12 +587,27 @@ class CzWaReport(models.Model):
         """Runs every 30 minutes; sends each report once per business day, after its branches closed."""
         now = fields.Datetime.now()
         fresh_since = now - timedelta(hours=10)
+        local_hour = fields.Datetime.context_timestamp(self.with_context(tz="Europe/Istanbul"), now).hour
+        for report in self.search([("code", "=", "marketing"), ("wa_template_id.status", "=", "approved")]):
+            try:
+                day, skipped = report._marketing_last_day(fresh_since=fresh_since)
+                if not day or (skipped and not (4 <= local_hour < 12)):
+                    continue
+                if self.env["cz.wa.report.log"].search_count([
+                    ("report_id", "=", report.id), ("business_day", "=", day.strftime("%d.%m.%Y")), ("state", "=", "sent"),
+                ]):
+                    continue
+                report._send_brief(report._marketing_data(day))
+                self.env.cr.commit()
+            except Exception as err:
+                self.env.cr.rollback()
+                self.env["cz.wa.report.log"].create({"report_id": report.id, "state": "error", "note": "cron: %s" % str(err)[:1500]})
+                self.env.cr.commit()
         for report in self.search([("code", "=", "ceo_daily"), ("wa_template_id.status", "=", "approved")]):
             try:
                 data = report._ceo_brief_data(fresh_since=fresh_since)
                 if not data["branches"]:
                     continue
-                local_hour = fields.Datetime.context_timestamp(report.with_context(tz="Europe/Istanbul"), now).hour
                 if data["skipped"] and not (4 <= local_hour < 12):
                     continue  # a branch is still open: wait for it until 04:00
                 day = report._ceo_brief_vm(data)["date"]
@@ -420,7 +624,8 @@ class CzWaReport(models.Model):
 
     def action_print_pdf(self):
         self.ensure_one()
-        return self.env.ref("cz_whatsapp_reports.action_report_ceo_brief").report_action(self)
+        ref = "action_report_marketing" if self.code == "marketing" else "action_report_ceo_brief"
+        return self.env.ref("cz_whatsapp_reports.%s" % ref).report_action(self)
 
 
 class ReportCeoBrief(models.AbstractModel):

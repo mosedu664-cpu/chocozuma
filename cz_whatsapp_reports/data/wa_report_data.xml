@@ -4,4 +4,10 @@
         <field name="name">CEO Daily Brief</field>
         <field name="code">ceo_daily</field>
     </record>
+    <record id="report_marketing_daily" model="cz.wa.report">
+        <field name="name">Pazarlama Raporu (Kayaşehir + Metrokent)</field>
+        <field name="code">marketing</field>
+        <field name="sequence">20</field>
+        <field name="phone_numbers">+905444436338, +905333778269</field>
+    </record>
 </odoo>
