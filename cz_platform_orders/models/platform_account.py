@@ -256,9 +256,65 @@ class CzPlatformAccount(models.Model):
                        'type': 'success' if ok else 'danger', 'sticky': not ok},
         }
 
+    # --- one payment method per platform (Kayaşehir) ----------------------
+    PLATFORM_METHODS = [
+        ('TYC', 'Trendyol Çikolata', 'chocolate'),
+        ('TYK', 'Trendyol Kahvaltı', 'breakfast'),
+        ('YSC', 'Yemeksepeti Çikolata', None),
+        ('YSK', 'Yemeksepeti Kahvaltı', None),
+    ]
+    PM_SPLIT_PARAM = 'cz_platform_orders.pm_split_done'
+
+    @api.model
+    def _cz_ensure_platform_methods(self):
+        """Once: create journal + POS payment method per platform on the POS
+        that receives both chocolate and breakfast Trendyol orders, and point
+        the Trendyol accounts to their own method. Runs from the cron (full
+        registry loaded: a module-upgrade migration cannot create accounts
+        because account_asset is not loaded yet). Idempotent by journal code.
+        'Online Payment' is left untouched."""
+        ICP = self.env['ir.config_parameter'].sudo()
+        if ICP.get_param(self.PM_SPLIT_PARAM):
+            return
+        accounts = self.sudo().with_context(active_test=False).search([
+            ('platform', '=', 'trendyol_yemek'), ('pos_config_id', '!=', False)])
+        configs = accounts.filtered(lambda a: a.sales_line == 'breakfast').pos_config_id
+        for config in configs:
+            company = config.company_id
+            Journal = self.env['account.journal'].sudo().with_company(company)
+            Method = self.env['pos.payment.method'].sudo().with_company(company)
+            by_line = {}
+            for code, name, line in self.PLATFORM_METHODS:
+                journal = Journal.search([('code', '=', code), ('company_id', '=', company.id)], limit=1)
+                if not journal:
+                    journal = Journal.create({'name': name + ' Tahsilat', 'code': code,
+                                              'type': 'bank', 'company_id': company.id})
+                method = Method.with_context(active_test=False).search(
+                    [('journal_id', '=', journal.id), ('company_id', '=', company.id)], limit=1)
+                if not method:
+                    method = Method.create({'name': name, 'journal_id': journal.id,
+                                            'company_id': company.id})
+                if config not in method.config_ids:
+                    # written from the method side: allowed while a session exists
+                    method.write({'config_ids': [(4, config.id)]})
+                if line:
+                    by_line[line] = method
+                _logger.info("cz_platform_orders: %s -> journal %s, method %s on %s",
+                             name, journal.code, method.id, config.name)
+            for acc in accounts.filtered(lambda a: a.pos_config_id == config):
+                method = by_line.get(acc.sales_line)
+                if method and acc.payment_method_id != method:
+                    acc.payment_method_id = method
+        ICP.set_param(self.PM_SPLIT_PARAM, fields.Datetime.now())
+
     # --- cron -------------------------------------------------------------
     @api.model
     def _cron_sync(self):
+        try:
+            with self.env.cr.savepoint():
+                self._cz_ensure_platform_methods()
+        except Exception:  # noqa: BLE001 - never block order reading
+            _logger.exception("cz_platform_orders: payment method split failed")
         now = int(time.time() * 1000)
         self = self.with_context(cz_commit=True)
         for acc in self.search([('platform', '=', 'trendyol_yemek')]):
