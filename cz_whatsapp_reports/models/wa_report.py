@@ -226,7 +226,8 @@ class CzWaReport(models.Model):
         products = env["product.product"].with_context(active_test=False, lang="tr_TR").browse(list({l["product_id"][0] for l in lines if l["product_id"]}))
         pinfo = {}
         for p in products:
-            cats = [c.name or "" for c in p.pos_categ_ids] if "pos_categ_ids" in p._fields else []
+            # families are read from the English category names (the Turkish translations differ)
+            cats = [c.name or "" for c in p.with_context(lang="en_US").pos_categ_ids] if "pos_categ_ids" in p._fields else []
             name = marketing_data.clean_name(p.name)
             pinfo[p.id] = (name, marketing_data.family(name, cats), marketing_data.is_extra(name, cats))
         rewards = {}

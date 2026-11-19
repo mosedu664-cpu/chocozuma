@@ -24,7 +24,7 @@ DAYPARTS = (("Sabah", 6, 11), ("Öğle", 11, 15), ("İkindi", 15, 18), ("Akşam"
 HEAT_HOURS = list(range(9, 25))
 SHORT_RATIO = 0.35
 
-DRINK_CATS = {"beverages", "black coffee", "cold coffee", "hot chocolate", "hot coffee", "milk-based coffee",
+DRINK_CATS = {"beverages", "soft drinks", "drinks", "black coffee", "cold coffee", "hot chocolate", "hot coffee", "milk-based coffee",
               "frappe", "herbal teas", "milkshake", "smoothie"}
 DRINK_RE = re.compile(
     r"\b(çay|cay|su|soda|coffee|kahve|latte|americano|espresso|mocha|cortado|cappuccino|macchiato|frappe|"
@@ -141,8 +141,6 @@ def base(orders, first_day, start, end):
             continue
         r["net"] += o["net"]
         r["ch"].setdefault(o["ch"], [0.0, 0, 0])[0] += o["net"]
-        if o["ch"] in IN_STORE:
-            r["dp"].setdefault(daypart(o["hour"]), [0.0, 0])[0] += o["net"]
         for l in o["lines"]:
             if l["reward"]:
                 continue
@@ -276,11 +274,12 @@ def build_branch(name, orders, first_day, D):
         wd_days[js_wd(iso_d(x))] = wd_days.get(js_wd(iso_d(x)), 0) + 1
     dp28 = {}
     for o in orders:
-        if not (is_sale(o) or is_refund(o)) or o["ch"] not in IN_STORE or o["day"] < d28[0] or o["day"] > D:
+        # day parts and hours: sales only (a refund is punched at another hour than the sale)
+        if not is_sale(o) or o["ch"] not in IN_STORE or o["day"] < d28[0] or o["day"] > D:
             continue
         p = dp28.setdefault(daypart(o["hour"]), [0.0, 0])
         p[0] += o["net"]
-        p[1] += 1 if is_sale(o) else 0
+        p[1] += 1
         if o["day"] in valid:
             hh = min(max(o["hour"], HEAT_HOURS[0]), HEAT_HOURS[-1])
             heat[js_wd(iso_d(o["day"]))][hh - HEAT_HOURS[0]] += o["net"]
