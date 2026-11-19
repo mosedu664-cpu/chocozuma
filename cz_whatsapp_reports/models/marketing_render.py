@@ -190,13 +190,13 @@ def team_notes(data):
 
 # ---------------------------------------------------------------------- css
 CSS = """
-html,body{margin:0;padding:0;background:#f7f1e6;}
+html,body{margin:0;padding:0;background:#ffffff;}
 .container,.container-fluid{padding:0 !important;margin:0 !important;max-width:none !important;width:100% !important;}
-.mk{font-family:'CZLatin','DejaVu Sans',sans-serif;font-size:11.5px;line-height:1.45;color:#2a1b12;background:#f7f1e6;text-align:left;direction:ltr;}
+.mk{font-family:'CZLatin','DejaVu Sans',sans-serif;font-size:11.5px;line-height:1.45;color:#2a1b12;background:#ffffff;text-align:left;direction:ltr;}
 .mk table{border-collapse:collapse;width:100%;}
 .mk table,.mk thead,.mk tbody,.mk tr,.mk td,.mk th{border:0 none !important;}
 .mk td,.mk th{padding:0;vertical-align:top;text-align:left;font-weight:normal;}
-.mk .page{padding:0 0 10px 0;min-height:1440px;}
+.mk .page{padding:0 0 10px 0;}
 .mk .pb{page-break-before:always;}
 .mk .head{background:#1c110a;color:#f7f1e6;padding:16px 34px 12px 34px;border-bottom:4px solid #c9a24a;}
 .mk .brand{font-family:'CZMessiri','CZLatin',sans-serif;font-size:26px;line-height:1.2;color:#c9a24a;font-weight:bold;}
@@ -208,11 +208,11 @@ html,body{margin:0;padding:0;background:#f7f1e6;}
 .mk .colR{float:right;width:49.3%;}
 .mk .clr{clear:both;height:0;font-size:0;line-height:0;}
 .mk .bt{background:#1c110a;color:#c9a24a;padding:6px 12px;font-size:15px;font-weight:bold;border-left:5px solid #c9a24a;}
-.mk .box{background:#ffffff;border:1px solid #e3d6bd;padding:8px 11px 7px 11px;margin-top:8px;}
+.mk .box{background:#fdfaf4;border:1px solid #e3d6bd;padding:8px 11px 7px 11px;margin-top:8px;}
 .mk .st{font-family:'CZMessiri','CZLatin',sans-serif;font-weight:bold;font-size:13px;color:#1f8a84;border-bottom:1px solid #e3d6bd;padding-bottom:2px;margin-bottom:3px;}
 .mk .st small{font-family:'CZLatin',sans-serif;font-weight:normal;font-size:10px;color:#7a6652;}
 .mk .kpis td{padding:0 3px;} .mk .kpis td:first-child{padding-left:0;} .mk .kpis td:last-child{padding-right:0;}
-.mk .kpi{background:#ffffff;border:1px solid #e3d6bd;border-top:3px solid #c9a24a;padding:6px 8px 5px 8px;margin-top:8px;}
+.mk .kpi{background:#fdfaf4;border:1px solid #e3d6bd;border-top:3px solid #c9a24a;padding:6px 8px 5px 8px;margin-top:8px;}
 .mk .kl{font-size:10px;color:#7a6652;}
 .mk .kv{font-family:'CZMessiri','CZLatin',sans-serif;font-size:18px;line-height:1.25;font-weight:bold;color:#1c110a;white-space:nowrap;}
 .mk .ks{font-size:10px;color:#7a6652;}
