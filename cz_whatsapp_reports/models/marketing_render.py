@@ -478,7 +478,8 @@ def page_customers(data, b):
     return "".join(p)
 
 
-def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/"):
+def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0.75):
+    """zoom: Odoo's wkhtmltopdf lays the A4 page out at 794 css px wide; the layout is designed for ~1030 px."""
     dt = iso_date(data["D"])
     brs = [data["br"][k] for k in sorted(data["br"])]
     left, right = brs[0], brs[1] if len(brs) > 1 else None
@@ -489,7 +490,7 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/"):
         "kanalları (Salon, Teras, Tezgah, WhatsApp) kapsar; platform siparişlerinin kasaya giriş saati gerçek sipariş saati değildir. "
         "Platform sipariş adetleri toplu girişlerde gerçeği yansıtmaz; tutarlar doğrudur.</div>"
     )
-    p = ["<style>%s%s</style>" % (FONTS % {"base": font_base}, CSS), '<div class="mk">']
+    p = ["<style>%s%s</style>" % (FONTS % {"base": font_base}, CSS), '<div class="mk" style="zoom:%s;">' % zoom]
 
     def two(fn):
         s = '<div class="wrap"><div class="colL">%s</div>' % fn(data, left)
