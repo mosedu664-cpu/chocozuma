@@ -22,8 +22,13 @@
             <form>
                 <header>
                     <button name="action_preview" type="object" string="Preview" class="btn-primary"/>
+                    <button name="action_print_pdf" type="object" string="PDF"/>
                 </header>
                 <sheet>
+                    <div invisible="not preview_text" dir="rtl"
+                         style="direction:rtl;text-align:right;background:#f7f1e6;border:1px solid #e3d6bd;border-right:5px solid #c9a24a;padding:14px 18px;margin-bottom:16px;font-size:15px;line-height:1.7;">
+                        <field name="preview_text" nolabel="1" readonly="1"/>
+                    </div>
                     <group>
                         <group>
                             <field name="name"/>
@@ -46,9 +51,6 @@
                         </group>
                     </group>
                     <notebook>
-                        <page string="Preview">
-                            <field name="preview_text" nolabel="1"/>
-                        </page>
                         <page string="Log">
                             <field name="log_ids">
                                 <list>
