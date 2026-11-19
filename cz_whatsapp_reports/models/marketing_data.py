@@ -30,7 +30,8 @@ DRINK_RE = re.compile(
     r"\b(çay|cay|su|soda|coffee|kahve|latte|americano|espresso|mocha|cortado|cappuccino|macchiato|frappe|"
     r"milkshake|smoothie|lemonade|limonata|juice|tea|flat white|milk|ayran)\b", re.I)
 BAKERY_RE = re.compile(r"croissant|kruvasan|omelet|brioche|parfait|simit|poğaça|pogaca", re.I)
-WATER_TEA_RE = re.compile(r"^(çay|cay|su)\b", re.I)
+WATER_TEA_RE = re.compile(r"^(çay|cay|su|water|turkish tea)\b", re.I)
+TEA_RE = re.compile(r"^(çay|cay|turkish tea)$", re.I)
 
 
 # ------------------------------------------------------------------ products
@@ -41,6 +42,9 @@ def clean_name(name):
         prev = n
         n = re.sub(r"\s*\((?:P|P O|W|Custom Combo)\)\s*$", "", n, flags=re.I)
     n = re.sub(r"\s+Base$", "", n, flags=re.I)
+    if re.search(r"kampan", n, re.I):  # campaign copies: "24\\10 Kampanya Zuma Roll" -> "Zuma Roll"
+        n = re.sub(r"\(P\)|\bkampan\w*\b|\d+(?:\s*[.\\/]\s*\d+)+", " ", n, flags=re.I)
+    n = re.sub(r"\s+New$", "", re.sub(r"\s+", " ", n).strip(), flags=re.I)
     n = n.replace("Profitreole", "Profiterole")
     if n.lower() == "çay" or n.lower() == "cay":
         n = "Çay"
@@ -105,7 +109,13 @@ def median(vals):
 
 
 def is_sale(o):
+    """An order counted as a sale (orders and averages)."""
     return o["tot"] > 0 and o["ch"] not in NOT_SALES
+
+
+def is_refund(o):
+    """A refund on a sales floor: reduces net sales, is not counted as an order."""
+    return o["tot"] < 0 and o["ch"] not in NOT_SALES
 
 
 # --------------------------------------------------------------- aggregation
@@ -126,6 +136,21 @@ def base(orders, first_day, start, end):
         elif o["ch"] == "MKT":
             r["mk"][0] += 1
             r["mk"][1] += sum(l["list"] for l in o["lines"] if not l["reward"])
+    for o in sel:
+        if not is_refund(o):
+            continue
+        r["net"] += o["net"]
+        r["ch"].setdefault(o["ch"], [0.0, 0, 0])[0] += o["net"]
+        if o["ch"] in IN_STORE:
+            r["dp"].setdefault(daypart(o["hour"]), [0.0, 0])[0] += o["net"]
+        for l in o["lines"]:
+            if l["reward"]:
+                continue
+            r["fam"][l["fam"]] = r["fam"].get(l["fam"], 0.0) + l["sub"]
+            if not l["extra"] and l["sub"] < 0:
+                p = prods.setdefault(l["name"], [0.0, 0.0])
+                p[0] += l["qty"]
+                p[1] += l["sub"]
     for o in sales:
         r["net"] += o["net"]
         r["n"] += 1
@@ -163,7 +188,7 @@ def base(orders, first_day, start, end):
             r["fam"][l["fam"]] = r["fam"].get(l["fam"], 0.0) + l["sub"]
             if l["qty"] > 0 and not l["extra"] and l["fam"] == "İçecek":
                 drink = True
-            if l["name"] == "Çay" and l["qty"] > 0:
+            if TEA_RE.match(l["name"]) and l["qty"] > 0:
                 tea = True
             if l["sub"] > 0 and not l["extra"]:
                 p = prods.setdefault(l["name"], [0.0, 0.0])
@@ -196,10 +221,10 @@ def top_products(prods, k):
 def daily(orders):
     out = {}
     for o in orders:
-        if is_sale(o):
+        if is_sale(o) or is_refund(o):
             v = out.setdefault(o["day"], [0.0, 0])
             v[0] += o["net"]
-            v[1] += 1
+            v[1] += 1 if is_sale(o) else 0
     return out
 
 
@@ -251,11 +276,11 @@ def build_branch(name, orders, first_day, D):
         wd_days[js_wd(iso_d(x))] = wd_days.get(js_wd(iso_d(x)), 0) + 1
     dp28 = {}
     for o in orders:
-        if not is_sale(o) or o["ch"] not in IN_STORE or o["day"] < d28[0] or o["day"] > D:
+        if not (is_sale(o) or is_refund(o)) or o["ch"] not in IN_STORE or o["day"] < d28[0] or o["day"] > D:
             continue
         p = dp28.setdefault(daypart(o["hour"]), [0.0, 0])
         p[0] += o["net"]
-        p[1] += 1
+        p[1] += 1 if is_sale(o) else 0
         if o["day"] in valid:
             hh = min(max(o["hour"], HEAT_HOURS[0]), HEAT_HOURS[-1])
             heat[js_wd(iso_d(o["day"]))][hh - HEAT_HOURS[0]] += o["net"]
