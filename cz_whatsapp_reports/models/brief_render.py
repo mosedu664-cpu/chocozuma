@@ -104,15 +104,15 @@ html,body{margin:0;padding:0;background:#f7f1e6;}
 .czb td,.czb th{padding:0;vertical-align:top;text-align:right;font-weight:normal;}
 .czb .l{direction:ltr;unicode-bidi:embed;white-space:nowrap;}
 .czb .lat{font-family:'CZLatin','DejaVu Sans',sans-serif;}
-.czb .head{background:#1c110a;color:#f7f1e6;padding:26px 40px 20px 40px;border-bottom:4px solid #c9a24a;}
+.czb .head{background:#1c110a;color:#f7f1e6;padding:18px 40px 14px 40px;border-bottom:4px solid #c9a24a;}
 .czb .brand{font-family:'CZMessiri','CZPlex',sans-serif;font-size:34px;line-height:1.2;color:#c9a24a;font-weight:bold;}
 .czb .sub{font-size:14px;color:#e7dcc6;margin-top:2px;}
 .czb .date{font-family:'CZMessiri','CZPlex',sans-serif;font-size:22px;color:#f7f1e6;text-align:left;font-weight:bold;}
 .czb .datel{font-size:12px;color:#c9a24a;text-align:left;}
-.czb .wrap{padding:18px 40px 8px 40px;}
+.czb .wrap{padding:14px 40px 8px 40px;}
 .czb .kpi{background:#ffffff;border:1px solid #e3d6bd;border-top:3px solid #c9a24a;padding:12px 14px 10px 14px;}
 .czb .kl{font-size:12px;color:#7a6652;}
-.czb .kv{font-family:'CZMessiri','CZPlex',sans-serif;font-size:25px;line-height:1.3;font-weight:bold;color:#1c110a;}
+.czb .kv{font-family:'CZMessiri','CZPlex',sans-serif;font-size:22px;line-height:1.3;font-weight:bold;color:#1c110a;}
 .czb .kv small{font-size:13px;color:#7a6652;font-weight:normal;}
 .czb .up{color:#1f8a84;} .czb .down{color:#b5532e;}
 .czb .gap{width:12px;}
@@ -120,13 +120,14 @@ html,body{margin:0;padding:0;background:#f7f1e6;}
 .czb .at{font-family:'CZMessiri','CZPlex',sans-serif;font-weight:bold;color:#b5532e;font-size:15px;margin-bottom:2px;}
 .czb td.ai{padding:3px 0;vertical-align:middle;}
 .czb .an{display:block;width:20px;height:20px;line-height:20px;text-align:center;background:#b5532e;color:#fff;font-size:11px;}
-.czb .branch{margin-top:18px;page-break-inside:avoid;}
+.czb .branch{margin-top:18px;}
+.czb .pb{page-break-before:always;padding-top:24px;}
 .czb .bt{background:#1c110a;color:#f7f1e6;padding:8px 14px;border-right:5px solid #c9a24a;}
 .czb .bn{font-family:'CZLatin','DejaVu Sans',sans-serif;font-size:17px;font-weight:bold;color:#c9a24a;}
 .czb .bs{font-size:11px;color:#e7dcc6;text-align:left;}
 .czb .box{background:#ffffff;border:1px solid #e3d6bd;padding:10px 14px;margin-top:10px;}
 .czb .st{font-family:'CZMessiri','CZPlex',sans-serif;font-weight:bold;font-size:14px;color:#1f8a84;border-bottom:1px solid #e3d6bd;padding-bottom:3px;margin-bottom:4px;}
-.czb .row td{padding:4px 0;border-bottom:1px dotted #e3d6bd;font-size:12.5px;}
+.czb .row td{padding:3px 0;border-bottom:1px dotted #e3d6bd;font-size:12.5px;}
 .czb .row td.v{text-align:left;white-space:nowrap;font-weight:bold;}
 .czb .row td.m{text-align:left;white-space:nowrap;color:#7a6652;padding-left:10px;}
 .czb .bar{height:5px;background:#efe6d3;margin-top:2px;}
@@ -211,8 +212,8 @@ def render_html(vm, font_base="/cz_whatsapp_reports/static/src/fonts/"):
                 '<td class="ai" style="width:190px;font-weight:bold;">%s</td><td class="ai">%s</td></tr>' % (i, _lat(a["branch"]), text)
             )
         p.append("</table></div>")
-    for b in vm["branches"]:
-        p.append('<div class="branch">')
+    for idx, b in enumerate(vm["branches"]):
+        p.append('<div class="branch%s">' % (" pb" if idx else ""))
         p.append(
             '<div class="bt"><table><tr><td><span class="l bn">%s</span></td>'
             '<td class="bs" style="width:200px;vertical-align:middle;">الجلسة %s</td></tr></table></div>'
@@ -251,20 +252,20 @@ def render_html(vm, font_base="/cz_whatsapp_reports/static/src/fonts/"):
                 '<tr class="row"><td>%s<div class="bar"><div style="width:%s%%"></div></div></td>'
                 '<td class="m">عدد %s</td><td class="v">%s</td></tr>' % (_lat(name), w, _num(n), _m(net))
             )
-        p.append('<table><tr><td style="width:50%;padding-left:6px;">')
+        p.append('<div><div style="float:right;width:49.2%;">')
         p.append('<div class="box"><div class="st">الرقابة</div>%s</div>' % _rows(control))
-        p.append('</td><td style="width:50%;padding-right:6px;">')
-        p.append('<div class="box"><div class="st">القنوات (صافي)</div><table>%s</table></div>' % "".join(ch))
-        cash = [(_lat(name), _m(net), "عدد %s · إلغاء %s" % (_num(n), _num(c))) for name, n, net, c in b["cashiers"]]
-        if cash:
-            p.append('<div class="box"><div class="st">الكاشير</div>%s</div>' % _rows(cash))
-        p.append("</td></tr></table>")
         if b["top"]:
             top = []
             for name, qty, net, mg in b["top"]:
                 mtxt = ("هامش %s" % _num("%.0f%%" % mg)) if mg is not None else "هامش غير متاح"
                 top.append((_lat(name), _m(net), "كمية %s · %s" % (_num("%g" % qty), mtxt)))
             p.append('<div class="box"><div class="st">الأعلى مبيعاً</div>%s</div>' % _rows(top))
+        p.append('</div><div style="float:left;width:49.2%;">')
+        p.append('<div class="box"><div class="st">القنوات (صافي)</div><table>%s</table></div>' % "".join(ch))
+        cash = [(_lat(name), _m(net), "عدد %s · إلغاء %s" % (_num(n), _num(c))) for name, n, net, c in b["cashiers"]]
+        if cash:
+            p.append('<div class="box"><div class="st">الكاشير</div>%s</div>' % _rows(cash))
+        p.append('</div><div style="clear:both;"></div></div>')
         p.append("</div>")
     p.append("</div>")
     p.append(
