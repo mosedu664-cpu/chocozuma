@@ -321,7 +321,7 @@ def families_block(cur, prev, prev_label, cur_days=1, prev_days=1):
     tot = sum(cur.values()) or 1
     items = []
     for name, v in sorted(cur.items(), key=lambda kv: -kv[1]):
-        if name == "Diğer" and share(v, tot) < 2:
+        if (name == "Diğer" and share(v, tot) < 2) or share(v, tot) < 0.5:
             continue
         extra = ""
         if prev is not None:
