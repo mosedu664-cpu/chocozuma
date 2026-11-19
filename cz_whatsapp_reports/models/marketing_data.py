@@ -59,7 +59,7 @@ def is_extra(name, cats):
 def family(name, cats):
     n = (name or "").lower()
     cats = {c.lower() for c in cats}
-    if cats & {"ambalaj", "07.side sales"}:
+    if "ambalaj" in cats:  # packaging
         return "Diğer"
     if re.search(r"\bbox\b", n):
         return "Kutular (Box)"
@@ -67,7 +67,7 @@ def family(name, cats):
         return "Zuma Roll"
     if "waffle" in n:
         return "Waffle"
-    if "crepe" in n or "krep" in n:
+    if "crepe" in n or "krep" in n or "crepe" in cats:
         return "Krep"
     if cats & DRINK_CATS or DRINK_RE.search(n):
         return "İçecek"
