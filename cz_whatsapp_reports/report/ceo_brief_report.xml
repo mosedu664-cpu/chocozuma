@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="paperformat_ceo_brief" model="report.paperformat">
+        <field name="name">CZ CEO Brief A4 (no margins)</field>
+        <field name="format">A4</field>
+        <field name="orientation">Portrait</field>
+        <field name="margin_top">0</field>
+        <field name="margin_bottom">0</field>
+        <field name="margin_left">0</field>
+        <field name="margin_right">0</field>
+        <field name="header_line" eval="False"/>
+        <field name="header_spacing">0</field>
+        <field name="disable_shrinking" eval="True"/>
+        <field name="dpi">96</field>
+    </record>
+
+    <record id="action_report_ceo_brief" model="ir.actions.report">
+        <field name="name">CEO Daily Brief</field>
+        <field name="model">cz.wa.report</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cz_whatsapp_reports.report_ceo_brief</field>
+        <field name="report_file">cz_whatsapp_reports.report_ceo_brief</field>
+        <field name="print_report_name">'ChocoZuma_CEO_Daily_Brief'</field>
+        <field name="paperformat_id" ref="paperformat_ceo_brief"/>
+        <field name="binding_model_id" ref="model_cz_wa_report"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="action_report_ceo_brief_log" model="ir.actions.report">
+        <field name="name">CEO Daily Brief (WhatsApp)</field>
+        <field name="model">cz.wa.report.log</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cz_whatsapp_reports.report_ceo_brief_log</field>
+        <field name="report_file">cz_whatsapp_reports.report_ceo_brief_log</field>
+        <field name="print_report_name">'ChocoZuma_Daily_Brief_%s' % (object.business_day or '').replace('/', '-')</field>
+        <field name="paperformat_id" ref="paperformat_ceo_brief"/>
+    </record>
+
+    <template id="report_ceo_brief_log">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
+                    <t t-out="briefs[o.id]"/>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <template id="report_ceo_brief">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
+                    <t t-out="briefs[o.id]"/>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

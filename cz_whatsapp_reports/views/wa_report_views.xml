@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_cz_wa_report_list" model="ir.ui.view">
+        <field name="name">cz.wa.report.list</field>
+        <field name="model">cz.wa.report</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="config_ids" widget="many2many_tags"/>
+                <field name="preview_date"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cz_wa_report_form" model="ir.ui.view">
+        <field name="name">cz.wa.report.form</field>
+        <field name="model">cz.wa.report</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_preview" type="object" string="Preview" class="btn-primary"/>
+                    <button name="action_print_pdf" type="object" string="PDF"/>
+                    <button name="action_create_wa_template" type="object" string="Create WhatsApp template"
+                            invisible="wa_template_id"/>
+                    <button name="action_send_now" type="object" string="Send now"
+                            invisible="wa_template_status != 'approved'"
+                            confirm="Send the brief by WhatsApp to all numbers on this report now?"/>
+                </header>
+                <sheet>
+                    <div invisible="not preview_text" dir="rtl"
+                         style="direction:rtl;text-align:right;background:#f7f1e6;border:1px solid #e3d6bd;border-right:5px solid #c9a24a;padding:14px 18px;margin-bottom:16px;font-size:15px;line-height:1.7;">
+                        <field name="preview_text" nolabel="1" readonly="1"/>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="config_ids" widget="many2many_tags"/>
+                            <field name="partner_ids" widget="many2many_tags"/>
+                            <field name="phone_numbers"/>
+                            <field name="wa_template_id"/>
+                            <field name="wa_template_status"/>
+                        </group>
+                    </group>
+                    <group string="Thresholds">
+                        <group>
+                            <field name="cost_days"/>
+                            <field name="cancel_alert_amount"/>
+                        </group>
+                        <group>
+                            <field name="cashier_share_alert"/>
+                            <field name="preview_date"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Log">
+                            <field name="log_ids">
+                                <list>
+                                    <field name="create_date"/>
+                                    <field name="business_day"/>
+                                    <field name="mobile"/>
+                                    <field name="state"/>
+                                    <field name="note"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cz_wa_report" model="ir.actions.act_window">
+        <field name="name">WhatsApp Reports</field>
+        <field name="res_model">cz.wa.report</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_cz_wa_report_root" name="CZ Reports" sequence="95"
+              groups="base.group_system" action="action_cz_wa_report"/>
+</odoo>
