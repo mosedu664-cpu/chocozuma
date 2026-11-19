@@ -127,6 +127,10 @@
                     <button name="action_retry" type="object" string="Tekrar dene" class="btn-primary"
                             invisible="state not in ('error','review','needs_mapping','waiting_session')"
                             groups="base.group_system"/>
+                    <button name="action_mark_manual" type="object" string="Kasada elle girildi"
+                            invisible="state not in ('error','review','needs_mapping') or pos_order_id"
+                            confirm="Bu sipariş kasaya elle girildi mi? Otomatik girilmeyecek."
+                            groups="base.group_system"/>
                     <field name="state" widget="statusbar" statusbar_visible="new,posted"/>
                 </header>
                 <sheet>
