@@ -142,7 +142,8 @@ def base(orders, first_day, start, end):
         r["net"] += o["net"]
         r["ch"].setdefault(o["ch"], [0.0, 0, 0])[0] += o["net"]
         for l in o["lines"]:
-            if l["reward"]:
+            # returned items only; the reversed discount line of a refund is not a product sale
+            if l["reward"] or l["sub"] >= 0:
                 continue
             r["fam"][l["fam"]] = r["fam"].get(l["fam"], 0.0) + l["sub"]
             if not l["extra"] and l["sub"] < 0:
