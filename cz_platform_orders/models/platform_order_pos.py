@@ -101,10 +101,19 @@ class CzPlatformOrderPos(models.Model):
             else:
                 lines.append({'product': m.product_id, 'qty': qty, 'price': base_price,
                               'note': removed or False})
-            for ex in pl.get('extraIngredients') or []:
-                em = by_key.get(('extra', str(ex.get('id'))))
+            # paid add-ons: extraIngredients (id) and, on simple products,
+            # modifierProducts (productId, e.g. "Ekstra Sütlü Çikolata [50 gr]")
+            addons = [(str(ex.get('id')), ex) for ex in pl.get('extraIngredients') or []]
+            if m.product_id.type != 'combo':
+                for mod in pl.get('modifierProducts') or []:
+                    addons.append((str(mod.get('productId')), mod))
+                    addons += [(str(ex.get('id')), ex) for ex in mod.get('extraIngredients') or []]
+                    if mod.get('modifierProducts'):
+                        missing.append('%s: iç içe seçim (modifier) desteklenmiyor' % mod.get('name'))
+            for ref_x, ex in addons:
+                em = by_key.get(('extra', ref_x))
                 if not em:
-                    missing.append('+%s (%s)' % (ex.get('name'), ex.get('id')))
+                    missing.append('+%s (%s)' % (ex.get('name'), ref_x))
                     continue
                 lines.append({'product': em.product_id, 'qty': qty,
                               'price': float(ex.get('price') or 0.0), 'note': False})
@@ -138,7 +147,9 @@ class CzPlatformOrderPos(models.Model):
     # ------------------------------------------------------------------
     def _cz_line_vals(self, line, config, fpos):
         product = line['product']
-        taxes = product.taxes_id.filtered(lambda t: t.company_id == config.company_id)
+        # A branch (e.g. Metrokent under Mayapan) uses its parent company's taxes:
+        # same rule as the POS itself (closest company in the branch chain).
+        taxes = product.taxes_id._filter_taxes_by_company(config.company_id)
         if not taxes and line['price']:
             raise UserError("Ürünün %s şirketi için KDV'si yok: %s" % (
                 config.company_id.name, product.display_name))

@@ -41,9 +41,9 @@ patch(PosStore.prototype, {
         if (partner && (partner.name || "").toUpperCase().startsWith("*TRENDYOL")) {
             this.notification.add(
                 _t(
-                    "Trendyol ÇİKOLATA siparişleri artık otomatik olarak kasaya düşüyor — elle girmeyin. Sadece kahvaltı siparişlerini elle girin."
+                    "Trendyol çikolata siparişleri otomatik giriliyor. Kahvaltı siparişini elle girebilirsiniz."
                 ),
-                { title: _t("Dikkat: çift kayıt"), type: "warning", sticky: true }
+                { title: _t("Hatırlatma"), type: "info", sticky: false }
             );
         }
         return res;
