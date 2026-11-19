@@ -36,6 +36,26 @@
         <field name="paperformat_id" ref="paperformat_ceo_brief"/>
     </record>
 
+    <record id="action_report_marketing" model="ir.actions.report">
+        <field name="name">Pazarlama Raporu</field>
+        <field name="model">cz.wa.report</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cz_whatsapp_reports.report_ceo_brief</field>
+        <field name="report_file">cz_whatsapp_reports.report_ceo_brief</field>
+        <field name="print_report_name">'ChocoZuma_Pazarlama_Raporu'</field>
+        <field name="paperformat_id" ref="paperformat_ceo_brief"/>
+    </record>
+
+    <record id="action_report_marketing_log" model="ir.actions.report">
+        <field name="name">Pazarlama Raporu (WhatsApp)</field>
+        <field name="model">cz.wa.report.log</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cz_whatsapp_reports.report_ceo_brief_log</field>
+        <field name="report_file">cz_whatsapp_reports.report_ceo_brief_log</field>
+        <field name="print_report_name">'ChocoZuma_Pazarlama_Raporu_%s' % (object.business_day or '').replace('/', '-')</field>
+        <field name="paperformat_id" ref="paperformat_ceo_brief"/>
+    </record>
+
     <template id="report_ceo_brief_log">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="o">
