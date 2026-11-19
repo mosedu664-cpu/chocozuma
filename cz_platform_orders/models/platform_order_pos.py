@@ -31,6 +31,9 @@ POSTABLE = ('Created', 'Picking', 'Invoiced', 'Shipped', 'Delivered')
 CANCELLED = ('Cancelled', 'UnSupplied')
 
 
+# Trendyol paymentType values that mean the platform collected the money.
+ONLINE_PAYMENT_TYPES = ('PAY_WITH_CARD', 'PAY_WITH_MEAL_CARD_ONLINE', 'ONLINE')
+
 class CzPlatformOrderPos(models.Model):
     _inherit = 'cz.platform.order'
 
@@ -101,10 +104,19 @@ class CzPlatformOrderPos(models.Model):
             else:
                 lines.append({'product': m.product_id, 'qty': qty, 'price': base_price,
                               'note': removed or False})
-            for ex in pl.get('extraIngredients') or []:
-                em = by_key.get(('extra', str(ex.get('id'))))
+            # paid add-ons: extraIngredients (id) and, on simple products,
+            # modifierProducts (productId, e.g. "Ekstra Sütlü Çikolata [50 gr]")
+            addons = [(str(ex.get('id')), ex) for ex in pl.get('extraIngredients') or []]
+            if m.product_id.type != 'combo':
+                for mod in pl.get('modifierProducts') or []:
+                    addons.append((str(mod.get('productId')), mod))
+                    addons += [(str(ex.get('id')), ex) for ex in mod.get('extraIngredients') or []]
+                    if mod.get('modifierProducts'):
+                        missing.append('%s: iç içe seçim (modifier) desteklenmiyor' % mod.get('name'))
+            for ref_x, ex in addons:
+                em = by_key.get(('extra', ref_x))
                 if not em:
-                    missing.append('+%s (%s)' % (ex.get('name'), ex.get('id')))
+                    missing.append('+%s (%s)' % (ex.get('name'), ref_x))
                     continue
                 lines.append({'product': em.product_id, 'qty': qty,
                               'price': float(ex.get('price') or 0.0), 'note': False})
@@ -138,7 +150,9 @@ class CzPlatformOrderPos(models.Model):
     # ------------------------------------------------------------------
     def _cz_line_vals(self, line, config, fpos):
         product = line['product']
-        taxes = product.taxes_id.filtered(lambda t: t.company_id == config.company_id)
+        # A branch (e.g. Metrokent under Mayapan) uses its parent company's taxes:
+        # same rule as the POS itself (closest company in the branch chain).
+        taxes = product.taxes_id._filter_taxes_by_company(config.company_id)
         if not taxes and line['price']:
             raise UserError("Ürünün %s şirketi için KDV'si yok: %s" % (
                 config.company_id.name, product.display_name))
@@ -175,6 +189,12 @@ class CzPlatformOrderPos(models.Model):
         if existing:
             self.write({'state': 'posted', 'pos_order_id': existing.id, 'error': False})
             return True
+        if (self.payment_type or '').upper() not in ONLINE_PAYMENT_TYPES:
+            # Platform orders are online-paid only. A pay-at-door order may have
+            # been collected in the shop: never post it as online payment.
+            self.write({'state': 'review',
+                        'error': 'Kapıda ödeme (%s): otomatik girilmedi, kasada elle girin.' % (self.payment_type or '?')})
+            return False
         session = self._cz_lock_open_session(config)
         if not session:
             self.write({'state': 'waiting_session', 'error': 'POS oturumu açık değil (veya kapanıyor).'})
@@ -359,6 +379,11 @@ class CzPlatformOrderPos(models.Model):
             if self.env.context.get('cz_commit'):
                 # cron only: each order is its own unit of work
                 self.env.cr.commit()
+
+    def action_mark_manual(self):
+        """The cashier entered this order by hand: close it without posting."""
+        self.filtered(lambda r: r.state in ('review', 'needs_mapping', 'error') and not r.pos_order_id).write(
+            {'state': 'skipped', 'error': 'Kasada elle girildi (%s).' % self.env.user.name})
 
     def action_retry(self):
         todo = self.filtered(lambda r: r.state in ('error', 'review', 'needs_mapping', 'waiting_session'))
