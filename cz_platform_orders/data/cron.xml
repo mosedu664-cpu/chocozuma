@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo>
-    <!-- Inactive on install: switched on only after the manual test is OK. -->
+<odoo noupdate="1">
+    <!-- Inactive on install: switched on only after the manual test is OK.
+         noupdate: a module upgrade must never switch the running cron off. -->
     <record id="ir_cron_cz_platform_sync" model="ir.cron">
         <field name="name">Platform Orders: read new orders (Trendyol Yemek)</field>
         <field name="model_id" ref="model_cz_platform_account"/>
