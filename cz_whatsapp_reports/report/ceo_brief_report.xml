@@ -26,6 +26,26 @@
         <field name="binding_type">report</field>
     </record>
 
+    <record id="action_report_ceo_brief_log" model="ir.actions.report">
+        <field name="name">CEO Daily Brief (WhatsApp)</field>
+        <field name="model">cz.wa.report.log</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cz_whatsapp_reports.report_ceo_brief_log</field>
+        <field name="report_file">cz_whatsapp_reports.report_ceo_brief_log</field>
+        <field name="print_report_name">'ChocoZuma_Daily_Brief_%s' % (object.business_day or '').replace('/', '-')</field>
+        <field name="paperformat_id" ref="paperformat_ceo_brief"/>
+    </record>
+
+    <template id="report_ceo_brief_log">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <div class="article" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
+                    <t t-out="briefs[o.id]"/>
+                </div>
+            </t>
+        </t>
+    </template>
+
     <template id="report_ceo_brief">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="o">

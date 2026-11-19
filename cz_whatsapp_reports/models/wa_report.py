@@ -28,6 +28,11 @@ class CzWaReport(models.Model):
     cost_days = fields.Integer(string="Invoice window (days)", default=90)
     cancel_alert_amount = fields.Float(string="Single cancel alert (TL)", default=2000.0)
     cashier_share_alert = fields.Float(string="One-cashier share alert (%)", default=80.0)
+    phone_numbers = fields.Char(
+        string="WhatsApp numbers", default="+905444436338",
+        help="International format, separated by commas. Added to the mobiles of the recipients.")
+    wa_template_id = fields.Many2one("whatsapp.template", string="WhatsApp template", readonly=True, copy=False)
+    wa_template_status = fields.Selection(related="wa_template_id.status", string="Template status")
     preview_text = fields.Text(readonly=True)
     preview_date = fields.Datetime(readonly=True)
     log_ids = fields.One2many("cz.wa.report.log", "report_id")
@@ -133,7 +138,8 @@ class CzWaReport(models.Model):
             [("config_id", "=", config.id), ("state", "=", "closed")], order="stop_at desc", limit=count
         )
 
-    def _ceo_brief_data(self):
+    def _ceo_brief_data(self, fresh_since=None):
+        """fresh_since: ignore branches whose last closed session is older (scheduled run)."""
         self.ensure_one()
         companies = self.env["res.company"].sudo().search([])
         self = self.sudo().with_context(allowed_company_ids=companies.ids)
@@ -141,9 +147,13 @@ class CzWaReport(models.Model):
             raise UserError(_("Choose at least one POS branch on the report."))
         costs = self.env["cz.real.cost"].compute(days=self.cost_days or 90)
         branches = []
+        skipped = []
         for config in self.config_ids:
             sessions = self._last_sessions(config)
             if not sessions:
+                continue
+            if fresh_since and sessions[0].stop_at and sessions[0].stop_at < fresh_since:
+                skipped.append(config.name)
                 continue
             cur = self._session_stats(sessions[0], costs)
             cur["stop_at"] = sessions[0].stop_at
@@ -154,7 +164,7 @@ class CzWaReport(models.Model):
             else:
                 cur["prev_net"] = 0.0
             branches.append(cur)
-        return {"branches": branches}
+        return {"branches": branches, "skipped": skipped}
 
     # ------------------------------------------------------------- rendering
     def _ceo_brief_vm(self, data):
@@ -225,6 +235,8 @@ class CzWaReport(models.Model):
                         "branch": b["branch"], "text": "الكاشير {name} سجّل {share} من الطلبات",
                         "vals": {"name": top_name, "share": "%.0f%%" % share},
                     })
+        for name in data.get("skipped") or []:
+            vm["alerts"].insert(0, {"branch": name, "text": "لا توجد جلسة مغلقة لهذا اليوم، والفرع غير مشمول في هذا الموجز"})
         vm["alerts"] = vm["alerts"][:6]
         return vm
 
@@ -255,6 +267,157 @@ class CzWaReport(models.Model):
                 raise
         return True
 
+    # --------------------------------------------------------------- sending
+    WA_BODY = (
+        "مرحباً، هذا الموجز اليومي لتشوكو زوما عن يوم العمل {{1}}.\n"
+        "صافي مبيعات المجموعة {{2}} ليرة من {{3}} طلب.\n"
+        "التفاصيل الكاملة في الملف المرفق."
+    )
+
+    def action_create_wa_template(self):
+        """Create the WhatsApp template record (draft). It is submitted to Meta from the WhatsApp app."""
+        self.ensure_one()
+        if self.wa_template_id:
+            raise UserError(_("The WhatsApp template already exists."))
+        account = self.env["whatsapp.account"].search([], limit=1)
+        if not account:
+            raise UserError(_("No WhatsApp account is configured."))
+        template = self.env["whatsapp.template"].create({
+            "name": "CZ CEO Daily Brief",
+            "template_name": "cz_ceo_daily_brief",
+            "wa_account_id": account.id,
+            "model_id": self.env["ir.model"]._get_id("cz.wa.report.log"),
+            "phone_field": "mobile",
+            "lang_code": "ar",
+            "template_type": "utility",
+            "header_type": "document",
+            "report_id": self.env.ref("cz_whatsapp_reports.action_report_ceo_brief_log").id,
+            "body": self.WA_BODY,
+            "footer_text": "Choco Zuma Reports",
+        })
+        wanted = {
+            "{{1}}": ("business_day", "18/11/2026"),
+            "{{2}}": ("net_text", "200,983"),
+            "{{3}}": ("orders_text", "230"),
+        }
+        Variable = self.env["whatsapp.template.variable"]
+        for name, (field_name, demo) in wanted.items():
+            vals = {"field_type": "field", "field_name": field_name, "demo_value": demo}
+            var = template.variable_ids.filtered(lambda v: v.name == name and v.line_type == "body")
+            if var:
+                var.write(vals)
+            else:
+                Variable.create(dict(vals, name=name, line_type="body", wa_template_id=template.id))
+        self.wa_template_id = template.id
+        return {
+            "type": "ir.actions.act_window", "res_model": "whatsapp.template",
+            "res_id": template.id, "view_mode": "form", "target": "current",
+        }
+
+    def _recipient_numbers(self):
+        self.ensure_one()
+        numbers = []
+        for partner in self.partner_ids:
+            number = partner.mobile or partner.phone
+            if number:
+                numbers.append((partner.id, number))
+        for number in (self.phone_numbers or "").replace(";", ",").split(","):
+            number = number.strip()
+            if number:
+                numbers.append((False, number))
+        seen, out = set(), []
+        for partner_id, number in numbers:
+            key = re.sub(r"\D", "", number)
+            if key and key not in seen:
+                seen.add(key)
+                out.append((partner_id, number))
+        return out
+
+    def _send_brief(self, data):
+        """One log per recipient, then one WhatsApp template message per log."""
+        self.ensure_one()
+        template = self.wa_template_id
+        if not template:
+            raise UserError(_("Create the WhatsApp template first."))
+        if template.status != "approved":
+            raise UserError(_("The WhatsApp template is not approved by Meta yet (status: %s).", template.status))
+        recipients = self._recipient_numbers()
+        if not recipients:
+            raise UserError(_("No WhatsApp number on the report."))
+        if not data["branches"]:
+            raise UserError(_("No closed POS session found."))
+        vm = self._ceo_brief_vm(data)
+        html = brief_render.render_html(vm)
+        Log = self.env["cz.wa.report.log"]
+        logs = Log.create([{
+            "report_id": self.id,
+            "state": "sent",
+            "partner_id": partner_id,
+            "mobile": number,
+            "business_day": vm["date"],
+            "net_text": brief_render.money(vm["net"]),
+            "orders_text": str(vm["orders"]),
+            "brief_html": html,
+        } for partner_id, number in recipients])
+        composer = self.env["whatsapp.composer"].with_context(active_model=Log._name, active_ids=logs.ids).create({
+            "res_model": Log._name,
+            "res_ids": str(logs.ids),
+            "wa_template_id": template.id,
+        })
+        composer._send_whatsapp_template(force_send_by_cron=False)
+        messages = self.env["whatsapp.message"].sudo().search([
+            ("mail_message_id.model", "=", Log._name), ("mail_message_id.res_id", "in", logs.ids),
+        ])
+        by_log = {m.mail_message_id.res_id: m for m in messages}
+        for log in logs:
+            message = by_log.get(log.id)
+            if not message:
+                log.write({"state": "error", "note": "no WhatsApp message was created"})
+            elif message.state in ("error", "bounced", "cancel"):
+                log.write({"state": "error", "note": "%s: %s" % (message.failure_type or message.state, message.failure_reason or "")})
+            else:
+                log.write({"note": "WhatsApp: %s" % message.state})
+        return logs
+
+    def action_send_now(self):
+        self.ensure_one()
+        logs = self._send_brief(self._ceo_brief_data())
+        failed = logs.filtered(lambda l: l.state == "error")
+        return {
+            "type": "ir.actions.client", "tag": "display_notification",
+            "params": {
+                "title": _("WhatsApp"),
+                "message": _("%(ok)s sent, %(ko)s failed. See the Log tab.", ok=len(logs - failed), ko=len(failed)),
+                "type": "warning" if failed else "success", "sticky": bool(failed),
+                "next": {"type": "ir.actions.client", "tag": "soft_reload"},
+            },
+        }
+
+    @api.model
+    def _cron_send_daily(self):
+        """Runs every 30 minutes; sends each report once per business day, after its branches closed."""
+        now = fields.Datetime.now()
+        fresh_since = now - timedelta(hours=10)
+        for report in self.search([("code", "=", "ceo_daily"), ("wa_template_id.status", "=", "approved")]):
+            try:
+                data = report._ceo_brief_data(fresh_since=fresh_since)
+                if not data["branches"]:
+                    continue
+                local_hour = fields.Datetime.context_timestamp(report.with_context(tz="Europe/Istanbul"), now).hour
+                if data["skipped"] and not (4 <= local_hour < 12):
+                    continue  # a branch is still open: wait for it until 04:00
+                day = report._ceo_brief_vm(data)["date"]
+                if self.env["cz.wa.report.log"].search_count(
+                    [("report_id", "=", report.id), ("business_day", "=", day), ("state", "=", "sent")]
+                ):
+                    continue
+                report._send_brief(data)
+                self.env.cr.commit()
+            except Exception as err:
+                self.env.cr.rollback()
+                self.env["cz.wa.report.log"].create({"report_id": report.id, "state": "error", "note": "cron: %s" % str(err)[:1500]})
+                self.env.cr.commit()
+
     def action_print_pdf(self):
         self.ensure_one()
         return self.env.ref("cz_whatsapp_reports.action_report_ceo_brief").report_action(self)
@@ -277,9 +440,30 @@ class ReportCeoBrief(models.AbstractModel):
 
 class CzWaReportLog(models.Model):
     _name = "cz.wa.report.log"
+    _inherit = ["mail.thread"]
     _description = "Choco Zuma WhatsApp report log"
     _order = "id desc"
+    _rec_name = "business_day"
 
     report_id = fields.Many2one("cz.wa.report", required=True, ondelete="cascade")
     state = fields.Selection([("preview", "Preview"), ("sent", "Sent"), ("error", "Error")], default="preview")
     note = fields.Text()
+    partner_id = fields.Many2one("res.partner")
+    mobile = fields.Char()
+    business_day = fields.Char()
+    net_text = fields.Char()
+    orders_text = fields.Char()
+    brief_html = fields.Text()
+
+
+class ReportCeoBriefLog(models.AbstractModel):
+    _name = "report.cz_whatsapp_reports.report_ceo_brief_log"
+    _description = "CEO daily brief sent by WhatsApp (PDF)"
+
+    @api.model
+    def _get_report_values(self, docids, data=None):
+        docs = self.env["cz.wa.report.log"].browse(docids)
+        briefs = {}
+        for doc in docs:
+            briefs[doc.id] = Markup(doc.brief_html) if doc.brief_html else doc.report_id._ceo_brief_html()
+        return {"doc_ids": docids, "doc_model": "cz.wa.report.log", "docs": docs, "briefs": briefs}
