@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="cz_inventory_dashboard.StockBoard">
+  <div class="cz_sb o_action">
+    <div class="cz_sb_head">
+      <div>
+        <h1 class="cz_sb_title">Mutfak &amp; Depo Stok</h1>
+        <div class="cz_sb_sub" t-if="state.data">
+          <t t-esc="state.data.as_of"/> · günlük çıkış: son <t t-esc="state.data.usage_days"/> günün ortalaması
+        </div>
+      </div>
+      <div class="cz_sb_tools">
+        <input class="form-control cz_sb_search" placeholder="Ürün ara (kod veya ad)…" t-att-value="state.q"
+               t-on-input="(ev) => this.state.q = ev.target.value"/>
+        <button class="btn btn-light" t-on-click="() => this.load()" title="Yenile"><i class="fa fa-refresh"/></button>
+      </div>
+    </div>
+
+    <div t-if="state.error" class="alert alert-danger m-3"><t t-esc="state.error"/></div>
+    <div t-if="state.loading and !state.data" class="cz_sb_loading"><i class="fa fa-circle-o-notch fa-spin"/> Yükleniyor…</div>
+
+    <t t-if="state.data">
+      <!-- alerts: click = filter -->
+      <div class="cz_sb_alerts">
+        <t t-foreach="alerts" t-as="a" t-key="a.key">
+          <button class="cz_sb_alert" t-att-class="(a.n ? a.cls : 'ok') + (state.view === a.key ? ' active' : '')"
+                  t-on-click="() => a.key === 'transit' ? (a.n and this.openTransit()) : this.setView(a.key)">
+            <div class="v" t-esc="a.n"/>
+            <div class="l" t-esc="a.label"/>
+            <div class="s" t-esc="a.sub"/>
+          </button>
+        </t>
+      </div>
+
+      <div class="cz_sb_chips">
+        <t t-foreach="[['all','Tümü'],['b2b','B2B Hazır'],['semi','Yarı Mamul'],['depot','Depoda olanlar'],['alerts','Uyarılı']]" t-as="c" t-key="c[0]">
+          <button class="btn btn-sm" t-att-class="state.view === c[0] ? 'btn-primary' : 'btn-light'" t-on-click="() => this.setView(c[0])" t-esc="c[1]"/>
+        </t>
+        <span class="cz_sb_count"><t t-esc="rows.length"/> ürün</span>
+      </div>
+
+      <div t-if="state.data.alerts.depot_consumed.length" class="cz_sb_note">
+        <i class="fa fa-info-circle"/> Son 24 saatte üretimde <b>doğrudan depodan</b> tüketilen malzeme var
+        (<t t-esc="state.data.alerts.depot_consumed.length"/> satır) — "Depo → Mutfak" transferi kaydedilmemiş olabilir.
+      </div>
+
+      <div class="cz_sb_body">
+        <table class="cz_sb_table">
+          <thead>
+            <tr>
+              <th class="ck"/>
+              <th>Ürün</th>
+              <th class="n">Mutfak</th>
+              <th class="n">Depo ❄ Dondurucu</th>
+              <th class="n">Depo Soğuk</th>
+              <th class="n">Toplam</th>
+              <th class="n">Rezerve</th>
+              <th class="n">Günlük çıkış</th>
+              <th class="n">Kaç gün yeter</th>
+              <th class="n">En eski</th>
+              <th>Durum</th>
+            </tr>
+          </thead>
+          <tbody>
+            <t t-foreach="groups" t-as="g" t-key="g.key">
+              <tr class="grp"><td colspan="11"><t t-esc="g.label"/> <span class="gc">(<t t-esc="g.rows.length"/>)</span></td></tr>
+              <tr t-foreach="g.rows" t-as="r" t-key="r.id" t-att-class="(r.id in state.sel ? 'sel ' : '') + (r.flags.length ? 'has_flag' : '')">
+                <td class="ck"><input type="checkbox" t-att-checked="r.id in state.sel" t-on-change="() => this.toggle(r)"/></td>
+                <td class="prod">
+                  <button class="btn-link p-0" t-on-click="() => this.openProduct(r)"><span class="code" t-esc="r.code"/> <t t-esc="r.name"/></button>
+                  <div class="uom"><t t-esc="r.uom"/><t t-if="r.zone"> · <t t-esc="r.zone === 'freezer' ? 'Dondurucu' : 'Soğuk Oda'"/></t><t t-if="r.shelf"> · raf ömrü <t t-esc="r.shelf"/> g</t></div>
+                </td>
+                <td class="n" t-att-class="r.kitchen &lt; 0 ? 'neg' : ''"><t t-esc="fmt(r.kitchen)"/></td>
+                <td class="n" t-att-class="r.freezer &lt; 0 ? 'neg' : (r.freezer ? 'dep' : 'z')"><t t-esc="fmt(r.freezer)"/></td>
+                <td class="n" t-att-class="r.chill &lt; 0 ? 'neg' : (r.chill ? 'dep' : 'z')"><t t-esc="fmt(r.chill)"/><t t-if="r.depot_other"> <small class="text-muted" title="Depo, bölge seçilmemiş">+<t t-esc="fmt(r.depot_other)"/>?</small></t></td>
+                <td class="n tot" t-att-class="r.total &lt; 0 ? 'neg' : ''"><button class="btn-link p-0" t-on-click="() => this.openQuants(r)" t-esc="fmt(r.total)"/></td>
+                <td class="n z2"><t t-esc="r.reserved ? fmt(r.reserved) : '–'"/></td>
+                <td class="n z2"><t t-esc="r.use_day ? fmt(r.use_day) : '–'"/></td>
+                <td class="n" t-att-class="daysCls(r)"><t t-esc="r.days === null ? '–' : fmt(r.days)"/></td>
+                <td class="n" t-att-class="ageCls(r)"><t t-esc="oldest(r)"/></td>
+                <td class="flags">
+                  <t t-foreach="r.flags" t-as="f" t-key="f">
+                    <span class="cz_sb_flag" t-att-class="FLAG[f][1]">
+                      <t t-esc="FLAG[f][0]"/>
+                      <t t-if="f === 'produce'">: <t t-esc="fmt(r.to_make)"/></t>
+                      <t t-if="f === 'shortage'">: −<t t-esc="fmt(r.short)"/></t>
+                      <t t-if="f === 'fetch'">: <t t-esc="fmt(r.fetch)"/></t>
+                    </span>
+                  </t>
+                </td>
+              </tr>
+            </t>
+            <tr t-if="!rows.length"><td colspan="11" class="cz_sb_empty">Bu filtrede ürün yok.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- selection bar / transfer panel -->
+      <div class="cz_sb_bar" t-if="selected.length">
+        <t t-if="!state.dir">
+          <span><b t-esc="selected.length"/> ürün seçildi</span>
+          <button class="btn btn-primary" t-on-click="() => this.startTransfer('out')"><i class="fa fa-truck me-1"/>Depoya gönder</button>
+          <button class="btn btn-secondary" t-on-click="() => this.startTransfer('in')"><i class="fa fa-reply me-1"/>Mutfağa getir</button>
+          <button class="btn btn-link" t-on-click="() => this.state.sel = {}">Seçimi temizle</button>
+        </t>
+        <t t-else="">
+          <div class="cz_sb_panel">
+            <div class="t"><t t-esc="state.dir === 'out' ? 'Mutfak → Depo' : 'Depo → Mutfak'"/> · taslak transfer — miktarları kontrol edin</div>
+            <div class="lines">
+              <div class="line" t-foreach="selected" t-as="r" t-key="r.id">
+                <span class="nm"><span class="code" t-esc="r.code"/> <t t-esc="r.name"/></span>
+                <span class="hint">mevcut: <t t-esc="fmt(state.dir === 'out' ? r.kitchen : r.depot)"/></span>
+                <input class="form-control form-control-sm" inputmode="decimal" t-att-value="state.sel[r.id]"
+                       t-on-input="(ev) => this.state.sel[r.id] = ev.target.value"/>
+                <span class="u" t-esc="r.uom"/>
+              </div>
+            </div>
+            <div class="act">
+              <button class="btn btn-primary" t-att-disabled="state.busy" t-on-click="() => this.confirmTransfer()">Transferi oluştur</button>
+              <button class="btn btn-light" t-on-click="() => this.cancelTransfer()">Vazgeç</button>
+              <span class="help">Transfer taslak açılır; teslim alan taraf miktarı sayıp "Doğrula" der.</span>
+            </div>
+          </div>
+        </t>
+      </div>
+    </t>
+  </div>
+</t>
+
+</templates>

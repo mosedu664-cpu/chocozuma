@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Idempotent: creates the kitchen/depot locations, putaway/removal and the two transfer types once. -->
+    <function model="stock.warehouse" name="_cz_setup_kitchen_depot"/>
+</odoo>
