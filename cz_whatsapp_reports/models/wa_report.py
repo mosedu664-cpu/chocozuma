@@ -523,6 +523,8 @@ class CzWaReport(models.Model):
                 stock = {}
         prod_rows = []
         for pid, a in products.items():
+            if a["qty"] <= 0:
+                continue  # already delivered — nothing left to prepare
             st = stock.get(pid, 0.0)
             short = max(0.0, a["qty"] - max(st, 0.0)) if a["made"] else 0.0
             prod_rows.append(dict(a, orders=len(a["orders"]), stock=st, short=short))

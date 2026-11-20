@@ -166,6 +166,6 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
              % (h(data["warehouses"]), h(data["day_txt"]),
                 " Yalnızca Merkez Mutfak'tan çıkan kalemler (ana depoya girilen B2B siparişlerindeki mutfak ürünleri dahil)." if data.get("kitchen_only") else "",
                 "Tutarlar TL; fatura durumu Odoo'daki sipariş durumudur." if show else
-                "Eksik = siparişlerdeki toplam − Merkez Mutfak'taki stok (rapor anında)."))
+                "Üretilecek = teslim edilecek − Merkez Mutfak stoku (mutfak + depo, rapor anında); teslim edilmiş kalemler listede yok."))
     p.append("</div></div>")
     return "".join(p)
