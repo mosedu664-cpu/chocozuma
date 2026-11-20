@@ -244,7 +244,12 @@ class StockWarehouse(models.Model):
 
         quants = env["stock.quant"].search([("location_id", "in", list(all_ids))])
         watched = env["product.product"].search([("product_tmpl_id.cz_chef_watch", "=", True)])
-        products = watched | quants.filtered(lambda q: q.location_id.id in depot_ids).product_id
+        # anything the kitchen actually produced in the last 30 days is shown even if nobody ticked "Şef takibi"
+        recent_made = env["mrp.production"].search([
+            ("state", "=", "done"), ("company_id", "=", env.company.id),
+            ("date_finished", ">=", fields.Datetime.now() - timedelta(days=30)),
+        ]).product_id
+        products = watched | recent_made | quants.filtered(lambda q: q.location_id.id in depot_ids).product_id
 
         rows = {}
 
@@ -398,6 +403,57 @@ def _family(code):
 
 class StockPicking(models.Model):
     _inherit = "stock.picking"
+
+    def button_validate(self):
+        self._cz_check_depot_rules()
+        return super().button_validate()
+
+    def _cz_check_depot_rules(self):
+        """Mistakes the system stops before they reach the stock (clear Turkish message, nothing is saved):
+        1. stock may not land on '2 Depo' itself — it must go to Dondurucu or Soğuk Oda;
+        2. Mutfak → Depo must leave from the kitchen, Depo → Mutfak from the depot;
+        3. a kitchen ↔ depot transfer may not send more than the source shelf holds (no negative stock)."""
+        locs = self.env["stock.warehouse"].sudo()._cz_locations(raise_if_missing=False)
+        if not locs:
+            return
+        Loc = self.env["stock.location"].sudo()
+        depot_ids = set(Loc.search([("id", "child_of", locs["depot"].id)]).ids)
+        stock_ids = set(Loc.search([("id", "child_of", locs["stock"].id)]).ids)
+        kitchen_ids = stock_ids - depot_ids
+        problems = []
+        for picking in self:
+            any_picked = bool(picking.move_ids.filtered("picked"))
+            lines = picking.move_line_ids.filtered(lambda ml: ml.quantity > 0 and (ml.picked or not any_picked))
+            for ml in lines.filtered(lambda ml: ml.location_dest_id == locs["depot"]):
+                problems.append(_("%(p)s: hedef raf seçilmemiş — 'Dondurucu' veya 'Soğuk Oda' seçin "
+                                  "(kalıcı çözüm: ürün kartında 'Depo bölgesi').", p=ml.product_id.display_name))
+            ptype = picking.picking_type_id
+            if ptype not in (locs["type_out"], locs["type_in"]):
+                continue
+            src_ok = kitchen_ids if ptype == locs["type_out"] else depot_ids
+            dst_ok = depot_ids if ptype == locs["type_out"] else kitchen_ids
+            for ml in lines:
+                if ml.location_id.id not in src_ok:
+                    problems.append(_("%(p)s: '%(t)s' transferi %(src)s rafından çıkamaz.",
+                                      p=ml.product_id.display_name, t=ptype.name, src=ml.location_id.complete_name))
+                if ml.location_dest_id.id not in dst_ok:
+                    problems.append(_("%(p)s: '%(t)s' transferi %(dst)s rafına giremez.",
+                                      p=ml.product_id.display_name, t=ptype.name, dst=ml.location_dest_id.complete_name))
+            # quantity check per product and source shelf (in the product's unit)
+            need = defaultdict(float)
+            for ml in lines:
+                need[(ml.product_id, ml.location_id)] += ml.product_uom_id._compute_quantity(
+                    ml.quantity, ml.product_id.uom_id, rounding_method="HALF-UP")
+            for (product, src), qty in need.items():
+                quants = self.env["stock.quant"].sudo().search([("product_id", "=", product.id), ("location_id", "child_of", src.id)])
+                have = sum(quants.mapped("quantity"))
+                if float_compare(qty, have, precision_rounding=product.uom_id.rounding) > 0:
+                    problems.append(_("%(p)s: %(src)s rafında %(have)s %(u)s var, %(qty)s %(u)s gönderilmek isteniyor. "
+                                      "Miktarı düzeltin (rafta gerçekten daha fazla varsa önce sayım yapılmalı).",
+                                      p=product.display_name, src=src.complete_name, have=float_round(have, precision_rounding=product.uom_id.rounding),
+                                      qty=float_round(qty, precision_rounding=product.uom_id.rounding), u=product.uom_id.name))
+        if problems:
+            raise UserError(_("Transfer doğrulanmadı:") + "\n• " + "\n• ".join(problems))
 
     @api.model
     def cz_stock_board_data(self):

@@ -415,6 +415,15 @@ class CzWaReport(models.Model):
                 return any(m.location_id.id in ck_ids for m in moves)
             return bool(line.product_id.sudo().bom_count)
 
+        def open_qty(line):
+            """What is really still to deliver for this line, in the product's unit: the open (not done, not cancelled)
+            delivery moves — so partial deliveries, cancelled backorders, merged lines and lines without any
+            delivery are never counted twice or counted at all; dropship moves (supplier → customer) are left out."""
+            moves = line.move_ids.filtered(lambda m: m.state not in ("done", "cancel") and m.location_id.usage != "supplier")
+            if self.kitchen_only:
+                moves = moves.filtered(lambda m: m.location_id.id in ck_ids)
+            return sum(moves.mapped("product_qty"))
+
         kept = SO.browse()
         for o in orders:
             sale_lines = o.order_line.filtered(
@@ -434,9 +443,9 @@ class CzWaReport(models.Model):
                 agg = products.setdefault(p.id, {"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name,
                                                  "uom": p.uom_id.name, "qty": 0.0, "orders": set(),
                                                  "made": bool(p.sudo().bom_count)})
-                remaining = max(0.0, l.product_uom_qty - l.qty_delivered)
-                if remaining:
-                    agg["qty"] += l.product_uom._compute_quantity(remaining, p.uom_id, raise_if_failure=False)
+                remaining = open_qty(l)
+                if remaining > 0:
+                    agg["qty"] += remaining
                     agg["orders"].add(o.id)
             out.append({
                 "name": o.name, "partner": o.partner_id.commercial_partner_id.name or o.partner_id.name,
@@ -450,22 +459,21 @@ class CzWaReport(models.Model):
         now = fields.Datetime.now()
         open_out = []
         open_orders = SO.search([("state", "=", "sale"), ("warehouse_id", "in", whs.ids), ("date_order", "<", start),
-                                 ("picking_ids.state", "in", ("assigned", "confirmed", "waiting", "partially_available"))],
+                                 ("picking_ids.state", "in", ("draft", "assigned", "confirmed", "waiting", "partially_available"))],
                                 order="date_order, id")
         for o in open_orders:
             rows = []
             for l in o.order_line.filtered(lambda l: not l.display_type and l.product_id and l.product_id.type != "service" and keep(l)):
-                remaining = l.product_uom_qty - l.qty_delivered
-                moves = l.move_ids.filtered(lambda m: m.state not in ("cancel", "done"))
-                if remaining <= 0 or not moves or any(m.location_id.usage == "supplier" for m in moves):
+                remaining = open_qty(l)
+                if remaining <= 0:
                     continue  # delivered, nothing planned, or dropship (supplier → customer)
                 p = l.product_id
                 rows.append({"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name,
-                             "qty": remaining, "uom": l.product_uom.name})
+                             "qty": remaining, "uom": p.uom_id.name})
                 agg = products.setdefault(p.id, {"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name,
                                                  "uom": p.uom_id.name, "qty": 0.0, "orders": set(),
                                                  "made": bool(p.sudo().bom_count)})
-                agg["qty"] += l.product_uom._compute_quantity(remaining, p.uom_id, raise_if_failure=False)
+                agg["qty"] += remaining
                 agg["orders"].add(o.id)
             if not rows:
                 continue
@@ -515,6 +523,8 @@ class CzWaReport(models.Model):
                 stock = {}
         prod_rows = []
         for pid, a in products.items():
+            if a["qty"] <= 0:
+                continue  # already delivered — nothing left to prepare
             st = stock.get(pid, 0.0)
             short = max(0.0, a["qty"] - max(st, 0.0)) if a["made"] else 0.0
             prod_rows.append(dict(a, orders=len(a["orders"]), stock=st, short=short))
