@@ -213,7 +213,10 @@ def _simple(snap):
         n = (n or "").split(" — ")[0].split(",")[0].strip()
         words = n.split()
         short = " ".join(words[:2]) if len(words) > 2 else n
-        return short.title() if short.isupper() else short
+        if not short.isupper():
+            return short
+        # Turkish-aware Title Case: İ→i, I→ı before lowering, so "EMİRHAN" → "Emirhan", "MAĞAZACILIK" → "Mağazacılık"
+        return " ".join(w[:1] + w[1:].replace("İ", "i").replace("I", "ı").lower() for w in short.split())
 
     produce = []
     for x in sorted((x for x in od["products"] if x["made"] and x["short"] > 0),
@@ -222,13 +225,21 @@ def _simple(snap):
         cls, w = when(x["due"], x["late"])
         produce.append({"name": x["name"], "qty": kr.q(x["short"]), "uom": x["uom"], "who": ", ".join(who[:2]) + (" +%d" % (len(who) - 2) if len(who) > 2 else ""),
                         "cls": cls, "when": w})
-    ship = []
+    ship, by_who = [], {}
     for sh in od["shipments"]:
         cls, w = when(sh["due"], sh["late"])
         if w not in ("Hemen", "Bugün"):
             continue
-        ship.append({"who": short_name(sh["partner"]), "lines": sh["lines"], "cls": cls, "when": w,
-                     "missing": len(sh["missing"])})
+        who = short_name(sh["partner"])
+        if who in by_who:  # one line per customer, however many orders
+            x = by_who[who]
+            x["lines"] += sh["lines"]
+            x["missing"] += len(sh["missing"])
+            if w == "Hemen":
+                x["cls"], x["when"] = cls, w
+            continue
+        by_who[who] = {"who": who, "lines": sh["lines"], "cls": cls, "when": w, "missing": len(sh["missing"])}
+        ship.append(by_who[who])
     ship.sort(key=lambda x: (x["when"] != "Hemen", x["missing"] == 0))
     stock = [r for r in snap["rows"] if r["family"] == "1_b2b" and (r["kitchen"] > 0 or r["depot"] > 0)]
     stock.sort(key=lambda r: r["name"])
@@ -242,22 +253,22 @@ SIMPLE_CSS = """
 .wc .top td{vertical-align:bottom;}
 .wc .ttl{font-family:'CZMessiri','CZLatin',sans-serif;font-size:26px;font-weight:bold;}
 .wc .dt{text-align:right;font-size:15px;}
-.wc h2{font-family:'CZMessiri','CZLatin',sans-serif;font-size:19px;margin:18px 0 4px 0;}
+.wc h2{font-family:'CZMessiri','CZLatin',sans-serif;font-size:18px;margin:12px 0 3px 0;}
 .wc h2 small{font-family:'CZLatin',sans-serif;font-weight:normal;font-size:12px;color:#7a6652;}
 .wc table{width:100%;border-collapse:collapse;}
 .wc table,.wc thead,.wc tbody{border:0 none !important;outline:0 !important;}
 .wc tr,.wc td,.wc th{border-left:0 none !important;border-right:0 none !important;border-top:0 none !important;}
 .wc .top td,.wc .sig td{border:0 none !important;}
-.wc .l td{border-bottom:1px solid #e3d6bd;padding:7px 4px;font-size:14px;vertical-align:middle;}
+.wc .l td{border-bottom:1px solid #e3d6bd;padding:4px 4px;font-size:13px;vertical-align:middle;}
 .wc .l td.cb{width:26px;} .wc .l td.cb div{width:16px;height:16px;border:2px solid #1c110a;}
-.wc .l td.q{width:95px;text-align:right;font-size:18px;font-weight:bold;white-space:nowrap;}
+.wc .l td.q{width:95px;text-align:right;font-size:16px;font-weight:bold;white-space:nowrap;}
 .wc .l td.q span{font-size:11px;font-weight:normal;color:#7a6652;}
 .wc .l td.w{width:62px;text-align:right;font-weight:bold;}
 .wc .l td.w.red{color:#c0392b;}
 .wc .l td.who{color:#5f4b3a;font-size:12.5px;width:150px;}
 .wc .ok{color:#1e8449;font-weight:bold;} .wc .bad{color:#c0392b;font-weight:bold;}
 .wc .none{color:#1e8449;font-size:14px;padding:6px 4px;}
-.wc .s td{border-bottom:1px solid #eee4d0;padding:4px;font-size:12.5px;}
+.wc .s td{border-bottom:1px solid #eee4d0;padding:3px 4px;font-size:12px;}
 .wc .s th{font-size:11px;color:#7a6652;text-align:right;padding:2px 4px;border-bottom:1.5px solid #1c110a;}
 .wc .s th.l,.wc .s td.l{text-align:left;}
 .wc .s td.n{text-align:right;width:80px;} .wc .s td.z{text-align:right;width:80px;color:#c8bba4;}
