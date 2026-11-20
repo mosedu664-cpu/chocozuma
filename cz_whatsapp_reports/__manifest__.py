@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Choco Zuma WhatsApp Reports",
-    "version": "18.0.1.4.1",
-    "summary": "Real-cost engine, CEO daily brief (AR) and daily marketing report (TR) and kitchen/depot stock report (TR) by WhatsApp",
+    "version": "18.0.1.5.0",
+    "summary": "Real-cost engine, CEO daily brief (AR) and daily marketing report (TR) and kitchen/depot stock report (TR), yesterday orders (TR) by WhatsApp",
     "author": "Choco Zuma",
     "license": "LGPL-3",
     "category": "Point of Sale",
@@ -13,6 +13,7 @@
         "views/wa_report_views.xml",
         "data/wa_report_data.xml",
         "data/wa_cron_data.xml",
+        "data/wa_report_setup.xml",
     ],
     "installable": True,
     "application": False,
