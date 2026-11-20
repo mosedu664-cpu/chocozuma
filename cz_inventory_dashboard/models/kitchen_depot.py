@@ -183,7 +183,7 @@ class StockWarehouse(models.Model):
         _logger.info("cz_inventory_dashboard: kitchen/depot structure ready (%s, %s)", kitchen.complete_name, chill.complete_name)
 
     @api.model
-    def _cz_move_legacy_to_kitchen(self):
+    def cz_move_legacy_to_kitchen(self):
         """One-off: put the free quantity still sitting directly on CKWH/Stock onto '1 Mutfak'.
         Reserved quantity and negative quants are left where they are (they are listed as data errors)."""
         if not self.env.user.has_group("stock.group_stock_manager"):
