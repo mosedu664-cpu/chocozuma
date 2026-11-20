@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_template_form_cz_kitchen" model="ir.ui.view">
+        <field name="name">product.template.form.cz.kitchen</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="stock.view_template_property_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_lots_and_weight']" position="after">
+                <group string="Mutfak &amp; Depo" name="cz_kitchen_depot">
+                    <field name="cz_chef_watch"/>
+                    <field name="cz_depot_zone"/>
+                    <field name="cz_shelf_days"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="product_template_list_cz_kitchen" model="ir.ui.view">
+        <field name="name">product.template.list.cz.kitchen</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="cz_chef_watch" optional="hide"/>
+                <field name="cz_depot_zone" optional="hide"/>
+                <field name="cz_shelf_days" optional="hide"/>
+            </field>
+        </field>
+    </record>
+</odoo>
