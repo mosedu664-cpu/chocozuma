@@ -241,6 +241,8 @@ SIMPLE_CSS = """
 .wc h2{font-family:'CZMessiri','CZLatin',sans-serif;font-size:19px;margin:18px 0 4px 0;}
 .wc h2 small{font-family:'CZLatin',sans-serif;font-weight:normal;font-size:12px;color:#7a6652;}
 .wc table{width:100%;border-collapse:collapse;}
+.wc table,.wc tr,.wc td,.wc th{border-left:0 none !important;border-right:0 none !important;border-top:0 none !important;}
+.wc .top td,.wc .sig td{border:0 none !important;}
 .wc .l td{border-bottom:1px solid #e3d6bd;padding:7px 4px;font-size:14px;vertical-align:middle;}
 .wc .l td.cb{width:26px;} .wc .l td.cb div{width:16px;height:16px;border:2px solid #1c110a;}
 .wc .l td.q{width:120px;text-align:right;font-size:18px;font-weight:bold;white-space:nowrap;}
@@ -259,7 +261,7 @@ SIMPLE_CSS = """
 """
 
 
-def render_html(snap, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0.85):
+def render_html(snap, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=1.2):
     """ONE page, three lists, nothing a chef has to interpret."""
     now, produce, ship, stock, expired = _simple(snap)
     p = ["<style>%s%s</style>" % (FONTS % {"base": font_base}, SIMPLE_CSS), '<div class="wc" style="zoom:%s;">' % zoom]
