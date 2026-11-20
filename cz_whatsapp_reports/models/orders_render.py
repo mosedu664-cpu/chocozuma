@@ -99,14 +99,41 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
             ("Müşteri", str(len({o["partner"] for o in orders})), ""),
             ("Kalem", str(sum(len(o["lines"]) for o in orders)), "%d farklı ürün" % len(data["products"]))]
     if show:
-        kpis.append(("Tutar (KDV hariç)", tl(data["untaxed"]), "KDV dahil %s" % tl(data["total"])))
+        # management board: four numbers, then only the exceptions, then the details
+        op = data.get("open_orders") or []
+        late = [o for o in op if o["late"]]
+        un = data.get("uninvoiced") or []
+        kpis = [("Dünkü sipariş", str(len(orders)), "%d müşteri · %d kalem" % (len({o["partner"] for o in orders}),
+                                                                         sum(len(o["lines"]) for o in orders))),
+                ("Tutar (KDV hariç)", tl(data["untaxed"]), "KDV dahil %s" % tl(data["total"])),
+                ("Açık sipariş", str(len(op)), ("%d gecikmiş" % len(late)) if late else "gecikme yok"),
+                ("Fatura bekleyen", str(len(un)), tl(sum(u["amount"] for u in un)))]
     else:
         short = sum(1 for x in data["products"] if x["short"] > 0)
         kpis.append(("Üretilecek", str(short), "mutfak ürünü — stok siparişe yetmiyor"))
     cells = "".join('<td><div class="kpi"><div class="kl">%s</div><div class="kv">%s</div><div class="ks">%s</div></div></td>'
                     % (h(a), b, h(c)) for a, b, c in kpis)
     p.append('<div class="wrap"><table class="kpis"><tr>%s</tr></table>' % cells)
-    if data.get("unusual"):
+    if show:
+        ex = []
+        for u in data.get("unusual") or []:
+            ex.append("<b>%s</b> %s — %s %s: <b>%s %s</b> (normali ~%s) · sipariş satırını kontrol et"
+                      % (h(u["order"]), h(u["partner"]), h(u["code"]), h(u["name"]), q(u["qty"]), h(u["uom"]), q(u["median"])))
+        late = [o for o in (data.get("open_orders") or []) if o["late"]]
+        if late:
+            ex.append("<b>%d sipariş gecikmiş</b> — en eski: %s" % (len(late), ", ".join(
+                "%s %s (%d gün)" % (h(o["name"]), h(o["partner"]), o["days"]) for o in late[:4])))
+        for name in data.get("draft_deliveries") or []:
+            ex.append("<b>%s</b> — teslimatı taslakta kalmış: teslim et veya iptal et" % h(name))
+        un = data.get("uninvoiced") or []
+        week = [u for u in un if u["days"] > 7]
+        if week:
+            ex.append("<b>%d sipariş 7 günden uzun süredir faturalanmadı</b> — %s" % (len(week), tl(sum(u["amount"] for u in week))))
+        if ex:
+            p.append(notes("ins", "Önce bunlara bakın", ex))
+        else:
+            p.append('<div class="ok"><div class="t">İstisna yok — olağandışı miktar, gecikme ve bekleyen eski fatura yok.</div></div>')
+    if data.get("unusual") and not show:
         p.append(notes("ins", "Olağandışı miktar — siparişi kontrol edin (yazım hatası olabilir)", [
             "<b>%s</b> %s · %s %s — <b>%s %s</b> (bu ürünün normal sipariş miktarı ~%s, %d kat)%s"
             % (h(u["order"]), h(u["partner"]), h(u["code"]), h(u["name"]), q(u["qty"]), h(u["uom"]), q(u["median"]),

@@ -10,7 +10,7 @@ from markupsafe import Markup
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
-from . import brief_render, kitchen_render, marketing_data, marketing_render, orders_render
+from . import brief_render, kitchen_render, marketing_data, marketing_render, orders_render, workcard_render
 
 PAID = ("paid", "done", "invoiced")
 PLATFORM_RE = re.compile(r"trendyol|yemek|getir", re.I)
@@ -32,9 +32,9 @@ OR_BODY = (
     "Toplam {{3}} kalemin müşteri müşteri ayrıntısı ekteki PDF dosyasında."
 )
 KS_BODY = (
-    "Günaydın, Choco Zuma mutfak ve depo stok raporu hazır: {{1}}.\n"
-    "Bugünün uyarıları: {{2}}.\n"
-    "Takip edilen {{3}} ürünün mutfak ve depo stoğu, ne üretileceği ve depodan ne getirileceği ekteki PDF dosyasında."
+    "Günaydın, Choco Zuma mutfak iş kartı hazır: {{1}}.\n"
+    "Bugün: {{2}}.\n"
+    "Üretilecekler, taşınacaklar, bugünkü sevkiyatlar ve {{3}} ürünün stok listesi ekteki PDF dosyasında. Yazdırıp işaretleyin."
 )
 
 
@@ -364,9 +364,9 @@ class CzWaReport(models.Model):
             snap = data or self._kitchen_snapshot()
             return {
                 "day": snap["as_of"][:10],
-                "net_text": kitchen_render.summary(snap),
+                "net_text": workcard_render.summary(snap) if snap.get("orders") else kitchen_render.summary(snap),
                 "orders_text": str(len(snap["rows"])),
-                "html": kitchen_render.render_html(snap),
+                "html": workcard_render.render_html(snap) if snap.get("orders") else kitchen_render.render_html(snap),
             }
         if self.code == "marketing":
             data = data or self._marketing_data()
@@ -424,6 +424,31 @@ class CzWaReport(models.Model):
                 moves = moves.filtered(lambda m: m.location_id.id in ck_ids)
             return sum(moves.mapped("product_qty"))
 
+        now = fields.Datetime.now()
+        shipments = []
+
+        def track(o, l, p, remaining, due, agg):
+            agg["qty"] += remaining
+            agg["orders"].add(o.id)
+            agg["names"].add(o.name)
+            if due and (not agg["due"] or due < agg["due"]):
+                agg["due"] = due
+
+        def shipment(o, open_lines, due):
+            """One delivery to make: ready when every open move of its lines is reserved (stock is on the shelf)."""
+            missing = []
+            for l in open_lines:
+                mv = l.move_ids.filtered(lambda m: m.state not in ("done", "cancel") and m.location_id.usage != "supplier")
+                if self.kitchen_only:
+                    mv = mv.filtered(lambda m: m.location_id.id in ck_ids)
+                if any(m.state != "assigned" for m in mv):
+                    missing.append(l.product_id.default_code or l.product_id.with_context(lang="tr_TR").name)
+            shipments.append({
+                "name": o.name, "partner": o.partner_id.commercial_partner_id.name or o.partner_id.name,
+                "due": self._local(due).strftime("%Y-%m-%d %H:%M") if due else "", "late": bool(due and due < now),
+                "lines": len(open_lines), "missing": missing,
+            })
+
         kept = SO.browse()
         for o in orders:
             sale_lines = o.order_line.filtered(
@@ -435,18 +460,20 @@ class CzWaReport(models.Model):
             deliver = o.commitment_date or (min(pick.mapped("scheduled_date")) if pick else False)
             states = set(pick.mapped("state"))
             delivery = "done" if states == {"done"} else next((s for s in ("confirmed", "waiting", "partially_available", "assigned") if s in states), False)
-            lines = []
+            lines, open_lines = [], []
             for l in sale_lines:
                 p = l.product_id
                 lines.append({"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name, "qty": l.product_uom_qty,
                               "uom": l.product_uom.name, "subtotal": l.price_subtotal})
                 agg = products.setdefault(p.id, {"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name,
-                                                 "uom": p.uom_id.name, "qty": 0.0, "orders": set(),
+                                                 "uom": p.uom_id.name, "qty": 0.0, "orders": set(), "names": set(), "due": False,
                                                  "made": bool(p.sudo().bom_count)})
                 remaining = open_qty(l)
                 if remaining > 0:
-                    agg["qty"] += remaining
-                    agg["orders"].add(o.id)
+                    track(o, l, p, remaining, deliver, agg)
+                    open_lines.append(l)
+            if open_lines:
+                shipment(o, open_lines, deliver)
             out.append({
                 "name": o.name, "partner": o.partner_id.commercial_partner_id.name or o.partner_id.name,
                 "time": self._local(o.date_order).strftime("%d.%m %H:%M"),
@@ -456,13 +483,14 @@ class CzWaReport(models.Model):
                 "invoice_status": o.invoice_status, "delivery": delivery,
             })
         # still open from earlier days (not delivered yet), dropship lines excluded — nothing is forgotten
-        now = fields.Datetime.now()
         open_out = []
         open_orders = SO.search([("state", "=", "sale"), ("warehouse_id", "in", whs.ids), ("date_order", "<", start),
                                  ("picking_ids.state", "in", ("draft", "assigned", "confirmed", "waiting", "partially_available"))],
                                 order="date_order, id")
         for o in open_orders:
-            rows = []
+            rows, open_lines = [], []
+            pick = o.picking_ids.filtered(lambda pk: pk.state not in ("done", "cancel") and pk.picking_type_code == "outgoing")
+            due = min(pick.mapped("scheduled_date")) if pick else (o.commitment_date or o.date_order)
             for l in o.order_line.filtered(lambda l: not l.display_type and l.product_id and l.product_id.type != "service" and keep(l)):
                 remaining = open_qty(l)
                 if remaining <= 0:
@@ -471,18 +499,17 @@ class CzWaReport(models.Model):
                 rows.append({"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name,
                              "qty": remaining, "uom": p.uom_id.name})
                 agg = products.setdefault(p.id, {"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name,
-                                                 "uom": p.uom_id.name, "qty": 0.0, "orders": set(),
+                                                 "uom": p.uom_id.name, "qty": 0.0, "orders": set(), "names": set(), "due": False,
                                                  "made": bool(p.sudo().bom_count)})
-                agg["qty"] += remaining
-                agg["orders"].add(o.id)
+                track(o, l, p, remaining, due, agg)
+                open_lines.append(l)
             if not rows:
                 continue
-            pick = o.picking_ids.filtered(lambda pk: pk.state not in ("done", "cancel") and pk.picking_type_code == "outgoing")
-            due = min(pick.mapped("scheduled_date")) if pick else (o.commitment_date or o.date_order)
+            shipment(o, open_lines, due)
             open_out.append({
                 "name": o.name, "partner": o.partner_id.commercial_partner_id.name or o.partner_id.name,
                 "time": self._local(o.date_order).strftime("%d.%m %H:%M"), "deliver_on": self._local(due).strftime("%d.%m %H:%M"),
-                "days": (now - o.date_order).days, "late": due < now, "lines": rows,
+                "days": (now - o.date_order).days, "late": due < now, "lines": rows, "draft": "draft" in pick.mapped("state"),
             })
         open_out.sort(key=lambda x: (not x["late"], -x["days"]))
         # delivered but not invoiced (accounting copy only)
@@ -527,7 +554,9 @@ class CzWaReport(models.Model):
                 continue  # already delivered — nothing left to prepare
             st = stock.get(pid, 0.0)
             short = max(0.0, a["qty"] - max(st, 0.0)) if a["made"] else 0.0
-            prod_rows.append(dict(a, orders=len(a["orders"]), stock=st, short=short))
+            prod_rows.append(dict(a, orders=len(a["orders"]), names=sorted(a["names"]), stock=st, short=short,
+                                  due=self._local(a["due"]).strftime("%Y-%m-%d %H:%M") if a["due"] else "",
+                                  late=bool(a["due"] and a["due"] < now)))
         prod_rows.sort(key=lambda x: (-(x["short"] > 0), x["code"] or x["name"]))
         return {
             "title": self.name, "day": day.isoformat(), "day_txt": day.strftime("%d.%m.%Y"),
@@ -539,6 +568,9 @@ class CzWaReport(models.Model):
             "kitchen_only": self.kitchen_only,
             "open_orders": open_out,
             "uninvoiced": uninvoiced,
+            "shipments": sorted(shipments, key=lambda x: (x["due"] or "9999")),
+            "now_local": self._local(now).strftime("%Y-%m-%d %H:%M"),
+            "draft_deliveries": [o["name"] for o in open_out if o.get("draft")],
         }
 
     @api.model
@@ -565,9 +597,22 @@ class CzWaReport(models.Model):
         for rep in self.sudo().search([("code", "=", "kitchen_stock")]):
             if (rep.phone_numbers or "").replace(" ", "") == mo:
                 rep.phone_numbers = "%s, %s" % (mo, chefs)
+        # v2 (one work card for the chefs): the stock report also carries the kitchen orders; the separate
+        # kitchen orders report is archived (its numbers were the same people)
+        Rep = self.sudo().with_context(active_test=False)
+        ICP = self.env["ir.config_parameter"].sudo()
+        if whs and not ICP.get_param("cz_whatsapp_reports.workcard_v1"):
+            for rep in Rep.search([("code", "=", "kitchen_stock")]):
+                rep.write({"kitchen_only": True, "warehouse_ids": [(6, 0, whs.ids)], "show_prices": False,
+                           "name": "Mutfak İş Kartı (Şefler)"})
+            Rep.search([("setup_key", "=", "orders_kitchen")]).write({"active": False})
+            ICP.set_param("cz_whatsapp_reports.workcard_v1", "1")
 
     def _kitchen_snapshot(self):
-        return self.env["stock.warehouse"].sudo()._cz_kitchen_snapshot()
+        snap = self.env["stock.warehouse"].sudo()._cz_kitchen_snapshot()
+        if self.kitchen_only and self.warehouse_ids:
+            snap["orders"] = self._orders_data()  # one work card: stock + the kitchen part of every open order
+        return snap
 
     def get_kitchen_snapshot(self):
         """JSON of the kitchen/depot snapshot (cross-check from the browser)."""
@@ -656,7 +701,8 @@ class CzWaReport(models.Model):
         if self.code == "orders_daily":
             return Markup(orders_render.render_html(self._orders_data()))
         if self.code == "kitchen_stock":
-            return Markup(kitchen_render.render_html(self._kitchen_snapshot()))
+            snap = self._kitchen_snapshot()
+            return Markup(workcard_render.render_html(snap) if snap.get("orders") else kitchen_render.render_html(snap))
         if self.code == "marketing":
             return Markup(marketing_render.render_html(self._marketing_data()))
         data = self._ceo_brief_data()
@@ -674,7 +720,8 @@ class CzWaReport(models.Model):
                     log.write({"note": "ok"})
                     continue
                 if report.code == "kitchen_stock":
-                    report.write({"preview_text": kitchen_render.render_text(report._kitchen_snapshot()),
+                    snap = report._kitchen_snapshot()
+                    report.write({"preview_text": workcard_render.render_text(snap) if snap.get("orders") else kitchen_render.render_text(snap),
                                   "preview_date": fields.Datetime.now()})
                     log.write({"note": "ok"})
                     continue
@@ -719,7 +766,7 @@ class CzWaReport(models.Model):
             "marketing": ("CZ Marketing Report", "cz_marketing_daily", "tr", "action_report_marketing_log", MK_BODY,
                           ("18.11.2026", "199.788", "217")),
             "kitchen_stock": ("CZ Kitchen Stock Report", "cz_kitchen_stock_daily", "tr", "action_report_kitchen_log", KS_BODY,
-                              ("21.11.2026", "2 sipariş için üretilecek, 3 üretilmeli, 1 depodan getirilmeli", "187")),
+                              ("21.11.2026", "8 ürün üretilecek, 4 sevkiyat (1 gecikmiş), 1 depodan getirilecek", "191")),
             "orders_daily": ("CZ Orders Daily", "cz_orders_daily", "tr", "action_report_orders_log", OR_BODY,
                              ("20.11.2026", "11 sipariş, 4 müşteri, toplam 61.240 TL (KDV hariç)", "96")),
         }[self.code]
