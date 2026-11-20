@@ -404,7 +404,7 @@ class CzWaReport(models.Model):
             states = set(pick.mapped("state"))
             delivery = "done" if states == {"done"} else next((s for s in ("confirmed", "waiting", "partially_available", "assigned") if s in states), False)
             lines = []
-            for l in o.order_line.filtered(lambda l: not l.display_type and l.product_id):
+            for l in o.order_line.filtered(lambda l: not l.display_type and l.product_id and l.product_id.type != "service"):
                 p = l.product_id
                 lines.append({"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name, "qty": l.product_uom_qty,
                               "uom": l.product_uom.name, "subtotal": l.price_subtotal})
