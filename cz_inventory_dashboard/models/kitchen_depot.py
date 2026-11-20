@@ -244,7 +244,12 @@ class StockWarehouse(models.Model):
 
         quants = env["stock.quant"].search([("location_id", "in", list(all_ids))])
         watched = env["product.product"].search([("product_tmpl_id.cz_chef_watch", "=", True)])
-        products = watched | quants.filtered(lambda q: q.location_id.id in depot_ids).product_id
+        # anything the kitchen actually produced in the last 30 days is shown even if nobody ticked "Şef takibi"
+        recent_made = env["mrp.production"].search([
+            ("state", "=", "done"), ("company_id", "=", env.company.id),
+            ("date_finished", ">=", fields.Datetime.now() - timedelta(days=30)),
+        ]).product_id
+        products = watched | recent_made | quants.filtered(lambda q: q.location_id.id in depot_ids).product_id
 
         rows = {}
 
