@@ -209,7 +209,11 @@ def _simple(snap):
         return ("", d.strftime("%d.%m"))
 
     def short_name(n):
-        return n if len(n) <= 28 else n[:26].rstrip() + "…"
+        """'TONALLI GIDA SANAYI TICARET LTD' → 'Tonalli Gıda'; 'Ynéde Coffee — Muhammet' → 'Ynéde Coffee'."""
+        n = (n or "").split(" — ")[0].split(",")[0].strip()
+        words = n.split()
+        short = " ".join(words[:2]) if len(words) > 2 else n
+        return short.title() if short.isupper() else short
 
     produce = []
     for x in sorted((x for x in od["products"] if x["made"] and x["short"] > 0),
@@ -241,15 +245,16 @@ SIMPLE_CSS = """
 .wc h2{font-family:'CZMessiri','CZLatin',sans-serif;font-size:19px;margin:18px 0 4px 0;}
 .wc h2 small{font-family:'CZLatin',sans-serif;font-weight:normal;font-size:12px;color:#7a6652;}
 .wc table{width:100%;border-collapse:collapse;}
-.wc table,.wc tr,.wc td,.wc th{border-left:0 none !important;border-right:0 none !important;border-top:0 none !important;}
+.wc table{border:0 none !important;}
+.wc tr,.wc td,.wc th{border-left:0 none !important;border-right:0 none !important;border-top:0 none !important;}
 .wc .top td,.wc .sig td{border:0 none !important;}
 .wc .l td{border-bottom:1px solid #e3d6bd;padding:7px 4px;font-size:14px;vertical-align:middle;}
 .wc .l td.cb{width:26px;} .wc .l td.cb div{width:16px;height:16px;border:2px solid #1c110a;}
-.wc .l td.q{width:120px;text-align:right;font-size:18px;font-weight:bold;white-space:nowrap;}
+.wc .l td.q{width:95px;text-align:right;font-size:18px;font-weight:bold;white-space:nowrap;}
 .wc .l td.q span{font-size:11px;font-weight:normal;color:#7a6652;}
-.wc .l td.w{width:70px;text-align:right;font-weight:bold;}
+.wc .l td.w{width:62px;text-align:right;font-weight:bold;}
 .wc .l td.w.red{color:#c0392b;}
-.wc .l td.who{color:#5f4b3a;font-size:12.5px;width:230px;}
+.wc .l td.who{color:#5f4b3a;font-size:12.5px;width:150px;}
 .wc .ok{color:#1e8449;font-weight:bold;} .wc .bad{color:#c0392b;font-weight:bold;}
 .wc .none{color:#1e8449;font-size:14px;padding:6px 4px;}
 .wc .s td{border-bottom:1px solid #eee4d0;padding:4px;font-size:12.5px;}
@@ -261,7 +266,7 @@ SIMPLE_CSS = """
 """
 
 
-def render_html(snap, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=1.2):
+def render_html(snap, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=1.0):
     """ONE page, three lists, nothing a chef has to interpret."""
     now, produce, ship, stock, expired = _simple(snap)
     p = ["<style>%s%s</style>" % (FONTS % {"base": font_base}, SIMPLE_CSS), '<div class="wc" style="zoom:%s;">' % zoom]
