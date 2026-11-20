@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+from collections import defaultdict
 from datetime import datetime, time, timedelta
 
 import pytz
@@ -419,6 +420,26 @@ class CzWaReport(models.Model):
                 "lines": lines, "untaxed": o.amount_untaxed, "total": o.amount_total,
                 "invoice_status": o.invoice_status, "delivery": delivery,
             })
+        # unusual quantity: a line ≥ 10× the product's median order quantity of the last 90 days (×1000 typos)
+        unusual = []
+        if products:
+            hist = defaultdict(list)
+            SOL = self.env["sale.order.line"].sudo().with_context(allowed_company_ids=SO.env.context["allowed_company_ids"])
+            for l in SOL.search([("product_id", "in", list(products)), ("order_id.state", "in", ("sale", "done")),
+                                 ("order_id.date_order", ">=", start - timedelta(days=90)), ("order_id", "not in", orders.ids)]):
+                hist[l.product_id.id].append(l.product_uom._compute_quantity(l.product_uom_qty, l.product_id.uom_id, raise_if_failure=False))
+            for o_rec, o in zip(orders, out):
+                for l in o_rec.order_line.filtered(lambda l: not l.display_type and l.product_id):
+                    h = sorted(x for x in hist.get(l.product_id.id, []) if x > 0)
+                    if len(h) < 3:
+                        continue
+                    med = h[len(h) // 2]
+                    qty = l.product_uom._compute_quantity(l.product_uom_qty, l.product_id.uom_id, raise_if_failure=False)
+                    if med > 0 and qty >= 10 * med:
+                        unusual.append({"order": o["name"], "partner": o["partner"], "code": l.product_id.default_code or "",
+                                        "name": l.product_id.with_context(lang="tr_TR").name, "qty": qty,
+                                        "uom": l.product_id.uom_id.name, "median": med, "ratio": qty / med,
+                                        "subtotal": l.price_subtotal})
         stock = {}
         if products and not self.show_prices:
             try:
@@ -438,6 +459,7 @@ class CzWaReport(models.Model):
             "orders": out, "products": prod_rows,
             "untaxed": sum(orders.mapped("amount_untaxed")), "total": sum(orders.mapped("amount_total")),
             "to_invoice": sum(1 for o in out if o["invoice_status"] == "to invoice"),
+            "unusual": unusual,
         }
 
     @api.model
