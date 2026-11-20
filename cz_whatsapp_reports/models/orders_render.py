@@ -142,10 +142,10 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
     if data.get("open_orders"):
         op = data["open_orders"]
         late = [o for o in op if o["late"]]
-        p.append(notes("ins" if late else "act", "Diğer açık siparişler — önceki günlerden ve bu sabah gelenler, henüz teslim edilmedi (%d%s)"
+        p.append(notes("ins" if late else "act", "Diğer açık siparişler — önceki günlerden ve rapor saatine kadar gelenler, henüz teslim edilmedi (%d%s)"
                        % (len(op), (", %d gecikmiş" % len(late)) if late else ""),
                        ["<b>%s</b> %s — %s, teslim %s%s · %s" % (
-                           h(o["name"]), h(o["partner"]), "bu sabah geldi" if o.get("new") else ("%d gündür açık" % o["days"]),
+                           h(o["name"]), h(o["partner"]), ("yeni, %s geldi" % h(o["time"])) if o.get("new") else ("%d gündür açık" % o["days"]),
                            h(o["deliver_on"]), " · <b>GECİKMİŞ</b>" if o["late"] else "",
                            ", ".join("%s %s %s" % (h(l["code"] or l["name"]), q(l["qty"]), h(l["uom"])) for l in o["lines"][:6])
                            + (" …" if len(o["lines"]) > 6 else ""))
