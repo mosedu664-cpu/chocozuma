@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Settings -->
+    <record id="cz_loyalty_config_form" model="ir.ui.view">
+        <field name="name">cz.loyalty.config.form</field>
+        <field name="model">cz.loyalty.config</field>
+        <field name="arch" type="xml">
+            <form string="Kakao Hazinesi">
+                <header>
+                    <field name="mode" widget="statusbar" options="{'clickable': '1'}"/>
+                </header>
+                <sheet>
+                    <div class="oe_title"><h1><field name="name"/></h1></div>
+                    <group>
+                        <group string="Program">
+                            <field name="visits_per_reward"/>
+                            <field name="reward_product_id"/>
+                            <field name="reward_valid_days"/>
+                            <field name="code_valid_hours"/>
+                            <field name="min_order_amount"/>
+                        </group>
+                        <group string="Channels">
+                            <field name="pos_config_ids" widget="many2many_tags"/>
+                            <field name="wa_account_ids" widget="many2many_tags"/>
+                            <field name="shop_number"/>
+                            <field name="kvkk_url" widget="url"/>
+                            <field name="alert_partner_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Test phones (Test mode)"><field name="test_phones" nolabel="1" colspan="2"/></group>
+                        <group string="Staff phones (never earn)"><field name="staff_phones" nolabel="1" colspan="2"/></group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="action_cz_loyalty_config" model="ir.actions.act_window">
+        <field name="name">Settings</field>
+        <field name="res_model">cz.loyalty.config</field>
+        <field name="view_mode">form</field>
+        <field name="res_id" ref="cz_loyalty_config_main"/>
+    </record>
+
+    <!-- Members -->
+    <record id="cz_loyalty_member_list" model="ir.ui.view">
+        <field name="name">cz.loyalty.member.list</field>
+        <field name="model">cz.loyalty.member</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="phone"/>
+                <field name="beans"/>
+                <field name="total_visits"/>
+                <field name="rewards_issued"/>
+                <field name="last_visit"/>
+                <field name="marketing_optin"/>
+                <field name="blocked" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    <record id="cz_loyalty_member_form" model="ir.ui.view">
+        <field name="name">cz.loyalty.member.form</field>
+        <field name="model">cz.loyalty.member</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="phone" readonly="1"/>
+                            <field name="partner_id"/>
+                            <field name="blocked"/>
+                        </group>
+                        <group>
+                            <field name="beans"/>
+                            <field name="total_visits"/>
+                            <field name="rewards_issued"/>
+                            <field name="first_visit"/>
+                            <field name="last_visit"/>
+                            <field name="marketing_optin"/>
+                            <field name="marketing_optin_date"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Beans">
+                            <field name="ledger_ids" readonly="1">
+                                <list>
+                                    <field name="create_date"/>
+                                    <field name="kind"/>
+                                    <field name="beans"/>
+                                    <field name="pos_config_id"/>
+                                    <field name="company_id"/>
+                                    <field name="pos_order_id"/>
+                                    <field name="note"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Rewards">
+                            <field name="reward_ids" readonly="1">
+                                <list>
+                                    <field name="token"/>
+                                    <field name="state"/>
+                                    <field name="expires_at"/>
+                                    <field name="used_at"/>
+                                    <field name="used_config_id"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_cz_loyalty_member" model="ir.actions.act_window">
+        <field name="name">Members</field>
+        <field name="res_model">cz.loyalty.member</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Rewards -->
+    <record id="cz_loyalty_reward_list" model="ir.ui.view">
+        <field name="name">cz.loyalty.reward.list</field>
+        <field name="model">cz.loyalty.reward</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="create_date"/>
+                <field name="member_id"/>
+                <field name="token"/>
+                <field name="state" decoration-success="state == 'issued'" decoration-muted="state in ('used', 'expired', 'cancelled')"/>
+                <field name="expires_at"/>
+                <field name="used_at"/>
+                <field name="used_config_id"/>
+                <field name="used_company_id"/>
+                <button name="action_mark_used_manual" type="object" string="Mark used" invisible="state != 'issued'"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_cz_loyalty_reward" model="ir.actions.act_window">
+        <field name="name">Rewards</field>
+        <field name="res_model">cz.loyalty.reward</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <!-- Message log -->
+    <record id="cz_loyalty_inbound_list" model="ir.ui.view">
+        <field name="name">cz.loyalty.inbound.list</field>
+        <field name="model">cz.loyalty.inbound</field>
+        <field name="arch" type="xml">
+            <list create="0">
+                <field name="received_at"/>
+                <field name="phone"/>
+                <field name="body"/>
+                <field name="state" decoration-danger="state == 'dead'" decoration-warning="state in ('failed', 'pending')"/>
+                <field name="result"/>
+                <field name="reply_text" optional="show"/>
+                <field name="attempts" optional="hide"/>
+                <field name="error" optional="hide"/>
+                <field name="simulated" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_cz_loyalty_inbound" model="ir.actions.act_window">
+        <field name="name">Message log</field>
+        <field name="res_model">cz.loyalty.inbound</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <menuitem id="menu_cz_loyalty_root" name="Kakao Hazinesi" parent="point_of_sale.menu_point_root"
+              sequence="90" groups="point_of_sale.group_pos_manager"/>
+    <menuitem id="menu_cz_loyalty_member" name="Members" parent="menu_cz_loyalty_root" action="action_cz_loyalty_member" sequence="10"/>
+    <menuitem id="menu_cz_loyalty_reward" name="Rewards" parent="menu_cz_loyalty_root" action="action_cz_loyalty_reward" sequence="20"/>
+    <menuitem id="menu_cz_loyalty_inbound" name="Message log" parent="menu_cz_loyalty_root" action="action_cz_loyalty_inbound" sequence="30"/>
+    <menuitem id="menu_cz_loyalty_simulate" name="Simulate message" parent="menu_cz_loyalty_root" action="action_cz_loyalty_simulate" sequence="40" groups="base.group_system"/>
+    <menuitem id="menu_cz_loyalty_config" name="Settings" parent="menu_cz_loyalty_root" action="action_cz_loyalty_config" sequence="50" groups="base.group_system"/>
+</odoo>
