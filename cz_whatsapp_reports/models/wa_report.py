@@ -459,7 +459,7 @@ class CzWaReport(models.Model):
         now = fields.Datetime.now()
         open_out = []
         open_orders = SO.search([("state", "=", "sale"), ("warehouse_id", "in", whs.ids), ("date_order", "<", start),
-                                 ("picking_ids.state", "in", ("assigned", "confirmed", "waiting", "partially_available"))],
+                                 ("picking_ids.state", "in", ("draft", "assigned", "confirmed", "waiting", "partially_available"))],
                                 order="date_order, id")
         for o in open_orders:
             rows = []
