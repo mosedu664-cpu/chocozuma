@@ -213,10 +213,7 @@ def _simple(snap):
         n = (n or "").split(" — ")[0].split(",")[0].strip()
         words = n.split()
         short = " ".join(words[:2]) if len(words) > 2 else n
-        if not short.isupper():
-            return short
-        # Turkish-aware Title Case: İ→i, I→ı before lowering, so "EMİRHAN" → "Emirhan", "MAĞAZACILIK" → "Mağazacılık"
-        return " ".join(w[:1] + w[1:].replace("İ", "i").replace("I", "ı").lower() for w in short.split())
+        return short  # kept as written in Odoo (automatic case changes break Turkish and brand names)
 
     produce = []
     for x in sorted((x for x in od["products"] if x["made"] and x["short"] > 0),
