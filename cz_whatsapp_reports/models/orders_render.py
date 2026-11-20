@@ -38,7 +38,7 @@ def summary(data):
     n = len(data["orders"])
     if not n and not data.get("open_orders"):
         return "dün sipariş gelmedi, açık sipariş yok"
-    s = "%d sipariş, %d müşteri" % (n, len({o["partner"] for o in data["orders"]}))
+    s = ("dün %d yeni sipariş, %d müşteri" % (n, len({o["partner"] for o in data["orders"]}))) if n else "dün yeni sipariş yok"
     if data.get("unusual"):
         s += ", %d olağandışı miktar" % len(data["unusual"])
     op = data.get("open_orders") or []
@@ -123,9 +123,16 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
                            + (" …" if len(o["lines"]) > 6 else ""))
                         for o in op[:25]]))
     if show and data.get("uninvoiced"):
-        un = data["uninvoiced"]
-        p.append(notes("ins", "Teslim edildi, faturalanmadı (%d sipariş, %s)" % (len(un), tl(sum(u["amount"] for u in un))),
-                       ["<b>%s</b> %s — %s, %d gündür" % (h(u["name"]), h(u["partner"]), tl(u["amount"]), u["days"]) for u in un[:25]]))
+        un = sorted(data["uninvoiced"], key=lambda u: u["days"])
+        recent = [u for u in un if u["days"] <= 60]
+        old = [u for u in un if u["days"] > 60]
+        lines = ["<b>%s</b> %s — %s, %d gündür" % (h(u["name"]), h(u["partner"]), tl(u["amount"]), u["days"]) for u in recent[:25]]
+        if len(recent) > 25:
+            lines.append("… ve son 60 günden %d sipariş daha" % (len(recent) - 25))
+        if old:
+            lines.append("<b>60 günden eski %d sipariş, %s</b> — eski kayıtlar, bir kez temizlenmeli (faturala veya kapat)"
+                         % (len(old), tl(sum(u["amount"] for u in old))))
+        p.append(notes("ins", "Teslim edildi, faturalanmadı (%d sipariş, %s)" % (len(un), tl(sum(u["amount"] for u in un))), lines))
     if not orders:
         p.append('<div class="ok"><div class="t">Dün yeni sipariş gelmedi.</div></div>')
     if orders or data["products"]:
