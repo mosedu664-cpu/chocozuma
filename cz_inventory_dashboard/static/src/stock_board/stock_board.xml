@@ -73,7 +73,7 @@
                 <td class="ck"><input type="checkbox" t-att-checked="r.id in state.sel" t-on-change="() => this.toggle(r)"/></td>
                 <td class="prod">
                   <button class="btn-link p-0" t-on-click="() => this.openProduct(r)"><span class="code" t-esc="r.code"/> <t t-esc="r.name"/></button>
-                  <div class="uom"><t t-esc="r.uom"/><t t-if="r.zone"> · <t t-esc="r.zone === 'freezer' ? 'Dondurucu' : 'Soğuk Oda'"/></t><t t-if="r.shelf"> · raf ömrü <t t-esc="r.shelf"/> g</t></div>
+                  <div class="uom"><t t-esc="r.uom"/><t t-if="r.zone"> · <t t-esc="r.zone === 'freezer' ? 'Dondurucu' : 'Soğuk Oda'"/></t><t t-if="r.shelf"> · raf ömrü <t t-esc="r.shelf"/> gün</t></div>
                 </td>
                 <td class="n" t-att-class="r.kitchen &lt; 0 ? 'neg' : ''"><t t-esc="fmt(r.kitchen)"/></td>
                 <td class="n" t-att-class="r.freezer &lt; 0 ? 'neg' : (r.freezer ? 'dep' : 'z')"><t t-esc="fmt(r.freezer)"/></td>
