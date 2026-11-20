@@ -132,7 +132,7 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
         if old:
             lines.append("<b>60 günden eski %d sipariş, %s</b> — eski kayıtlar, bir kez temizlenmeli (faturala veya kapat)"
                          % (len(old), tl(sum(u["amount"] for u in old))))
-        p.append(notes("ins", "Teslim edildi, faturalanmadı (%d sipariş, %s)" % (len(un), tl(sum(u["amount"] for u in un))), lines))
+        p.append(notes("ins", "Fatura bekleyen siparişler (%d sipariş, %s)" % (len(un), tl(sum(u["amount"] for u in un))), lines))
     if not orders:
         p.append('<div class="ok"><div class="t">Dün yeni sipariş gelmedi.</div></div>')
     if orders or data["products"]:
