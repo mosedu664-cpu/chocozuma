@@ -21,6 +21,10 @@
     <div t-if="state.loading and !state.data" class="cz_sb_loading"><i class="fa fa-circle-o-notch fa-spin"/> Yükleniyor…</div>
 
     <t t-if="state.data">
+      <div t-if="wrongCompany" class="cz_sb_note">
+        <i class="fa fa-building"/> Stok <b t-esc="state.data.company"/> mutfağına ait. Transfer açmak ve ürün detayına girmek için bu şirketi seçin.
+        <button class="btn btn-sm btn-primary ms-2" t-on-click="() => this.switchCompany()">Şirketi seç</button>
+      </div>
       <!-- alerts: click = filter -->
       <div class="cz_sb_alerts">
         <t t-foreach="alerts" t-as="a" t-key="a.key">

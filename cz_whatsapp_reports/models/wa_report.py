@@ -510,7 +510,7 @@ class CzWaReport(models.Model):
             "marketing": ("CZ Marketing Report", "cz_marketing_daily", "tr", "action_report_marketing_log", MK_BODY,
                           ("18.11.2026", "199.788", "217")),
             "kitchen_stock": ("CZ Kitchen Stock Report", "cz_kitchen_stock_daily", "tr", "action_report_kitchen_log", KS_BODY,
-                              ("21.11.2026", "2 siparişe yetmiyor, 3 üretilmeli, 1 depodan getirilmeli", "168")),
+                              ("21.11.2026", "2 sipariş için üretilecek, 3 üretilmeli, 1 depodan getirilmeli", "187")),
         }[self.code]
         template = self.env["whatsapp.template"].create({
             "name": spec[0],
