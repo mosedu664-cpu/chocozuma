@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Idempotent: yesterday's-orders reports (kitchen to chefs, main warehouse to accounting) -->
+    <function model="cz.wa.report" name="_cz_setup_daily_reports"/>
+</odoo>

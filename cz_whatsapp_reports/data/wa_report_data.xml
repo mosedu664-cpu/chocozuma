@@ -14,6 +14,6 @@
         <field name="name">Mutfak &amp; Depo Stok Raporu</field>
         <field name="code">kitchen_stock</field>
         <field name="sequence">30</field>
-        <field name="phone_numbers">+905444436338</field>
+        <field name="phone_numbers">+905444436338, +905458682649, +905357730567</field>
     </record>
 </odoo>

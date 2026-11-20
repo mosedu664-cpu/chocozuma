@@ -9,7 +9,7 @@ from markupsafe import Markup
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
-from . import brief_render, kitchen_render, marketing_data, marketing_render
+from . import brief_render, kitchen_render, marketing_data, marketing_render, orders_render
 
 PAID = ("paid", "done", "invoiced")
 PLATFORM_RE = re.compile(r"trendyol|yemek|getir", re.I)
@@ -24,6 +24,11 @@ MK_BODY = (
     "Merhaba, Choco Zuma pazarlama raporu hazır: {{1}} iş günü.\n"
     "Kayaşehir ve Metrokent toplam net satış {{2}} TL, {{3}} sipariş.\n"
     "Günlük, haftalık, aylık ayrıntılar ve müşteri bilgileri ekteki PDF dosyasında."
+)
+OR_BODY = (
+    "Merhaba, Choco Zuma dünkü siparişler raporu: {{1}}.\n"
+    "Özet: {{2}}.\n"
+    "Toplam {{3}} kalemin müşteri müşteri ayrıntısı ekteki PDF dosyasında."
 )
 KS_BODY = (
     "Günaydın, Choco Zuma mutfak ve depo stok raporu hazır: {{1}}.\n"
@@ -40,7 +45,11 @@ class CzWaReport(models.Model):
     name = fields.Char(required=True)
     code = fields.Selection(
         [("ceo_daily", "CEO Daily Brief"), ("marketing", "Marketing Report (TR)"),
-         ("kitchen_stock", "Mutfak & Depo Stok Raporu (TR)")], required=True, default="ceo_daily")
+         ("kitchen_stock", "Mutfak & Depo Stok Raporu (TR)"),
+         ("orders_daily", "Dünkü Siparişler (TR)")], required=True, default="ceo_daily")
+    warehouse_ids = fields.Many2many("stock.warehouse", string="Warehouses",
+                                     help="Yesterday's orders report: sale orders of these warehouses.")
+    show_prices = fields.Boolean("Show amounts", help="Yesterday's orders report: amounts and invoice status (accounting).")
     send_hour = fields.Float(
         string="Send at (Istanbul)", default=7.5,
         help="Kitchen stock report: sent once a day at or after this hour (7.5 = 07:30).")
@@ -338,6 +347,14 @@ class CzWaReport(models.Model):
     def _payload(self, data=None):
         """What one send needs: business day text, totals for the template and the PDF html."""
         self.ensure_one()
+        if self.code == "orders_daily":
+            od = data or self._orders_data()
+            return {
+                "day": od["day_txt"],
+                "net_text": orders_render.summary(od),
+                "orders_text": str(sum(len(o["lines"]) for o in od["orders"])),
+                "html": orders_render.render_html(od),
+            }
         if self.code == "kitchen_stock":
             snap = data or self._kitchen_snapshot()
             return {
@@ -363,6 +380,88 @@ class CzWaReport(models.Model):
             "day": vm["date"], "net_text": brief_render.money(vm["net"]), "orders_text": str(vm["orders"]),
             "html": brief_render.render_html(vm),
         }
+
+    # ---------------------------------------------------- yesterday's orders
+    def _orders_day(self, local_now=None):
+        """Business day reported: yesterday (06:00 → 06:00 Istanbul)."""
+        if local_now is None:
+            local_now = fields.Datetime.context_timestamp(self.with_context(tz="Europe/Istanbul"), fields.Datetime.now())
+        return (local_now - timedelta(hours=6)).date() - timedelta(days=1)
+
+    def _orders_data(self, day=None):
+        self.ensure_one()
+        day = day or self.report_day or self._orders_day()
+        start, end = self._utc(day), self._utc(day + timedelta(days=1))
+        whs = self.warehouse_ids.sudo()
+        SO = self.env["sale.order"].sudo().with_context(allowed_company_ids=whs.company_id.ids or self.env.companies.ids)
+        orders = SO.search([("state", "in", ("sale", "done")), ("warehouse_id", "in", whs.ids),
+                            ("date_order", ">=", start), ("date_order", "<", end)], order="date_order, id")
+        out, products = [], {}
+        for o in orders:
+            pick = o.picking_ids.filtered(lambda p: p.picking_type_code == "outgoing" and p.state != "cancel")
+            deliver = o.commitment_date or (min(pick.mapped("scheduled_date")) if pick else False)
+            states = set(pick.mapped("state"))
+            delivery = "done" if states == {"done"} else next((s for s in ("confirmed", "waiting", "partially_available", "assigned") if s in states), False)
+            lines = []
+            for l in o.order_line.filtered(lambda l: not l.display_type and l.product_id):
+                p = l.product_id
+                lines.append({"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name, "qty": l.product_uom_qty,
+                              "uom": l.product_uom.name, "subtotal": l.price_subtotal})
+                agg = products.setdefault(p.id, {"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name,
+                                                 "uom": p.uom_id.name, "qty": 0.0, "orders": set()})
+                agg["qty"] += l.product_uom._compute_quantity(l.product_uom_qty, p.uom_id, raise_if_failure=False)
+                agg["orders"].add(o.id)
+            out.append({
+                "name": o.name, "partner": o.partner_id.commercial_partner_id.name or o.partner_id.name,
+                "time": self._local(o.date_order).strftime("%d.%m %H:%M"),
+                "deliver_on": self._local(deliver).strftime("%d.%m %H:%M") if deliver else "",
+                "ref": o.client_order_ref or "", "by": o.create_uid.name if o.create_uid.name not in ("OdooBot",) else "otomatik",
+                "lines": lines, "untaxed": o.amount_untaxed, "total": o.amount_total,
+                "invoice_status": o.invoice_status, "delivery": delivery,
+            })
+        stock = {}
+        if products and not self.show_prices:
+            try:
+                ck = self.env["stock.warehouse"].sudo()._cz_locations()["stock"]
+                for p in self.env["product.product"].sudo().browse(list(products)).with_context(location=ck.id):
+                    stock[p.id] = p.qty_available
+            except UserError:
+                stock = {}
+        prod_rows = []
+        for pid, a in products.items():
+            st = stock.get(pid, 0.0)
+            prod_rows.append(dict(a, orders=len(a["orders"]), stock=st, short=max(0.0, a["qty"] - max(st, 0.0))))
+        prod_rows.sort(key=lambda x: (-(x["short"] > 0), x["code"] or x["name"]))
+        return {
+            "title": self.name, "day": day.isoformat(), "day_txt": day.strftime("%d.%m.%Y"),
+            "warehouses": ", ".join(whs.mapped("name")), "show_prices": self.show_prices,
+            "orders": out, "products": prod_rows,
+            "untaxed": sum(orders.mapped("amount_untaxed")), "total": sum(orders.mapped("amount_total")),
+            "to_invoice": sum(1 for o in out if o["invoice_status"] == "to invoice"),
+        }
+
+    @api.model
+    def _cz_setup_daily_reports(self):
+        """Idempotent (runs at install/upgrade): the yesterday's-orders reports per warehouse and the
+        chefs' numbers on the kitchen stock report. Never overwrites numbers someone edited later."""
+        Wh = self.env["stock.warehouse"].sudo().with_context(active_test=False)
+        mo = "+905444436338"
+        chefs = "+905458682649, +905357730567"
+        accountant = "+905051193196"
+        specs = [
+            ("CKWH", "Dünkü Siparişler — Mutfak", False, "%s, %s" % (mo, chefs), 40),
+            ("WH", "Dünkü Siparişler — Ana Depo (Muhasebe)", True, "%s, %s" % (mo, accountant), 41),
+        ]
+        for code, name, prices, phones, seq in specs:
+            wh = Wh.search([("code", "=", code)], limit=1)
+            if not wh or self.sudo().with_context(active_test=False).search_count(
+                    [("code", "=", "orders_daily"), ("warehouse_ids", "in", wh.ids)]):
+                continue
+            self.sudo().create({"name": name, "code": "orders_daily", "warehouse_ids": [(6, 0, wh.ids)],
+                                "show_prices": prices, "phone_numbers": phones, "sequence": seq, "send_hour": 7.5})
+        for rep in self.sudo().search([("code", "=", "kitchen_stock")]):
+            if (rep.phone_numbers or "").replace(" ", "") == mo:
+                rep.phone_numbers = "%s, %s" % (mo, chefs)
 
     def _kitchen_snapshot(self):
         return self.env["stock.warehouse"].sudo()._cz_kitchen_snapshot()
@@ -451,6 +550,8 @@ class CzWaReport(models.Model):
     def _ceo_brief_html(self):
         """HTML body of the PDF brief (used by the QWeb report)."""
         self.ensure_one()
+        if self.code == "orders_daily":
+            return Markup(orders_render.render_html(self._orders_data()))
         if self.code == "kitchen_stock":
             return Markup(kitchen_render.render_html(self._kitchen_snapshot()))
         if self.code == "marketing":
@@ -464,6 +565,11 @@ class CzWaReport(models.Model):
         for report in self:
             log = self.env["cz.wa.report.log"].create({"report_id": report.id, "state": "preview"})
             try:
+                if report.code == "orders_daily":
+                    report.write({"preview_text": orders_render.render_text(report._orders_data()),
+                                  "preview_date": fields.Datetime.now()})
+                    log.write({"note": "ok"})
+                    continue
                 if report.code == "kitchen_stock":
                     report.write({"preview_text": kitchen_render.render_text(report._kitchen_snapshot()),
                                   "preview_date": fields.Datetime.now()})
@@ -511,7 +617,14 @@ class CzWaReport(models.Model):
                           ("18.11.2026", "199.788", "217")),
             "kitchen_stock": ("CZ Kitchen Stock Report", "cz_kitchen_stock_daily", "tr", "action_report_kitchen_log", KS_BODY,
                               ("21.11.2026", "2 sipariş için üretilecek, 3 üretilmeli, 1 depodan getirilmeli", "187")),
+            "orders_daily": ("CZ Orders Daily", "cz_orders_daily", "tr", "action_report_orders_log", OR_BODY,
+                             ("20.11.2026", "11 sipariş, 4 müşteri, toplam 61.240 TL (KDV hariç)", "96")),
         }[self.code]
+        existing = self.env["whatsapp.template"].search([("template_name", "=", spec[1]), ("wa_account_id", "=", account.id)], limit=1)
+        if existing:  # one template serves every report of the same kind (kitchen and accounting copies)
+            self.wa_template_id = existing.id
+            return {"type": "ir.actions.act_window", "res_model": "whatsapp.template",
+                    "res_id": existing.id, "view_mode": "form", "target": "current"}
         template = self.env["whatsapp.template"].create({
             "name": spec[0],
             "template_name": spec[1],
@@ -610,6 +723,8 @@ class CzWaReport(models.Model):
         self.ensure_one()
         if self.code == "kitchen_stock":
             data = self._kitchen_snapshot()
+        elif self.code == "orders_daily":
+            data = self._orders_data()
         else:
             data = self._marketing_data() if self.code == "marketing" else self._ceo_brief_data()
         logs = self._send_brief(data)
@@ -631,15 +746,19 @@ class CzWaReport(models.Model):
         fresh_since = now - timedelta(hours=10)
         local_now = fields.Datetime.context_timestamp(self.with_context(tz="Europe/Istanbul"), now)
         local_hour = local_now.hour
-        for report in self.search([("code", "=", "kitchen_stock"), ("wa_template_id.status", "=", "approved")]):
+        for report in self.search([("code", "in", ("kitchen_stock", "orders_daily")), ("wa_template_id.status", "=", "approved")]):
             try:
                 if local_now.hour + local_now.minute / 60.0 < (report.send_hour or 0):
                     continue
+                day = local_now.date() if report.code == "kitchen_stock" else report._orders_day(local_now)
                 if self.env["cz.wa.report.log"].search_count([
-                    ("report_id", "=", report.id), ("business_day", "=", local_now.strftime("%d.%m.%Y")), ("state", "=", "sent"),
+                    ("report_id", "=", report.id), ("business_day", "=", day.strftime("%d.%m.%Y")), ("state", "=", "sent"),
                 ]):
                     continue
-                report._send_brief(report._kitchen_snapshot())
+                if report.code == "kitchen_stock":
+                    report._send_brief(report._kitchen_snapshot())
+                else:
+                    report._send_brief(report._orders_data(day))
                 self.env.cr.commit()
             except Exception as err:
                 self.env.cr.rollback()
@@ -681,7 +800,8 @@ class CzWaReport(models.Model):
 
     def action_print_pdf(self):
         self.ensure_one()
-        ref = {"marketing": "action_report_marketing", "kitchen_stock": "action_report_kitchen"}.get(self.code, "action_report_ceo_brief")
+        ref = {"marketing": "action_report_marketing", "kitchen_stock": "action_report_kitchen",
+               "orders_daily": "action_report_orders"}.get(self.code, "action_report_ceo_brief")
         return self.env.ref("cz_whatsapp_reports.%s" % ref).report_action(self)
 
 

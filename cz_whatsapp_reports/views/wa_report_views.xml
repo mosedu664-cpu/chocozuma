@@ -42,12 +42,14 @@
                         <group>
                             <field name="name"/>
                             <field name="code"/>
-                            <field name="report_day" invisible="code != 'marketing'"/>
-                            <field name="send_hour" widget="float_time" invisible="code != 'kitchen_stock'"/>
+                            <field name="report_day" invisible="code not in ('marketing', 'orders_daily')"/>
+                            <field name="send_hour" widget="float_time" invisible="code not in ('kitchen_stock', 'orders_daily')"/>
+                            <field name="warehouse_ids" widget="many2many_tags" invisible="code != 'orders_daily'"/>
+                            <field name="show_prices" invisible="code != 'orders_daily'"/>
                             <field name="active"/>
                         </group>
                         <group>
-                            <field name="config_ids" widget="many2many_tags" invisible="code == 'kitchen_stock'"/>
+                            <field name="config_ids" widget="many2many_tags" invisible="code in ('kitchen_stock', 'orders_daily')"/>
                             <field name="partner_ids" widget="many2many_tags"/>
                             <field name="phone_numbers"/>
                             <field name="wa_template_id"/>
