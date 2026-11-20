@@ -38,7 +38,7 @@
       </div>
 
       <div class="cz_sb_chips">
-        <t t-foreach="[['all','Tümü'],['b2b','B2B Hazır'],['semi','Yarı Mamul'],['depot','Depoda olanlar'],['alerts','Uyarılı']]" t-as="c" t-key="c[0]">
+        <t t-foreach="[['active','Aktif'],['all','Tümü (stoksuz dahil)'],['b2b','B2B Hazır'],['semi','Yarı Mamul'],['depot','Depoda olanlar'],['alerts','Uyarılı']]" t-as="c" t-key="c[0]">
           <button class="btn btn-sm" t-att-class="state.view === c[0] ? 'btn-primary' : 'btn-light'" t-on-click="() => this.setView(c[0])" t-esc="c[1]"/>
         </t>
         <span class="cz_sb_count"><t t-esc="rows.length"/> ürün</span>
@@ -88,7 +88,7 @@
                     <span class="cz_sb_flag" t-att-class="FLAG[f][1]">
                       <t t-esc="FLAG[f][0]"/>
                       <t t-if="f === 'produce'">: <t t-esc="fmt(r.to_make)"/></t>
-                      <t t-if="f === 'shortage'">: −<t t-esc="fmt(r.short)"/></t>
+                      <t t-if="f === 'shortage'">: <t t-esc="fmt(r.short)"/></t>
                       <t t-if="f === 'fetch'">: <t t-esc="fmt(r.fetch)"/></t>
                     </span>
                   </t>

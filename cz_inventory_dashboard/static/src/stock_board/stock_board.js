@@ -17,7 +17,7 @@ const FLAG = {
 };
 
 function fmt(v) {
-    if (v === null || v === undefined) return "–";
+    if (v === null || v === undefined || v === 0) return "–";
     const a = Math.abs(v);
     const d = a >= 100 ? 0 : a >= 10 ? 1 : 2;
     return Number(v.toFixed(d)).toLocaleString("tr-TR");
@@ -34,7 +34,7 @@ export class CzKitchenStockBoard extends Component {
         this.company = useService("company");
         this.state = useState({
             loading: true, data: null, error: null,
-            view: "all", // all | b2b | semi | depot | alerts | <flag>
+            view: "active", // active | all | b2b | semi | depot | alerts | <flag>
             q: "",
             sel: {}, // product id -> qty (string)
             dir: null, // 'out' | 'in' while the transfer panel is open
@@ -88,6 +88,7 @@ export class CzKitchenStockBoard extends Component {
         return d.rows.filter((r) => {
             if (q && !(`${r.code} ${r.name}`.toLocaleLowerCase("tr-TR").includes(q))) return false;
             if (v === "all") return true;
+            if (v === "active") return r.total !== 0 || r.kitchen !== 0 || r.depot !== 0 || r.use_day > 0 || r.demand > 0 || r.flags.length > 0;
             if (v === "b2b") return r.family === "1_b2b";
             if (v === "semi") return r.family === "2_semi";
             if (v === "depot") return r.depot !== 0;
@@ -137,7 +138,7 @@ export class CzKitchenStockBoard extends Component {
 
     // ---------------------------------------------------------------- actions
     setView(v) {
-        this.state.view = this.state.view === v ? "all" : v;
+        this.state.view = this.state.view === v ? "active" : v;
     }
 
     toggle(r) {
