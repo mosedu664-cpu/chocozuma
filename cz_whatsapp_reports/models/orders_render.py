@@ -89,7 +89,7 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
     day = datetime.strptime(data["day"], "%Y-%m-%d")
     p = ["<style>%s%s%s%s</style>" % (FONTS % {"base": font_base}, CSS, EXTRA_CSS, ORDER_CSS),
          '<div class="mk" style="zoom:%s;">' % zoom, '<div class="page">']
-    p.append(header("Choco Zuma", "Dünkü Siparişler · %s" % h(data["title"]), WD[day.weekday()], h(data["day_txt"])))
+    p.append(header("Choco Zuma", h(data["title"]), WD[day.weekday()], h(data["day_txt"])))
     orders = data["orders"]
     kpis = [("Sipariş", str(len(orders)), "dün 06:00 – bugün 06:00"),
             ("Müşteri", str(len({o["partner"] for o in orders})), ""),
@@ -98,7 +98,7 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
         kpis.append(("Tutar (KDV hariç)", tl(data["untaxed"]), "KDV dahil %s" % tl(data["total"])))
     else:
         short = sum(1 for x in data["products"] if x["short"] > 0)
-        kpis.append(("Stok yetmiyor", str(short), "ürün — bugün üretilecek"))
+        kpis.append(("Üretilecek", str(short), "mutfak ürünü — stok siparişe yetmiyor"))
     cells = "".join('<td><div class="kpi"><div class="kl">%s</div><div class="kv">%s</div><div class="ks">%s</div></div></td>'
                     % (h(a), b, h(c)) for a, b, c in kpis)
     p.append('<div class="wrap"><table class="kpis"><tr>%s</tr></table>' % cells)
@@ -117,16 +117,24 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
                            ["<b>%s</b> %s — %s" % (h(o["name"]), h(o["partner"]), tl(o["total"])) for o in inv]))
         else:
             rows = ['<table class="tb"><tr><th class="l">Ürün</th><th>Siparişlerde toplam</th><th>Mutfak + depo stok</th>'
-                    '<th>Eksik</th><th>Sipariş</th></tr>']
-            for x in data["products"]:
+                    '<th>Üretilecek</th><th>Sipariş</th></tr>']
+            made = [x for x in data["products"] if x["made"]]
+            other = [x for x in data["products"] if not x["made"]]
+            for x in made:
                 rows.append('<tr class="%s"><td class="nm"><span class="c">%s</span> %s <span class="u">· %s</span></td>'
                             '<td class="tot">%s</td><td class="%s">%s</td><td class="%s">%s</td><td class="n">%d</td></tr>'
                             % ("fl" if x["short"] > 0 else "", h(x["code"]), h(x["name"]), h(x["uom"]), q(x["qty"]),
                                "neg" if x["stock"] < 0 else "n", q(x["stock"]),
                                "bad" if x["short"] > 0 else "z", q(x["short"]) if x["short"] > 0 else "–", x["orders"]))
             rows.append("</table>")
-            p.append('<div class="st2">Hazırlanacak toplam <small style="font-weight:normal;font-size:10px;color:#7a6652;">'
-                     'tüm siparişler birlikte; stok şu an Merkez Mutfak (mutfak + depo)</small></div>' + "".join(rows))
+            if made:
+                p.append('<div class="st2">Mutfakta üretilen ürünler <small style="font-weight:normal;font-size:10px;color:#7a6652;">'
+                         'tüm siparişler birlikte; stok şu an Merkez Mutfak (mutfak + depo)</small></div>' + "".join(rows))
+            if other:
+                p.append('<div class="st2">Diğer kalemler <small style="font-weight:normal;font-size:10px;color:#7a6652;">'
+                         'satın alma, sebze-meyve, ambalaj — hazırlanıp sevk edilecek miktar</small></div>'
+                         '<div class="box" style="margin-top:4px;">%s</div>'
+                         % " · ".join("<b>%s</b> %s <b>%s</b> %s" % (h(x["code"]), h(x["name"]), q(x["qty"]), h(x["uom"])) for x in other))
         p.append('<div class="st2">Siparişler</div>')
         half = (len(orders) + 1) // 2
         p.append('<div class="colL">%s</div><div class="colR">%s</div><div class="clr"></div>'

@@ -409,7 +409,8 @@ class CzWaReport(models.Model):
                 lines.append({"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name, "qty": l.product_uom_qty,
                               "uom": l.product_uom.name, "subtotal": l.price_subtotal})
                 agg = products.setdefault(p.id, {"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name,
-                                                 "uom": p.uom_id.name, "qty": 0.0, "orders": set()})
+                                                 "uom": p.uom_id.name, "qty": 0.0, "orders": set(),
+                                                 "made": bool(p.sudo().bom_count)})
                 agg["qty"] += l.product_uom._compute_quantity(l.product_uom_qty, p.uom_id, raise_if_failure=False)
                 agg["orders"].add(o.id)
             out.append({
@@ -451,7 +452,8 @@ class CzWaReport(models.Model):
         prod_rows = []
         for pid, a in products.items():
             st = stock.get(pid, 0.0)
-            prod_rows.append(dict(a, orders=len(a["orders"]), stock=st, short=max(0.0, a["qty"] - max(st, 0.0))))
+            short = max(0.0, a["qty"] - max(st, 0.0)) if a["made"] else 0.0
+            prod_rows.append(dict(a, orders=len(a["orders"]), stock=st, short=short))
         prod_rows.sort(key=lambda x: (-(x["short"] > 0), x["code"] or x["name"]))
         return {
             "title": self.name, "day": day.isoformat(), "day_txt": day.strftime("%d.%m.%Y"),
