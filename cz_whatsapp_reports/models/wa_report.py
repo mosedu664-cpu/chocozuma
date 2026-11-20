@@ -419,7 +419,7 @@ class CzWaReport(models.Model):
             """What is really still to deliver for this line, in the product's unit: the open (not done, not cancelled)
             delivery moves — so partial deliveries, cancelled backorders, merged lines and lines without any
             delivery are never counted twice or counted at all; dropship moves (supplier → customer) are left out."""
-            moves = line.move_ids.filtered(lambda m: m.state not in ("done", "cancel") and m.location_id.usage != "supplier")
+            moves = line.move_ids.filtered(lambda m: m.state not in ("draft", "done", "cancel") and m.location_id.usage != "supplier")
             if self.kitchen_only:
                 moves = moves.filtered(lambda m: m.location_id.id in ck_ids)
             return sum(moves.mapped("product_qty"))
@@ -438,7 +438,7 @@ class CzWaReport(models.Model):
             """One delivery to make: ready when every open move of its lines is reserved (stock is on the shelf)."""
             missing = []
             for l in open_lines:
-                mv = l.move_ids.filtered(lambda m: m.state not in ("done", "cancel") and m.location_id.usage != "supplier")
+                mv = l.move_ids.filtered(lambda m: m.state not in ("draft", "done", "cancel") and m.location_id.usage != "supplier")
                 if self.kitchen_only:
                     mv = mv.filtered(lambda m: m.location_id.id in ck_ids)
                 if any(m.state != "assigned" for m in mv):
@@ -483,11 +483,15 @@ class CzWaReport(models.Model):
                 "invoice_status": o.invoice_status, "delivery": delivery,
             })
         # still open from earlier days (not delivered yet), dropship lines excluded — nothing is forgotten
-        open_out = []
-        open_orders = SO.search([("state", "=", "sale"), ("warehouse_id", "in", whs.ids), ("date_order", "<", start),
+        # (earlier days, and orders already confirmed after the window closed — e.g. 06:00–07:30 this morning)
+        open_out, drafts = [], []
+        open_orders = SO.search([("state", "=", "sale"), ("warehouse_id", "in", whs.ids),
+                                 "|", ("date_order", "<", start), ("date_order", ">=", end),
                                  ("picking_ids.state", "in", ("draft", "assigned", "confirmed", "waiting", "partially_available"))],
                                 order="date_order, id")
         for o in open_orders:
+            if any(pk.state == "draft" and pk.picking_type_code == "outgoing" for pk in o.picking_ids):
+                drafts.append(o.name)  # a delivery left in draft is never shipped as is: flagged, not counted
             rows, open_lines = [], []
             pick = o.picking_ids.filtered(lambda pk: pk.state not in ("done", "cancel") and pk.picking_type_code == "outgoing")
             due = min(pick.mapped("scheduled_date")) if pick else (o.commitment_date or o.date_order)
@@ -509,7 +513,7 @@ class CzWaReport(models.Model):
             open_out.append({
                 "name": o.name, "partner": o.partner_id.commercial_partner_id.name or o.partner_id.name,
                 "time": self._local(o.date_order).strftime("%d.%m %H:%M"), "deliver_on": self._local(due).strftime("%d.%m %H:%M"),
-                "days": (now - o.date_order).days, "late": due < now, "lines": rows, "draft": "draft" in pick.mapped("state"),
+                "days": (now - o.date_order).days, "late": due < now, "lines": rows, "new": o.date_order >= end,
             })
         open_out.sort(key=lambda x: (not x["late"], -x["days"]))
         # delivered but not invoiced (accounting copy only)
@@ -570,7 +574,7 @@ class CzWaReport(models.Model):
             "uninvoiced": uninvoiced,
             "shipments": sorted(shipments, key=lambda x: (x["due"] or "9999")),
             "now_local": self._local(now).strftime("%Y-%m-%d %H:%M"),
-            "draft_deliveries": [o["name"] for o in open_out if o.get("draft")],
+            "draft_deliveries": drafts,
         }
 
     @api.model

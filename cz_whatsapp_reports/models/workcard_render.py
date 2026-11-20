@@ -134,13 +134,18 @@ def build(snap):
     ship = []
     for s in sorted(today, key=lambda s: (not s["late"], s["due"] or "")):
         d = _dt(s["due"])
-        when = ("gecikmiş · %s" % d.strftime("%d.%m %H:%M")) if s["late"] else (d.strftime("%H:%M") if d else "tarihsiz")
+        when = (d.strftime("%H:%M") if d.date() == now.date() else d.strftime("%d.%m")) if d else "–"
+        partner = s["partner"] if len(s["partner"]) <= 34 else s["partner"][:32].rstrip() + "…"
         if s["missing"]:
             cls, tag = "red", "eksik: %s" % ", ".join(s["missing"][:3]) + (" +%d" % (len(s["missing"]) - 3) if len(s["missing"]) > 3 else "")
         else:
             cls, tag = "ok", "hazır"
-        ship.append({"main": "<b>%s</b> · %s" % (h(s["partner"]), h(s["name"])), "qty": h(when), "uom": "",
-                     "sub": "%d kalem%s" % (s["lines"], (" · %d tanesi rafta yok" % len(s["missing"])) if s["missing"] else " · hepsi rezerve"),
+        late_txt = ""
+        if s["late"] and d:
+            days = (now.date() - d.date()).days
+            late_txt = "<b style=\"color:#b5532e;\">%s</b> · " % ("gecikmiş, %d gün" % days if days else "saati geçti")
+        ship.append({"main": "<b>%s</b> · %s" % (h(partner), h(s["name"])), "qty": h(when), "uom": "",
+                     "sub": late_txt + "%d kalem%s" % (s["lines"], (" · %d tanesi rafta yok" % len(s["missing"])) if s["missing"] else " · hepsi rezerve"),
                      "cls": cls, "tag": tag, "late": s["late"]})
 
     # ④ watch-outs
@@ -251,11 +256,11 @@ def render_html(snap, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
         p.append(_sec(4, "Dikkat"))
         p.append('<div class="watch">%s</div>' % "".join("<div>• %s</div>" % w for w in b["watch"][:8]))
 
-    p.append('<table class="sign"><tr><td>Hazırlayan şef: ____________________</td><td>Başlama: ________</td>'
+    p.append('<table class="sign"><tr><td>Şef: ______________</td><td>Başlama: ________</td>'
              '<td>Bitiş: ________</td></tr></table>')
     p.append("</div>")
     p.append('<div class="foot">Kaynak: Odoo, %s. Siparişler: onaylı satış siparişlerinin Merkez Mutfak\'tan çıkacak açık teslimatları '
-             '(dünkü + önceki günlerden açık, dropship hariç). Stok: Merkez Mutfak (mutfak + depo dondurucu + soğuk oda). '
+             '(teslim edilmemiş tüm siparişler, dropship ve taslak teslimatlar hariç). Stok: Merkez Mutfak (mutfak + depo dondurucu + soğuk oda). '
              '"Hazır" = Odoo\'da rafta rezerve edildi.</div>' % h(snap["as_of"]))
     p.append("</div>")
 
