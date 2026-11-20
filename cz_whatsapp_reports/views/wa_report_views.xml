@@ -46,6 +46,7 @@
                             <field name="send_hour" widget="float_time" invisible="code not in ('kitchen_stock', 'orders_daily')"/>
                             <field name="warehouse_ids" widget="many2many_tags" invisible="code != 'orders_daily'"/>
                             <field name="show_prices" invisible="code != 'orders_daily'"/>
+                            <field name="kitchen_only" invisible="code != 'orders_daily'"/>
                             <field name="active"/>
                         </group>
                         <group>
