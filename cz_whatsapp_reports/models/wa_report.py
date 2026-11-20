@@ -9,7 +9,7 @@ from markupsafe import Markup
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
-from . import brief_render, marketing_data, marketing_render
+from . import brief_render, kitchen_render, marketing_data, marketing_render
 
 PAID = ("paid", "done", "invoiced")
 PLATFORM_RE = re.compile(r"trendyol|yemek|getir", re.I)
@@ -25,6 +25,11 @@ MK_BODY = (
     "Kayaşehir ve Metrokent toplam net satış {{2}} TL, {{3}} sipariş.\n"
     "Günlük, haftalık, aylık ayrıntılar ve müşteri bilgileri ekteki PDF dosyasında."
 )
+KS_BODY = (
+    "Günaydın, Choco Zuma mutfak ve depo stok raporu hazır: {{1}}.\n"
+    "Bugünün uyarıları: {{2}}.\n"
+    "Takip edilen {{3}} ürünün mutfak ve depo stoğu, ne üretileceği ve depodan ne getirileceği ekteki PDF dosyasında."
+)
 
 
 class CzWaReport(models.Model):
@@ -34,7 +39,11 @@ class CzWaReport(models.Model):
 
     name = fields.Char(required=True)
     code = fields.Selection(
-        [("ceo_daily", "CEO Daily Brief"), ("marketing", "Marketing Report (TR)")], required=True, default="ceo_daily")
+        [("ceo_daily", "CEO Daily Brief"), ("marketing", "Marketing Report (TR)"),
+         ("kitchen_stock", "Mutfak & Depo Stok Raporu (TR)")], required=True, default="ceo_daily")
+    send_hour = fields.Float(
+        string="Send at (Istanbul)", default=7.5,
+        help="Kitchen stock report: sent once a day at or after this hour (7.5 = 07:30).")
     report_day = fields.Date(
         string="Report day (test)", help="Leave empty: the last business day whose sessions are closed. "
         "Only used by Preview and PDF; scheduled sending always uses the last closed day.")
@@ -329,6 +338,14 @@ class CzWaReport(models.Model):
     def _payload(self, data=None):
         """What one send needs: business day text, totals for the template and the PDF html."""
         self.ensure_one()
+        if self.code == "kitchen_stock":
+            snap = data or self._kitchen_snapshot()
+            return {
+                "day": snap["as_of"][:10],
+                "net_text": kitchen_render.summary(snap),
+                "orders_text": str(len(snap["rows"])),
+                "html": kitchen_render.render_html(snap),
+            }
         if self.code == "marketing":
             data = data or self._marketing_data()
             total = sum(b["day"]["net"] for b in data["br"].values())
@@ -346,6 +363,16 @@ class CzWaReport(models.Model):
             "day": vm["date"], "net_text": brief_render.money(vm["net"]), "orders_text": str(vm["orders"]),
             "html": brief_render.render_html(vm),
         }
+
+    def _kitchen_snapshot(self):
+        return self.env["stock.warehouse"].sudo()._cz_kitchen_snapshot()
+
+    def get_kitchen_snapshot(self):
+        """JSON of the kitchen/depot snapshot (cross-check from the browser)."""
+        self.ensure_one()
+        if not self.env.user.has_group("base.group_system"):
+            raise UserError(_("Only administrators."))
+        return self._kitchen_snapshot()
 
     # ------------------------------------------------------------- rendering
     def _ceo_brief_vm(self, data):
@@ -424,6 +451,8 @@ class CzWaReport(models.Model):
     def _ceo_brief_html(self):
         """HTML body of the PDF brief (used by the QWeb report)."""
         self.ensure_one()
+        if self.code == "kitchen_stock":
+            return Markup(kitchen_render.render_html(self._kitchen_snapshot()))
         if self.code == "marketing":
             return Markup(marketing_render.render_html(self._marketing_data()))
         data = self._ceo_brief_data()
@@ -435,6 +464,11 @@ class CzWaReport(models.Model):
         for report in self:
             log = self.env["cz.wa.report.log"].create({"report_id": report.id, "state": "preview"})
             try:
+                if report.code == "kitchen_stock":
+                    report.write({"preview_text": kitchen_render.render_text(report._kitchen_snapshot()),
+                                  "preview_date": fields.Datetime.now()})
+                    log.write({"note": "ok"})
+                    continue
                 if report.code == "marketing":
                     report.write({"preview_text": report._marketing_text(report._marketing_data()),
                                   "preview_date": fields.Datetime.now()})
@@ -470,26 +504,31 @@ class CzWaReport(models.Model):
         account = self.env["whatsapp.account"].search([], limit=1)
         if not account:
             raise UserError(_("No WhatsApp account is configured."))
-        marketing = self.code == "marketing"
+        spec = {
+            "ceo_daily": ("CZ CEO Daily Brief", "cz_ceo_daily_brief", "ar", "action_report_ceo_brief_log", self.WA_BODY,
+                          ("18/11/2026", "200,983", "230")),
+            "marketing": ("CZ Marketing Report", "cz_marketing_daily", "tr", "action_report_marketing_log", MK_BODY,
+                          ("18.11.2026", "199.788", "217")),
+            "kitchen_stock": ("CZ Kitchen Stock Report", "cz_kitchen_stock_daily", "tr", "action_report_kitchen_log", KS_BODY,
+                              ("21.11.2026", "2 siparişe yetmiyor, 3 üretilmeli, 1 depodan getirilmeli", "168")),
+        }[self.code]
         template = self.env["whatsapp.template"].create({
-            "name": "CZ Marketing Report" if marketing else "CZ CEO Daily Brief",
-            "template_name": "cz_marketing_daily" if marketing else "cz_ceo_daily_brief",
+            "name": spec[0],
+            "template_name": spec[1],
             "wa_account_id": account.id,
             "model_id": self.env["ir.model"]._get_id("cz.wa.report.log"),
             "phone_field": "mobile",
-            "lang_code": "tr" if marketing else "ar",
+            "lang_code": spec[2],
             "template_type": "utility",
             "header_type": "document",
-            "report_id": self.env.ref(
-                "cz_whatsapp_reports.action_report_marketing_log" if marketing
-                else "cz_whatsapp_reports.action_report_ceo_brief_log").id,
-            "body": MK_BODY if marketing else self.WA_BODY,
+            "report_id": self.env.ref("cz_whatsapp_reports.%s" % spec[3]).id,
+            "body": spec[4],
             "footer_text": "Choco Zuma Reports",
         })
         wanted = {
-            "{{1}}": ("business_day", "18.11.2026" if marketing else "18/11/2026"),
-            "{{2}}": ("net_text", "199.788" if marketing else "200,983"),
-            "{{3}}": ("orders_text", "217" if marketing else "230"),
+            "{{1}}": ("business_day", spec[5][0]),
+            "{{2}}": ("net_text", spec[5][1]),
+            "{{3}}": ("orders_text", spec[5][2]),
         }
         Variable = self.env["whatsapp.template.variable"]
         for name, (field_name, demo) in wanted.items():
@@ -569,7 +608,10 @@ class CzWaReport(models.Model):
 
     def action_send_now(self):
         self.ensure_one()
-        data = self._marketing_data() if self.code == "marketing" else self._ceo_brief_data()
+        if self.code == "kitchen_stock":
+            data = self._kitchen_snapshot()
+        else:
+            data = self._marketing_data() if self.code == "marketing" else self._ceo_brief_data()
         logs = self._send_brief(data)
         failed = logs.filtered(lambda l: l.state == "error")
         return {
@@ -587,7 +629,22 @@ class CzWaReport(models.Model):
         """Runs every 30 minutes; sends each report once per business day, after its branches closed."""
         now = fields.Datetime.now()
         fresh_since = now - timedelta(hours=10)
-        local_hour = fields.Datetime.context_timestamp(self.with_context(tz="Europe/Istanbul"), now).hour
+        local_now = fields.Datetime.context_timestamp(self.with_context(tz="Europe/Istanbul"), now)
+        local_hour = local_now.hour
+        for report in self.search([("code", "=", "kitchen_stock"), ("wa_template_id.status", "=", "approved")]):
+            try:
+                if local_now.hour + local_now.minute / 60.0 < (report.send_hour or 0):
+                    continue
+                if self.env["cz.wa.report.log"].search_count([
+                    ("report_id", "=", report.id), ("business_day", "=", local_now.strftime("%d.%m.%Y")), ("state", "=", "sent"),
+                ]):
+                    continue
+                report._send_brief(report._kitchen_snapshot())
+                self.env.cr.commit()
+            except Exception as err:
+                self.env.cr.rollback()
+                self.env["cz.wa.report.log"].create({"report_id": report.id, "state": "error", "note": "cron: %s" % str(err)[:1500]})
+                self.env.cr.commit()
         for report in self.search([("code", "=", "marketing"), ("wa_template_id.status", "=", "approved")]):
             try:
                 day, skipped = report._marketing_last_day(fresh_since=fresh_since)
@@ -624,7 +681,7 @@ class CzWaReport(models.Model):
 
     def action_print_pdf(self):
         self.ensure_one()
-        ref = "action_report_marketing" if self.code == "marketing" else "action_report_ceo_brief"
+        ref = {"marketing": "action_report_marketing", "kitchen_stock": "action_report_kitchen"}.get(self.code, "action_report_ceo_brief")
         return self.env.ref("cz_whatsapp_reports.%s" % ref).report_action(self)
 
 

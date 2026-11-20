@@ -30,11 +30,11 @@
                             confirm="Send the brief by WhatsApp to all numbers on this report now?"/>
                 </header>
                 <sheet>
-                    <div invisible="not preview_text or code != 'marketing'"
+                    <div invisible="not preview_text or code == 'ceo_daily'"
                          style="background:#f7f1e6;border:1px solid #e3d6bd;border-left:5px solid #c9a24a;padding:14px 18px;margin-bottom:16px;font-size:15px;line-height:1.7;">
                         <field name="preview_text" nolabel="1" readonly="1"/>
                     </div>
-                    <div invisible="not preview_text or code == 'marketing'" dir="rtl"
+                    <div invisible="not preview_text or code != 'ceo_daily'" dir="rtl"
                          style="direction:rtl;text-align:right;background:#f7f1e6;border:1px solid #e3d6bd;border-right:5px solid #c9a24a;padding:14px 18px;margin-bottom:16px;font-size:15px;line-height:1.7;">
                         <field name="preview_text" nolabel="1" readonly="1"/>
                     </div>
@@ -43,17 +43,18 @@
                             <field name="name"/>
                             <field name="code"/>
                             <field name="report_day" invisible="code != 'marketing'"/>
+                            <field name="send_hour" widget="float_time" invisible="code != 'kitchen_stock'"/>
                             <field name="active"/>
                         </group>
                         <group>
-                            <field name="config_ids" widget="many2many_tags"/>
+                            <field name="config_ids" widget="many2many_tags" invisible="code == 'kitchen_stock'"/>
                             <field name="partner_ids" widget="many2many_tags"/>
                             <field name="phone_numbers"/>
                             <field name="wa_template_id"/>
                             <field name="wa_template_status"/>
                         </group>
                     </group>
-                    <group string="Thresholds" invisible="code == 'marketing'">
+                    <group string="Thresholds" invisible="code != 'ceo_daily'">
                         <group>
                             <field name="cost_days"/>
                             <field name="cancel_alert_amount"/>
