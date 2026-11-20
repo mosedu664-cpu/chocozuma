@@ -171,9 +171,9 @@ export class CzKitchenStockBoard extends Component {
     }
 
     startTransfer(dir) {
-        // defaults: send the free kitchen quantity; fetch the suggested quantity (or everything in the depot)
+        // defaults: send the kitchen quantity not reserved for orders; fetch the suggested quantity (or everything in the depot)
         for (const r of this.selected) {
-            const def = dir === "out" ? Math.max(r.kitchen, 0) : (r.fetch || Math.max(r.depot, 0));
+            const def = dir === "out" ? Math.max(r.kitchen - r.reserved, 0) : (r.fetch || Math.max(r.depot, 0));
             this.state.sel[r.id] = def ? String(Number(def.toFixed(3))) : "";
         }
         this.state.dir = dir;
