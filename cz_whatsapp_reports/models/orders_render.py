@@ -39,6 +39,8 @@ def summary(data):
     if not n:
         return "dün sipariş gelmedi"
     s = "%d sipariş, %d müşteri" % (n, len({o["partner"] for o in data["orders"]}))
+    if data.get("unusual"):
+        s += ", %d olağandışı miktar" % len(data["unusual"])
     if data["show_prices"]:
         s += ", toplam %s (KDV hariç)" % tl(data["untaxed"])
         if data["to_invoice"]:
@@ -100,6 +102,12 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
     cells = "".join('<td><div class="kpi"><div class="kl">%s</div><div class="kv">%s</div><div class="ks">%s</div></div></td>'
                     % (h(a), b, h(c)) for a, b, c in kpis)
     p.append('<div class="wrap"><table class="kpis"><tr>%s</tr></table>' % cells)
+    if data.get("unusual"):
+        p.append(notes("ins", "Olağandışı miktar — siparişi kontrol edin (yazım hatası olabilir)", [
+            "<b>%s</b> %s · %s %s — <b>%s %s</b> (bu ürünün normal sipariş miktarı ~%s, %d kat)%s"
+            % (h(u["order"]), h(u["partner"]), h(u["code"]), h(u["name"]), q(u["qty"]), h(u["uom"]), q(u["median"]),
+               round(u["ratio"]), (" · %s" % tl(u["subtotal"])) if show else "")
+            for u in data["unusual"]]))
     if not orders:
         p.append('<div class="ok"><div class="t">Dün bu depoya sipariş gelmedi.</div></div>')
     else:
