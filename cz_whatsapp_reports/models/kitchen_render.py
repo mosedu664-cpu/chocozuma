@@ -61,7 +61,7 @@ def age_txt(r):
     a = age(r)
     if a is None:
         return "–"
-    return "bugün" if a < 1 else "%d g" % int(a)
+    return "bugün" if a < 1 else "%d gün" % int(a)
 
 
 def label(r):
@@ -72,7 +72,7 @@ def summary(snap):
     """One line for the WhatsApp template ({{2}}) — no line breaks allowed there."""
     a = snap["alerts"]
     parts = []
-    for key, txt in (("shortage", "siparişe yetmiyor"), ("produce", "üretilmeli"), ("fetch", "depodan getirilmeli")):
+    for key, txt in (("shortage", "sipariş için üretilecek"), ("produce", "üretilmeli"), ("fetch", "depodan getirilmeli")):
         if a[key]:
             parts.append("%d %s" % (len(a[key]), txt))
     shelf = len(a["expired"]) + len(a["expiring"])
@@ -183,7 +183,7 @@ def render_html(snap, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
     p.append('<div class="wrap"><table class="kpis"><tr>%s</tr></table>' % cells)
 
     left, right = [], []
-    left.append(notes("ins", "Siparişe yetmiyor — önümüzdeki 2 gün", al["shortage"]))
+    left.append(notes("ins", "Siparişler için üretilecek — önümüzdeki 2 gün (stok yetmiyor)", al["shortage"]))
     left.append(notes("ins", "Üretilmeli — hedef stok altında", al["produce"]))
     left.append(notes("ins", "Raf ömrü", al["shelf"]))
     right.append(notes("act", "Depodan mutfağa getir", al["fetch"]))
@@ -231,7 +231,7 @@ def render_text(snap):
     a = snap["alerts"]
     lines = ["Choco Zuma · Mutfak & Depo Stok · %s" % snap["as_of"], "Uyarılar: %s" % summary(snap)]
     by_id = {r["id"]: r for r in snap["rows"]}
-    for key, title in (("shortage", "Siparişe yetmiyor"), ("produce", "Üretilmeli"), ("fetch", "Depodan getir")):
+    for key, title in (("shortage", "Sipariş için üretilecek"), ("produce", "Üretilmeli"), ("fetch", "Depodan getir")):
         if a[key]:
             names = ", ".join((by_id[i]["code"] or by_id[i]["name"]) for i in a[key][:8] if i in by_id)
             lines.append("%s: %s" % (title, names))

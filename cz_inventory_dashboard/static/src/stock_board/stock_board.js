@@ -8,7 +8,7 @@ import { standardActionServiceProps } from "@web/webclient/actions/action_servic
 const REFRESH_MS = 120000;
 const FAMILY = { "1_b2b": "B2B Hazır Ürünler", "2_semi": "Yarı Mamul (Mutfak)", "3_other": "Diğer (depoda olan)" };
 const FLAG = {
-    shortage: ["Siparişe yetmiyor", "bad"],
+    shortage: ["Sipariş için üret", "bad"],
     produce: ["Üretilmeli", "bad"],
     expired: ["Süresi doldu", "bad"],
     fetch: ["Depodan getir", "warn"],
@@ -31,6 +31,7 @@ export class CzKitchenStockBoard extends Component {
         this.orm = useService("orm");
         this.action = useService("action");
         this.notification = useService("notification");
+        this.company = useService("company");
         this.state = useState({
             loading: true, data: null, error: null,
             view: "all", // all | b2b | semi | depot | alerts | <flag>
@@ -58,10 +59,19 @@ export class CzKitchenStockBoard extends Component {
     }
 
     // ---------------------------------------------------------------- derived
+    get wrongCompany() {
+        const d = this.state.data;
+        return d && !this.company.activeCompanyIds.includes(d.company_id);
+    }
+
+    switchCompany() {
+        this.company.setCompanies([this.state.data.company_id, ...this.company.activeCompanyIds]);
+    }
+
     get alerts() {
         const a = this.state.data ? this.state.data.alerts : {};
         return [
-            { key: "shortage", n: (a.shortage || []).length, label: "Siparişe yetmiyor", sub: "2 gün içindeki sipariş/üretim", cls: "bad" },
+            { key: "shortage", n: (a.shortage || []).length, label: "Sipariş için üretilecek", sub: "2 gün içindeki sipariş, stok yetmiyor", cls: "bad" },
             { key: "produce", n: (a.produce || []).length, label: "Üretilmeli", sub: "hedef stok altı", cls: "bad" },
             { key: "fetch", n: (a.fetch || []).length, label: "Depodan getir", sub: "mutfakta 1 günden az", cls: "warn" },
             { key: "expired", n: (a.expired || []).length + (a.expiring || []).length, label: "Raf ömrü", sub: "dolan + yaklaşan", cls: "warn" },
@@ -122,7 +132,7 @@ export class CzKitchenStockBoard extends Component {
         const a = [r.age_kitchen, r.age_depot].filter((x) => x !== null && x !== undefined);
         if (!a.length) return "–";
         const m = Math.max(...a);
-        return m < 1 ? "bugün" : `${Math.floor(m)} g`;
+        return m < 1 ? "bugün" : `${Math.floor(m)} gün`;
     }
 
     // ---------------------------------------------------------------- actions

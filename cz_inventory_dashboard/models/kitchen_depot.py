@@ -96,6 +96,18 @@ class StockWarehouse(models.Model):
 
     # ------------------------------------------------------------- structure
     @api.model
+    def _cz_kitchen_env(self):
+        """Self bound to the kitchen's company whatever the company switcher shows
+        (the user must belong to that company)."""
+        stock = _ref(self.env(su=True), "loc_ck_stock")
+        if not stock:
+            raise UserError(_("The kitchen/depot locations are not set up yet (module %s).", MOD))
+        company = stock.company_id
+        if not self.env.su and company not in self.env.user.company_ids:
+            raise UserError(_("You do not have access to %s.", company.name))
+        return self.with_context(allowed_company_ids=[company.id])
+
+    @api.model
     def _cz_locations(self, raise_if_missing=True):
         refs = {
             "stock": "loc_ck_stock", "kitchen": "loc_ck_kitchen", "depot": "loc_ck_depot",
@@ -188,6 +200,7 @@ class StockWarehouse(models.Model):
         Reserved quantity and negative quants are left where they are (they are listed as data errors)."""
         if not self.env.user.has_group("stock.group_stock_manager"):
             raise UserError(_("Only inventory administrators."))
+        self = self._cz_kitchen_env()
         locs = self._cz_locations()
         quants = self.env["stock.quant"].sudo().search([("location_id", "=", locs["stock"].id), ("quantity", ">", 0)])
         moved = 0
@@ -209,9 +222,10 @@ class StockWarehouse(models.Model):
         Quantities are in the product's own unit. 'Kitchen' = CKWH/Stock and every child that is
         not under '2 Depo' (legacy quants on CKWH/Stock itself count as kitchen).
         """
+        self = self._cz_kitchen_env()
         locs = self._cz_locations()
         company = locs["stock"].company_id
-        env = self.env(context=dict(self.env.context, allowed_company_ids=[company.id]))
+        env = self.env
         now = fields.Datetime.now()
         since = now - timedelta(days=usage_days)
         depot_ids = set(env["stock.location"].search([("id", "child_of", locs["depot"].id)]).ids)
@@ -354,6 +368,7 @@ class StockWarehouse(models.Model):
 
         return {
             "company": company.name,
+            "company_id": company.id,
             "as_of": fields.Datetime.context_timestamp(self.with_context(tz="Europe/Istanbul"), now).strftime("%d.%m.%Y %H:%M"),
             "usage_days": usage_days,
             "locations": {k: locs[k].complete_name for k in ("kitchen", "depot", "freezer", "chill")},
@@ -394,7 +409,9 @@ class StockPicking(models.Model):
         """Create a DRAFT transfer kitchen→depot ('out') or depot→kitchen ('in') and open it.
         lines: [{'product_id': int, 'qty': float}]. Nothing is validated here: the receiving side
         checks the quantities in the transfer form and validates."""
-        locs = self.env["stock.warehouse"]._cz_locations()
+        wh = self.env["stock.warehouse"]._cz_kitchen_env()
+        self = self.with_env(wh.env)
+        locs = wh._cz_locations()
         ptype = locs["type_out"] if direction == "out" else locs["type_in"]
         moves = []
         for line in lines or []:
