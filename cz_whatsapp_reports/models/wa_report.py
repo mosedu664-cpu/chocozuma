@@ -51,6 +51,10 @@ class CzWaReport(models.Model):
     warehouse_ids = fields.Many2many("stock.warehouse", string="Warehouses",
                                      help="Yesterday's orders report: sale orders of these warehouses.")
     show_prices = fields.Boolean("Show amounts", help="Yesterday's orders report: amounts and invoice status (accounting).")
+    kitchen_only = fields.Boolean(
+        "Kitchen lines only", help="Yesterday's orders report: keep only the lines delivered from the Central Kitchen "
+        "(kitchen products, also when the order was entered on another warehouse); dropship and other warehouses' lines are left out.")
+    setup_key = fields.Char(readonly=True, copy=False)
     send_hour = fields.Float(
         string="Send at (Istanbul)", default=7.5,
         help="Kitchen stock report: sent once a day at or after this hour (7.5 = 07:30).")
@@ -398,13 +402,32 @@ class CzWaReport(models.Model):
         orders = SO.search([("state", "in", ("sale", "done")), ("warehouse_id", "in", whs.ids),
                             ("date_order", ">=", start), ("date_order", "<", end)], order="date_order, id")
         out, products = [], {}
+        ck_ids = set()
+        if self.kitchen_only:
+            ck = self.env["stock.warehouse"].sudo()._cz_locations()["stock"]
+            ck_ids = set(self.env["stock.location"].sudo().search([("id", "child_of", ck.id)]).ids)
+
+        def keep(line):
+            if not self.kitchen_only:
+                return True
+            moves = line.move_ids.filtered(lambda m: m.state != "cancel")
+            if moves:
+                return any(m.location_id.id in ck_ids for m in moves)
+            return bool(line.product_id.sudo().bom_count)
+
+        kept = SO.browse()
         for o in orders:
+            sale_lines = o.order_line.filtered(
+                lambda l: not l.display_type and l.product_id and l.product_id.type != "service" and keep(l))
+            if not sale_lines:
+                continue
+            kept |= o
             pick = o.picking_ids.filtered(lambda p: p.picking_type_code == "outgoing" and p.state != "cancel")
             deliver = o.commitment_date or (min(pick.mapped("scheduled_date")) if pick else False)
             states = set(pick.mapped("state"))
             delivery = "done" if states == {"done"} else next((s for s in ("confirmed", "waiting", "partially_available", "assigned") if s in states), False)
             lines = []
-            for l in o.order_line.filtered(lambda l: not l.display_type and l.product_id and l.product_id.type != "service"):
+            for l in sale_lines:
                 p = l.product_id
                 lines.append({"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name, "qty": l.product_uom_qty,
                               "uom": l.product_uom.name, "subtotal": l.price_subtotal})
@@ -429,8 +452,8 @@ class CzWaReport(models.Model):
             for l in SOL.search([("product_id", "in", list(products)), ("order_id.state", "in", ("sale", "done")),
                                  ("order_id.date_order", ">=", start - timedelta(days=90)), ("order_id", "not in", orders.ids)]):
                 hist[l.product_id.id].append(l.product_uom._compute_quantity(l.product_uom_qty, l.product_id.uom_id, raise_if_failure=False))
-            for o_rec, o in zip(orders, out):
-                for l in o_rec.order_line.filtered(lambda l: not l.display_type and l.product_id):
+            for o_rec, o in zip(kept, out):
+                for l in o_rec.order_line.filtered(lambda l: not l.display_type and l.product_id and keep(l)):
                     h = sorted(x for x in hist.get(l.product_id.id, []) if x > 0)
                     if len(h) < 3:
                         continue
@@ -459,9 +482,10 @@ class CzWaReport(models.Model):
             "title": self.name, "day": day.isoformat(), "day_txt": day.strftime("%d.%m.%Y"),
             "warehouses": ", ".join(whs.mapped("name")), "show_prices": self.show_prices,
             "orders": out, "products": prod_rows,
-            "untaxed": sum(orders.mapped("amount_untaxed")), "total": sum(orders.mapped("amount_total")),
+            "untaxed": sum(kept.mapped("amount_untaxed")), "total": sum(kept.mapped("amount_total")),
             "to_invoice": sum(1 for o in out if o["invoice_status"] == "to invoice"),
             "unusual": unusual,
+            "kitchen_only": self.kitchen_only,
         }
 
     @api.model
@@ -472,17 +496,19 @@ class CzWaReport(models.Model):
         mo = "+905444436338"
         chefs = "+905458682649, +905357730567"
         accountant = "+905051193196"
+        whs = Wh.search([("code", "in", ("CKWH", "WH"))])
         specs = [
-            ("CKWH", "Dünkü Siparişler — Mutfak", False, "%s, %s" % (mo, chefs), 40),
-            ("WH", "Dünkü Siparişler — Ana Depo (Muhasebe)", True, "%s, %s" % (mo, accountant), 41),
+            # chefs: kitchen lines of every order (B2B orders entered on the main warehouse included), no amounts
+            ("orders_kitchen", "Dünkü Siparişler — Mutfak (Şefler)", False, True, "%s, %s" % (mo, chefs), 40),
+            # CEO + accounting: every order of both warehouses, with amounts and invoice status
+            ("orders_all", "Dünkü Siparişler — Mutfak + Depo (Muhasebe)", True, False, "%s, %s" % (mo, accountant), 41),
         ]
-        for code, name, prices, phones, seq in specs:
-            wh = Wh.search([("code", "=", code)], limit=1)
-            if not wh or self.sudo().with_context(active_test=False).search_count(
-                    [("code", "=", "orders_daily"), ("warehouse_ids", "in", wh.ids)]):
+        for key, name, prices, kitchen_only, phones, seq in specs:
+            if not whs or self.sudo().with_context(active_test=False).search_count([("setup_key", "=", key)]):
                 continue
-            self.sudo().create({"name": name, "code": "orders_daily", "warehouse_ids": [(6, 0, wh.ids)],
-                                "show_prices": prices, "phone_numbers": phones, "sequence": seq, "send_hour": 7.5})
+            self.sudo().create({"name": name, "code": "orders_daily", "warehouse_ids": [(6, 0, whs.ids)],
+                                "show_prices": prices, "kitchen_only": kitchen_only, "phone_numbers": phones,
+                                "sequence": seq, "send_hour": 7.5, "setup_key": key})
         for rep in self.sudo().search([("code", "=", "kitchen_stock")]):
             if (rep.phone_numbers or "").replace(" ", "") == mo:
                 rep.phone_numbers = "%s, %s" % (mo, chefs)

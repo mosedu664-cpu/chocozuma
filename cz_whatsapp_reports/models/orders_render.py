@@ -140,8 +140,9 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
         p.append('<div class="colL">%s</div><div class="colR">%s</div><div class="clr"></div>'
                  % ("".join(_order_card(o, show) for o in orders[:half]), "".join(_order_card(o, show) for o in orders[half:])))
     p.append("</div>")
-    p.append('<div class="foot">Kaynak: Odoo satış siparişleri (onaylı), %s deposu, %s 06:00 – ertesi gün 06:00. %s</div>'
+    p.append('<div class="foot">Kaynak: Odoo satış siparişleri (onaylı), %s deposu, %s 06:00 – ertesi gün 06:00.%s %s</div>'
              % (h(data["warehouses"]), h(data["day_txt"]),
+                " Yalnızca Merkez Mutfak'tan çıkan kalemler (ana depoya girilen B2B siparişlerindeki mutfak ürünleri dahil)." if data.get("kitchen_only") else "",
                 "Tutarlar TL; fatura durumu Odoo'daki sipariş durumudur." if show else
                 "Eksik = siparişlerdeki toplam − Merkez Mutfak'taki stok (rapor anında)."))
     p.append("</div></div>")
