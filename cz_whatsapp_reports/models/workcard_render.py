@@ -245,7 +245,7 @@ SIMPLE_CSS = """
 .wc h2{font-family:'CZMessiri','CZLatin',sans-serif;font-size:19px;margin:18px 0 4px 0;}
 .wc h2 small{font-family:'CZLatin',sans-serif;font-weight:normal;font-size:12px;color:#7a6652;}
 .wc table{width:100%;border-collapse:collapse;}
-.wc table{border:0 none !important;}
+.wc table,.wc thead,.wc tbody{border:0 none !important;outline:0 !important;}
 .wc tr,.wc td,.wc th{border-left:0 none !important;border-right:0 none !important;border-top:0 none !important;}
 .wc .top td,.wc .sig td{border:0 none !important;}
 .wc .l td{border-bottom:1px solid #e3d6bd;padding:7px 4px;font-size:14px;vertical-align:middle;}
