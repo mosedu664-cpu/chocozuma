@@ -32,9 +32,9 @@ OR_BODY = (
     "Toplam {{3}} kalemin müşteri müşteri ayrıntısı ekteki PDF dosyasında."
 )
 KS_BODY = (
-    "Günaydın, Choco Zuma mutfak iş kartı hazır: {{1}}.\n"
+    "Günaydın, mutfak için bugünün işi hazır: {{1}}.\n"
     "Bugün: {{2}}.\n"
-    "Üretilecekler, taşınacaklar, bugünkü sevkiyatlar ve {{3}} ürünün stok listesi ekteki PDF dosyasında. Yazdırıp işaretleyin."
+    "Üretilecekler, gönderilecekler ve {{3}} hazır ürünün mutfak ve depo stoğu ekteki tek sayfada."
 )
 
 
@@ -365,7 +365,7 @@ class CzWaReport(models.Model):
             return {
                 "day": snap["as_of"][:10],
                 "net_text": workcard_render.summary(snap) if snap.get("orders") else kitchen_render.summary(snap),
-                "orders_text": str(len(snap["rows"])),
+                "orders_text": str(len(workcard_render._simple(snap)[3]) if snap.get("orders") else len(snap["rows"])),
                 "html": workcard_render.render_html(snap) if snap.get("orders") else kitchen_render.render_html(snap),
             }
         if self.code == "marketing":
@@ -770,7 +770,7 @@ class CzWaReport(models.Model):
             "marketing": ("CZ Marketing Report", "cz_marketing_daily", "tr", "action_report_marketing_log", MK_BODY,
                           ("18.11.2026", "199.788", "217")),
             "kitchen_stock": ("CZ Kitchen Stock Report", "cz_kitchen_stock_daily", "tr", "action_report_kitchen_log", KS_BODY,
-                              ("21.11.2026", "8 ürün üretilecek, 4 sevkiyat (1 gecikmiş), 1 depodan getirilecek", "191")),
+                              ("21.11.2026", "8 ürün üretilecek, 3 sipariş gönderilecek", "37")),
             "orders_daily": ("CZ Orders Daily", "cz_orders_daily", "tr", "action_report_orders_log", OR_BODY,
                              ("20.11.2026", "11 sipariş, 4 müşteri, toplam 61.240 TL (KDV hariç)", "96")),
         }[self.code]

@@ -178,122 +178,123 @@ def build(snap):
 
 def summary(snap):
     """One line for the WhatsApp template ({{2}}) — no line breaks."""
-    b = build(snap)
-    parts = []
-    if b["produce"]:
-        parts.append("%d ürün üretilecek" % len(b["produce"]))
-    if b["ship"]:
-        parts.append("%d sevkiyat%s" % (len(b["ship"]), (" (%d gecikmiş)" % b["late_ship"]) if b["late_ship"] else ""))
-    fetch = sum(1 for m in b["move"] if m["main"].startswith("Depodan"))
-    if fetch:
-        parts.append("%d depodan getirilecek" % fetch)
-    if len(b["move"]) > fetch:
-        parts.append("%d bekleyen transfer" % (len(b["move"]) - fetch))
-    if snap["alerts"]["expired"]:
-        parts.append("%d süresi dolan parti" % len(snap["alerts"]["expired"]))
-    return ", ".join(parts) if parts else "acil iş yok, stok siparişlere yetiyor"
+    now, produce, ship, stock, expired = _simple(snap)
+    parts = ["%d ürün üretilecek" % len(produce) if produce else "üretilecek ürün yok",
+             "%d sipariş gönderilecek" % len(ship) if ship else "bugün gönderilecek sipariş yok"]
+    if expired:
+        parts.append("%d ürünün süresi doldu" % len(expired))
+    return ", ".join(parts)
 
 
 def render_text(snap):
-    b = build(snap)
-    lines = ["Choco Zuma · Mutfak iş kartı · %s" % snap["as_of"], "Bugün: %s" % summary(snap)]
-    if b["produce"]:
-        lines.append("Üret: " + ", ".join("%s %s" % (p["code"], p["qty"]) for p in b["produce"][:10]))
-    if b["ship"]:
-        lines.append("Sevkiyat: " + ", ".join("%s%s" % (s["main"].split("·")[-1].strip(), " (eksik)" if s["cls"] == "red" else "")
-                                               for s in b["ship"][:8]))
+    now, produce, ship, stock, expired = _simple(snap)
+    lines = ["Mutfak · Bugünün işi · %s" % now.strftime("%d.%m.%Y"), summary(snap)]
+    lines += ["Üret: %s %s %s (%s, %s)" % (x["name"], x["qty"], x["uom"], x["who"], x["when"]) for x in produce]
+    lines += ["Gönder: %s — %s (%s)" % (x["who"], "hazır" if not x["missing"] else "%d eksik" % x["missing"], x["when"]) for x in ship]
     return "\n".join(lines)
 
 
-def render_html(snap, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0.9):
-    b = build(snap)
-    now = b["now"]
-    od = b["orders"]
-    p = ["<style>%s%s%s%s%s</style>" % (FONTS % {"base": font_base}, CSS, kr.EXTRA_CSS, ORDER_CSS, WC_CSS),
-         '<div class="mk" style="zoom:%s;">' % zoom, '<div class="page">']
-    p.append(header("Choco Zuma", "Mutfak İş Kartı · Merkez Mutfak", WD[now.weekday()], "%s · %s" % (now.strftime("%d.%m.%Y"), now.strftime("%H:%M"))))
-    p.append('<div class="wrap">')
+def _simple(snap):
+    """The whole card in three plain lists: produce (who, when), ship (who, ready?), ready stock (kitchen | depot)."""
+    od = snap["orders"]
+    now = _dt(od["now_local"])
+    partner_of = {sh["name"]: sh["partner"] for sh in od["shipments"]}
 
-    n_prod, n_ship, n_move, n_watch = len(b["produce"]), len(b["ship"]), len(b["move"]), len(b["watch"])
-    tiles = [
-        ("red" if n_prod else "ok", "Üretilecek", "%d ürün" % n_prod, "sipariş ve stok için"),
-        ("red" if b["late_ship"] else ("" if n_ship else "ok"), "Bugün sevkiyat", "%d" % n_ship,
-         ("%d gecikmiş" % b["late_ship"]) if b["late_ship"] else ("sonraki günler: %d" % len(b["later"]))),
-        ("amb" if n_move else "", "Taşınacak", "%d" % n_move, "mutfak ↔ depo"),
-        ("amb" if n_watch else "ok", "Dikkat", "%d" % n_watch, "raf ömrü, kontrol, sayım"),
-    ]
-    p.append('<table class="tiles"><tr>%s</tr></table>' % "".join(
-        '<td><div class="tile %s"><div class="l">%s</div><div class="v">%s</div><div class="s">%s</div></div></td>' % t for t in tiles))
+    def when(due, late):
+        d = _dt(due)
+        if not d or late or d.date() <= now.date():
+            return ("red", "Bugün") if d and not late else ("red", "Hemen")
+        if d.date() == now.date() + timedelta(days=1):
+            return ("", "Yarın")
+        return ("", d.strftime("%d.%m"))
 
-    p.append(_sec(1, "Önce bunları üret", "en erken teslim üstte; miktar = teslim edilecek − mutfak+depo stoku"))
-    if b["produce"]:
-        p.append('<table class="wl">%s</table>' % "".join(_row(x["main"], x["sub"], x["qty"], x["uom"], x["cls"], x["tag"])
-                                                       for x in b["produce"][:MAX_PRODUCE]))
-        if n_prod > MAX_PRODUCE:
-            p.append('<div class="more">+ %d ürün daha — tam liste 2. sayfada</div>' % (n_prod - MAX_PRODUCE))
+    def short_name(n):
+        return n if len(n) <= 28 else n[:26].rstrip() + "…"
+
+    produce = []
+    for x in sorted((x for x in od["products"] if x["made"] and x["short"] > 0),
+                    key=lambda x: (not x["late"], x["due"] or "9999", x["code"])):
+        who = sorted({short_name(partner_of.get(n, n)) for n in x["names"]})
+        cls, w = when(x["due"], x["late"])
+        produce.append({"name": x["name"], "qty": kr.q(x["short"]), "uom": x["uom"], "who": ", ".join(who[:2]) + (" +%d" % (len(who) - 2) if len(who) > 2 else ""),
+                        "cls": cls, "when": w})
+    ship = []
+    for sh in od["shipments"]:
+        cls, w = when(sh["due"], sh["late"])
+        if w not in ("Hemen", "Bugün"):
+            continue
+        ship.append({"who": short_name(sh["partner"]), "lines": sh["lines"], "cls": cls, "when": w,
+                     "missing": len(sh["missing"])})
+    ship.sort(key=lambda x: (x["when"] != "Hemen", x["missing"] == 0))
+    stock = [r for r in snap["rows"] if r["family"] == "1_b2b" and (r["kitchen"] > 0 or r["depot"] > 0)]
+    stock.sort(key=lambda r: r["name"])
+    expired = [r for r in snap["rows"] if r["id"] in snap["alerts"]["expired"]]
+    return now, produce, ship, stock, expired
+
+
+SIMPLE_CSS = """
+.wc{font-family:'CZLatin','DejaVu Sans',sans-serif;color:#1c110a;padding:0 30px;}
+.wc .top{border-bottom:3px solid #1c110a;padding:14px 0 8px 0;}
+.wc .top td{vertical-align:bottom;}
+.wc .ttl{font-family:'CZMessiri','CZLatin',sans-serif;font-size:26px;font-weight:bold;}
+.wc .dt{text-align:right;font-size:15px;}
+.wc h2{font-family:'CZMessiri','CZLatin',sans-serif;font-size:19px;margin:18px 0 4px 0;}
+.wc h2 small{font-family:'CZLatin',sans-serif;font-weight:normal;font-size:12px;color:#7a6652;}
+.wc table{width:100%;border-collapse:collapse;}
+.wc .l td{border-bottom:1px solid #e3d6bd;padding:7px 4px;font-size:14px;vertical-align:middle;}
+.wc .l td.cb{width:26px;} .wc .l td.cb div{width:16px;height:16px;border:2px solid #1c110a;}
+.wc .l td.q{width:120px;text-align:right;font-size:18px;font-weight:bold;white-space:nowrap;}
+.wc .l td.q span{font-size:11px;font-weight:normal;color:#7a6652;}
+.wc .l td.w{width:70px;text-align:right;font-weight:bold;}
+.wc .l td.w.red{color:#c0392b;}
+.wc .l td.who{color:#5f4b3a;font-size:12.5px;width:230px;}
+.wc .ok{color:#1e8449;font-weight:bold;} .wc .bad{color:#c0392b;font-weight:bold;}
+.wc .none{color:#1e8449;font-size:14px;padding:6px 4px;}
+.wc .s td{border-bottom:1px solid #eee4d0;padding:4px;font-size:12.5px;}
+.wc .s th{font-size:11px;color:#7a6652;text-align:right;padding:2px 4px;border-bottom:1.5px solid #1c110a;}
+.wc .s th.l,.wc .s td.l{text-align:left;}
+.wc .s td.n{text-align:right;width:80px;} .wc .s td.z{text-align:right;width:80px;color:#c8bba4;}
+.wc .warn{margin-top:14px;padding:8px 10px;border:2px solid #c0392b;color:#c0392b;font-size:13px;font-weight:bold;}
+.wc .sig{margin-top:22px;font-size:13px;color:#5f4b3a;} .wc .sig td{width:50%;}
+"""
+
+
+def render_html(snap, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0.85):
+    """ONE page, three lists, nothing a chef has to interpret."""
+    now, produce, ship, stock, expired = _simple(snap)
+    p = ["<style>%s%s</style>" % (FONTS % {"base": font_base}, SIMPLE_CSS), '<div class="wc" style="zoom:%s;">' % zoom]
+    p.append('<table class="top"><tr><td class="ttl">Mutfak · Bugünün işi</td><td class="dt">%s %s</td></tr></table>'
+             % (WD[now.weekday()], now.strftime("%d.%m.%Y")))
+
+    p.append("<h2>1. Üret <small>— siparişler için eksik olan</small></h2>")
+    if produce:
+        p.append('<table class="l">%s</table>' % "".join(
+            '<tr><td class="cb"><div></div></td><td>%s</td><td class="who">%s</td><td class="q">%s <span>%s</span></td><td class="w %s">%s</td></tr>'
+            % (h(x["name"]), h(x["who"]), x["qty"], h(x["uom"]), x["cls"], x["when"]) for x in produce))
     else:
-        p.append('<div class="none">Üretilecek acil ürün yok — stok tüm siparişlere yetiyor.</div>')
+        p.append('<div class="none">Üretilecek bir şey yok — stok tüm siparişlere yetiyor.</div>')
 
-    p.append(_sec(2, "Taşı", "transferi Odoo'da da yap: Mutfak &amp; Depo Stok ekranı"))
-    if b["move"]:
-        p.append('<table class="wl">%s</table>' % "".join(_row(x["main"], x["sub"], x["qty"], x["uom"], x["cls"], x["tag"]) for x in b["move"]))
+    p.append("<h2>2. Gönder <small>— bugün çıkacak siparişler</small></h2>")
+    if ship:
+        p.append('<table class="l">%s</table>' % "".join(
+            '<tr><td class="cb"><div></div></td><td>%s</td><td class="who">%d ürün</td><td class="q" style="font-size:14px;">%s</td><td class="w %s">%s</td></tr>'
+            % (h(x["who"]), x["lines"], '<span class="ok">hazır</span>' if not x["missing"] else '<span class="bad">%d eksik</span>' % x["missing"],
+               x["cls"], x["when"]) for x in ship))
     else:
-        p.append('<div class="none">Taşınacak bir şey yok.</div>')
+        p.append('<div class="none">Bugün çıkacak sipariş yok.</div>')
 
-    p.append(_sec(3, "Bugün çıkacak sevkiyatlar", "gecikmişler üstte; \"eksik\" = rafta rezerve edilemeyen kalem"))
-    if b["ship"]:
-        p.append('<table class="wl">%s</table>' % "".join(_row(x["main"], x["sub"], x["qty"], x["uom"], x["cls"], x["tag"])
-                                                       for x in b["ship"][:MAX_SHIP]))
-        if n_ship > MAX_SHIP:
-            p.append('<div class="more">+ %d sevkiyat daha</div>' % (n_ship - MAX_SHIP))
+    p.append("<h2>3. Hazır ürün stoğu <small>— mutfak ve depo</small></h2>")
+    if stock:
+        p.append('<table class="s"><tr><th class="l">Ürün</th><th>Mutfak</th><th>Depo</th></tr>%s</table>' % "".join(
+            '<tr><td class="l">%s <span style="color:#7a6652;font-size:11px;">%s</span></td>%s%s</tr>'
+            % (h(r["name"]), h(r["uom"]),
+               ('<td class="n">%s</td>' % kr.q(r["kitchen"])) if r["kitchen"] > 0 else '<td class="z">–</td>',
+               ('<td class="n"><b>%s</b></td>' % kr.q(r["depot"])) if r["depot"] > 0 else '<td class="z">–</td>') for r in stock))
     else:
-        p.append('<div class="none">Bugün çıkacak sevkiyat yok.</div>')
-    if b["later"]:
-        p.append('<div class="more">Sonraki günler: %s</div>' % ", ".join(
-            "%s %s" % (h(s["name"]), _dt(s["due"]).strftime("%d.%m")) for s in b["later"][:8] if s["due"]))
+        p.append('<div class="none" style="color:#7a6652;">Hazır ürün stoğu yok.</div>')
 
-    if b["watch"]:
-        p.append(_sec(4, "Dikkat"))
-        p.append('<div class="watch">%s</div>' % "".join("<div>• %s</div>" % w for w in b["watch"][:8]))
-
-    p.append('<table class="sign"><tr><td>Şef: ______________</td><td>Başlama: ________</td>'
-             '<td>Bitiş: ________</td></tr></table>')
-    p.append("</div>")
-    p.append('<div class="foot">Kaynak: Odoo, %s. Siparişler: onaylı satış siparişlerinin Merkez Mutfak\'tan çıkacak açık teslimatları '
-             '(teslim edilmemiş tüm siparişler, dropship ve taslak teslimatlar hariç). Stok: Merkez Mutfak (mutfak + depo dondurucu + soğuk oda). '
-             '"Hazır" = Odoo\'da rafta rezerve edildi.</div>' % h(snap["as_of"]))
-    p.append("</div>")
-
-    # page 2 — reference: full production list, negatives, full stock table
-    p.append('<div class="page pb">')
-    p.append(header("Choco Zuma", "Mutfak İş Kartı · Referans", "tam liste", h(snap["as_of"])))
-    p.append('<div class="wrap">')
-    if n_prod > MAX_PRODUCE:
-        p.append('<div class="st2">Üretilecek — tam liste (%d ürün)</div>' % n_prod)
-        p.append('<table class="wl">%s</table>' % "".join(_row(x["main"], x["sub"], x["qty"], x["uom"], x["cls"], x["tag"]) for x in b["produce"]))
-    al = kr.alert_lines(snap)
-    if al["negative"]:
-        more = (" · ve %d ürün daha" % al["negative_more"]) if al["negative_more"] else ""
-        p.append('<div class="dat"><div class="t">Eksi stok — sayımda düzelecek (%d ürün)</div>%s<div class="i" style="color:#7a6652;">'
-                 'Eksi stok = üretim veya transfer kaydı eksik.%s</div></div>'
-                 % (len(snap["alerts"]["negative"]), "".join('<div class="i">• %s</div>' % x for x in al["negative"]), more))
-    rows = snap["rows"]
-    for fam, title in kr.FAMILY:
-        live = [r for r in rows if r["family"] == fam and (r["total"] or r["kitchen"] or r["depot"] or r["use_day"] or r["demand"])]
-        if live:
-            p.append('<div class="st2">%s <small style="font-weight:normal;font-size:10px;color:#7a6652;">%d ürün</small></div>' % (title, len(live)))
-            p.append(kr.table(live))
-    p.append("</div>")
-    p.append(kr._foot(snap))
-    p.append("</div>")
-
-    # page 3 — yesterday's orders as they came in (kitchen lines only)
-    if od["orders"]:
-        p.append('<div class="page pb">')
-        p.append(header("Choco Zuma", "Dünkü siparişler · mutfak kalemleri", "referans", h(od["day_txt"])))
-        half = (len(od["orders"]) + 1) // 2
-        p.append('<div class="wrap"><div class="colL">%s</div><div class="colR">%s</div><div class="clr"></div></div>'
-                 % ("".join(_order_card(o, False) for o in od["orders"][:half]), "".join(_order_card(o, False) for o in od["orders"][half:])))
-        p.append("</div>")
+    if expired:
+        p.append('<div class="warn">Süresi doldu, kullanma: %s</div>' % ", ".join(h(r["name"]) for r in expired[:5]))
+    p.append('<table class="sig"><tr><td>Şef: ____________________</td><td>Bitiş saati: __________</td></tr></table>')
     p.append("</div>")
     return "".join(p)
