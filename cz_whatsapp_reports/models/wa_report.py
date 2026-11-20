@@ -434,8 +434,10 @@ class CzWaReport(models.Model):
                 agg = products.setdefault(p.id, {"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name,
                                                  "uom": p.uom_id.name, "qty": 0.0, "orders": set(),
                                                  "made": bool(p.sudo().bom_count)})
-                agg["qty"] += l.product_uom._compute_quantity(l.product_uom_qty, p.uom_id, raise_if_failure=False)
-                agg["orders"].add(o.id)
+                remaining = max(0.0, l.product_uom_qty - l.qty_delivered)
+                if remaining:
+                    agg["qty"] += l.product_uom._compute_quantity(remaining, p.uom_id, raise_if_failure=False)
+                    agg["orders"].add(o.id)
             out.append({
                 "name": o.name, "partner": o.partner_id.commercial_partner_id.name or o.partner_id.name,
                 "time": self._local(o.date_order).strftime("%d.%m %H:%M"),
@@ -444,6 +446,45 @@ class CzWaReport(models.Model):
                 "lines": lines, "untaxed": o.amount_untaxed, "total": o.amount_total,
                 "invoice_status": o.invoice_status, "delivery": delivery,
             })
+        # still open from earlier days (not delivered yet), dropship lines excluded — nothing is forgotten
+        now = fields.Datetime.now()
+        open_out = []
+        open_orders = SO.search([("state", "=", "sale"), ("warehouse_id", "in", whs.ids), ("date_order", "<", start),
+                                 ("picking_ids.state", "in", ("assigned", "confirmed", "waiting", "partially_available"))],
+                                order="date_order, id")
+        for o in open_orders:
+            rows = []
+            for l in o.order_line.filtered(lambda l: not l.display_type and l.product_id and l.product_id.type != "service" and keep(l)):
+                remaining = l.product_uom_qty - l.qty_delivered
+                moves = l.move_ids.filtered(lambda m: m.state not in ("cancel", "done"))
+                if remaining <= 0 or not moves or any(m.location_id.usage == "supplier" for m in moves):
+                    continue  # delivered, nothing planned, or dropship (supplier → customer)
+                p = l.product_id
+                rows.append({"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name,
+                             "qty": remaining, "uom": l.product_uom.name})
+                agg = products.setdefault(p.id, {"code": p.default_code or "", "name": p.with_context(lang="tr_TR").name,
+                                                 "uom": p.uom_id.name, "qty": 0.0, "orders": set(),
+                                                 "made": bool(p.sudo().bom_count)})
+                agg["qty"] += l.product_uom._compute_quantity(remaining, p.uom_id, raise_if_failure=False)
+                agg["orders"].add(o.id)
+            if not rows:
+                continue
+            pick = o.picking_ids.filtered(lambda pk: pk.state not in ("done", "cancel") and pk.picking_type_code == "outgoing")
+            due = min(pick.mapped("scheduled_date")) if pick else (o.commitment_date or o.date_order)
+            open_out.append({
+                "name": o.name, "partner": o.partner_id.commercial_partner_id.name or o.partner_id.name,
+                "time": self._local(o.date_order).strftime("%d.%m %H:%M"), "deliver_on": self._local(due).strftime("%d.%m %H:%M"),
+                "days": (now - o.date_order).days, "late": due < now, "lines": rows,
+            })
+        open_out.sort(key=lambda x: (not x["late"], -x["days"]))
+        # delivered but not invoiced (accounting copy only)
+        uninvoiced = []
+        if self.show_prices:
+            for o in SO.search([("state", "=", "sale"), ("warehouse_id", "in", whs.ids), ("invoice_status", "=", "to invoice"),
+                                ("date_order", "<", end)], order="date_order, id"):
+                uninvoiced.append({"name": o.name, "partner": o.partner_id.commercial_partner_id.name or o.partner_id.name,
+                                   "days": (now - o.date_order).days, "amount": o.amount_to_invoice or o.amount_total})
+
         # unusual quantity: a line ≥ 10× the product's median order quantity of the last 90 days (×1000 typos)
         unusual = []
         if products:
@@ -486,6 +527,8 @@ class CzWaReport(models.Model):
             "to_invoice": sum(1 for o in out if o["invoice_status"] == "to invoice"),
             "unusual": unusual,
             "kitchen_only": self.kitchen_only,
+            "open_orders": open_out,
+            "uninvoiced": uninvoiced,
         }
 
     @api.model

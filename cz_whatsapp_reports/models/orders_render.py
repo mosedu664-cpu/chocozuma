@@ -36,11 +36,15 @@ def tl(v):
 def summary(data):
     """One line for the WhatsApp template ({{2}})."""
     n = len(data["orders"])
-    if not n:
-        return "dün sipariş gelmedi"
+    if not n and not data.get("open_orders"):
+        return "dün sipariş gelmedi, açık sipariş yok"
     s = "%d sipariş, %d müşteri" % (n, len({o["partner"] for o in data["orders"]}))
     if data.get("unusual"):
         s += ", %d olağandışı miktar" % len(data["unusual"])
+    op = data.get("open_orders") or []
+    if op:
+        late = sum(1 for o in op if o["late"])
+        s += ", önceki günlerden %d açık sipariş%s" % (len(op), (" (%d gecikmiş)" % late) if late else "")
     if data["show_prices"]:
         s += ", toplam %s (KDV hariç)" % tl(data["untaxed"])
         if data["to_invoice"]:
@@ -108,15 +112,25 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
             % (h(u["order"]), h(u["partner"]), h(u["code"]), h(u["name"]), q(u["qty"]), h(u["uom"]), q(u["median"]),
                round(u["ratio"]), (" · %s" % tl(u["subtotal"])) if show else "")
             for u in data["unusual"]]))
+    if data.get("open_orders"):
+        op = data["open_orders"]
+        late = [o for o in op if o["late"]]
+        p.append(notes("ins" if late else "act", "Önceki günlerden açık siparişler — henüz teslim edilmedi (%d%s)"
+                       % (len(op), (", %d gecikmiş" % len(late)) if late else ""),
+                       ["<b>%s</b> %s — %d gündür açık, teslim %s%s · %s" % (
+                           h(o["name"]), h(o["partner"]), o["days"], h(o["deliver_on"]), " · <b>GECİKMİŞ</b>" if o["late"] else "",
+                           ", ".join("%s %s %s" % (h(l["code"] or l["name"]), q(l["qty"]), h(l["uom"])) for l in o["lines"][:6])
+                           + (" …" if len(o["lines"]) > 6 else ""))
+                        for o in op[:25]]))
+    if show and data.get("uninvoiced"):
+        un = data["uninvoiced"]
+        p.append(notes("ins", "Teslim edildi, faturalanmadı (%d sipariş, %s)" % (len(un), tl(sum(u["amount"] for u in un))),
+                       ["<b>%s</b> %s — %s, %d gündür" % (h(u["name"]), h(u["partner"]), tl(u["amount"]), u["days"]) for u in un[:25]]))
     if not orders:
-        p.append('<div class="ok"><div class="t">Dün bu depoya sipariş gelmedi.</div></div>')
-    else:
-        if show:
-            inv = [o for o in orders if o["invoice_status"] == "to invoice"]
-            p.append(notes("ins", "Faturalanacak siparişler (%d)" % len(inv),
-                           ["<b>%s</b> %s — %s" % (h(o["name"]), h(o["partner"]), tl(o["total"])) for o in inv]))
-        else:
-            rows = ['<table class="tb"><tr><th class="l">Ürün</th><th>Siparişlerde toplam</th><th>Mutfak + depo stok</th>'
+        p.append('<div class="ok"><div class="t">Dün yeni sipariş gelmedi.</div></div>')
+    if orders or data["products"]:
+        if not show:
+            rows = ['<table class="tb"><tr><th class="l">Ürün</th><th>Teslim edilecek (dün + açık)</th><th>Mutfak + depo stok</th>'
                     '<th>Üretilecek</th><th>Sipariş</th></tr>']
             made = [x for x in data["products"] if x["made"]]
             other = [x for x in data["products"] if not x["made"]]
@@ -129,13 +143,14 @@ def render_html(data, font_base="/cz_whatsapp_reports/static/src/fonts/", zoom=0
             rows.append("</table>")
             if made:
                 p.append('<div class="st2">Mutfakta üretilen ürünler <small style="font-weight:normal;font-size:10px;color:#7a6652;">'
-                         'tüm siparişler birlikte; stok şu an Merkez Mutfak (mutfak + depo)</small></div>' + "".join(rows))
+                         'dünkü ve açık siparişlerin kalan miktarı; stok şu an Merkez Mutfak (mutfak + depo)</small></div>' + "".join(rows))
             if other:
                 p.append('<div class="st2">Diğer kalemler <small style="font-weight:normal;font-size:10px;color:#7a6652;">'
                          'satın alma, sebze-meyve, ambalaj — hazırlanıp sevk edilecek miktar</small></div>'
                          '<div class="box" style="margin-top:4px;">%s</div>'
                          % " · ".join("<b>%s</b> %s <b>%s</b> %s" % (h(x["code"]), h(x["name"]), q(x["qty"]), h(x["uom"])) for x in other))
-        p.append('<div class="st2">Siparişler</div>')
+    if orders:
+        p.append('<div class="st2">Dünkü siparişler</div>')
         half = (len(orders) + 1) // 2
         p.append('<div class="colL">%s</div><div class="colR">%s</div><div class="clr"></div>'
                  % ("".join(_order_card(o, show) for o in orders[:half]), "".join(_order_card(o, show) for o in orders[half:])))
