@@ -24,6 +24,7 @@
   // Same categories as Metrokent, but TONALLI books these three differently all year (safe journal 2026):
   // advances on 135001, salaries against the payroll accrual 335001, rent against 336003.
   const ACCOUNT_OVERRIDE = { AVANS: '135001', MAAS: '335001', KIRA: '336003' };
+  const SAFE_CAP = 30000;                                                        // owner's approval above this
 
   const ctx = { allowed_company_ids: [DST_COMPANY, SRC_COMPANY, 9, 1], lang: 'en_US', active_test: false };
   const rpc = async (model, method, args = [], kwargs = {}) => {
@@ -82,6 +83,7 @@
   out.categories = {};
   for (const c of srcCats) {
     const vals = Object.fromEntries(COPY.map(n => [n, c[n]]));
+    if (!vals.max_amount && vals.safe_pos_available) vals.max_amount = SAFE_CAP;
     vals.company_id = DST_COMPANY;
     vals.account_id = c.account_id ? await dstAcc(ACCOUNT_OVERRIDE[c.code] || srcAcc[c.account_id[0]]) : false;
     const ex = await rpc('cz.cash.category', 'search', [[['code', '=', c.code], ['company_id', '=', DST_COMPANY]]]);
@@ -89,6 +91,32 @@
     out.categories[c.code] = ex[0];
   }
   step(`${srcCats.length} categories copied from company ${SRC_COMPANY}`);
+
+  // ---- 3b. Kayaşehir only: found in its 2026 cash book, booked the way TONALLI's accountant books them today
+  const EXTRA = [
+    { code: 'CZADINA', name: 'Choco Zuma Adına Ödeme', kind: 'other', direction: 'out', account: '320000', requires_reason: true, requires_pin: true,
+      pos_available: true, safe_pos_available: true, icon: 'fa-exchange', color: 9, sequence: 13,
+      note: 'Choco Zuma (merkez) adına kasadan ödenen her şey: merkez personeline avans/taksi/yemek, pazarlama, depo kargosu… Açıklamaya KİM ve NE yazılır. Karşı hesap 320000 Suppliers — muhasebe onaydan önce satırda partner = CHOCO ZUMA seçer.' },
+    { code: 'MUHASEBE', name: 'Muhasebeye / Merkeze Teslim', kind: 'other', direction: 'out', account: '100005', requires_reason: true,
+      pos_available: false, safe_pos_available: true, icon: 'fa-briefcase', color: 8, sequence: 14,
+      note: 'Küçük kasadan muhasebeye / merkeze teslim edilen nakit. Karşı hesap 100005 Internal Transfers (Clearing) — muhasebe paranın nereye gittiğine göre kapatır.' },
+    { code: 'PAKET', name: 'Kurye Paket Başı', kind: 'expense', direction: 'out', account: '770107', requires_employee: true, typical_amount: 165,
+      pos_available: true, safe_pos_available: false, icon: 'fa-motorcycle', color: 2, sequence: 4, note: 'Kuryeye paket başı ödeme. Karşı hesap 770107 Order delivery fees.' },
+    { code: 'BAHSIS', name: 'Karttan Bahşiş / Fazla Çekim İadesi', kind: 'other', direction: 'out', account: '999000', requires_reason: true, requires_pin: true,
+      pos_available: true, safe_pos_available: false, icon: 'fa-credit-card', color: 6, sequence: 9,
+      note: 'Karttan fazla çekilen tutarın müşteriye nakit iadesi veya karttan çekilen bahşişin personele nakit ödenmesi. Satış iadesi DEĞİLDİR. Karşı hesap 999000.' },
+  ];
+  for (const { account, ...c } of EXTRA) {
+    const vals = { ...c, account_id: await dstAcc(account), company_id: DST_COMPANY };
+    const ex = await rpc('cz.cash.category', 'search', [[['code', '=', c.code], ['company_id', '=', DST_COMPANY]]]);
+    if (ex.length) await rpc('cz.cash.category', 'write', [ex, vals]); else ex.push(await rpc('cz.cash.category', 'create', [vals]));
+    out.categories[c.code] = ex[0];
+  }
+  // Nothing above SAFE_CAP leaves the drawer or the safe from the POS on the manager's PIN alone: a bigger payment is a
+  // backend Safe Movement the accountant approves after the owner's OK. (Advances keep their own lower cap.)
+  const capIds = await rpc('cz.cash.category', 'search', [[['company_id', '=', DST_COMPANY], ['safe_pos_available', '=', true], ['max_amount', '=', 0]]]);
+  await rpc('cz.cash.category', 'write', [capIds, { max_amount: SAFE_CAP }]);
+  step(`${EXTRA.length} Kayaşehir categories, ${capIds.length} categories capped at ${SAFE_CAP}`);
 
   // ---- 4. POS flags: same as the model POS
   const FLAGS = ['cz_blind_count', 'cz_zero_count_pin', 'cz_diff_pin_above', 'cz_cash_out_pin_above', 'cz_opening_float', 'cz_enable_eod', 'cz_show_recent', 'cz_digest_lang'];
