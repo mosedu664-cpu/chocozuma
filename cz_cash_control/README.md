@@ -193,3 +193,12 @@ drawer or from the safe is accepted as usual; the owners get a notification imme
 category, description, staff, who recorded it), the POS shows a notice before confirming, and the daily
 sheet flags the line. Transfers drawer → safe are not concerned.
 A failed notification never undoes the movement (it is logged).
+
+## 18.0.1.6.4 — sessions closed before they were opened
+
+Found on the Kayaşehir go-live night: a register closed from the back end while still in *opening control*
+(never opened, no start time) was attached to the daily sheet, sent an empty "closed" notice to the
+accountants and then made the next opening fail (`'<' not supported between bool and datetime`).
+Such a session is now ignored; the first session of the day is picked among the opened ones only; and a sheet
+waiting for approval goes back to *Open* (approval activity removed) when a register is opened again the
+same business day.

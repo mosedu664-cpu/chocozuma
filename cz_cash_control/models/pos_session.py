@@ -682,6 +682,9 @@ class PosSession(models.Model):
     def _validate_session(self, balancing_account=False, amount_to_balance=0, bank_payment_method_diffs=None):
         res = super()._validate_session(balancing_account, amount_to_balance, bank_payment_method_diffs)
         for session in self.filtered(lambda s: s.config_id.cz_cash_control and s.state == 'closed'):
+            if not session.start_at and not session.cz_day_id:
+                # closed from the back end before it was ever opened: no cash, no sales, not a day
+                continue
             day = session.sudo()._cz_get_or_create_day()
             day._compute_all()
             day._on_session_closed(session)
