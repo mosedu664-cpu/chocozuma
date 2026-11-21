@@ -135,6 +135,11 @@ class CzPlatformAccountYs(models.Model):
         string='Cashier payment methods',
         help="Methods the cashier uses when typing these orders by hand (e.g. Online Payment, "
              "Yemeksepeti Çikolata). Used to find orders already entered, so they are never posted twice.")
+    manual_match_mode = fields.Selection(
+        [('order', 'Per order (one receipt per order)'), ('day', 'Per day (one receipt per day)')],
+        string='How the cashier types them', default='order',
+        help="Per day: the manager types one receipt per day (Metrokent); orders are matched "
+             "only by the day total, never one by one.")
     manual_match_partner = fields.Boolean(
         'Manual entries carry the POS customer',
         help="Only count cashier entries whose customer is this account's POS customer "
@@ -279,8 +284,9 @@ class CzPlatformOrderYs(models.Model):
             return {round(o.amount_total, 2), round(sub, 2),
                     round(sub - _f(row, 'Total discount') - _f(row, 'Total voucher'), 2)}
 
-        # 1. one receipt per order
-        for o in todo.sorted('order_date'):
+        day_mode = all(a.manual_match_mode == 'day' for a in accounts)
+        # 1. one receipt per order (same business day first, then the nearest)
+        for o in ([] if day_mode else todo.sorted('order_date')):
             amounts = candidates(o)
             best, gap = None, None
             for p in pool:
@@ -291,8 +297,9 @@ class CzPlatformOrderYs(models.Model):
                     continue
                 if not any(abs(a - p.amount_total) < 0.02 for a in amounts):
                     continue
-                if gap is None or abs(dt) < gap:
-                    best, gap = p, abs(dt)
+                key = (abs((business_day(p.date_order) - business_day(o.order_date)).days), abs(dt))
+                if gap is None or key < gap:
+                    best, gap = p, key
             if best:
                 used.add(best.id)
                 o.write({'state': 'skipped', 'manual_pos_order_id': best.id,

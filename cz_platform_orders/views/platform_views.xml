@@ -82,6 +82,7 @@
                     </group>
                     <group string="Kasada elle girilenlerle eşleştirme (Yemeksepeti)" invisible="platform != 'yemeksepeti'">
                         <field name="manual_method_ids" widget="many2many_tags"/>
+                        <field name="manual_match_mode"/>
                         <field name="manual_match_partner"/>
                     </group>
                     <group string="Son durum">
