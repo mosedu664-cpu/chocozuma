@@ -2222,3 +2222,8 @@ msgstr "bunun hareket olarak yazılan kısmı"
 #: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_digest_lang
 msgid "Language of the daily approval digest"
 msgstr "Günlük onay özetinin dili"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_hr_employee__cz_shared_login
+msgid "Shared POS login (not a person)"
+msgstr "Ortak POS girişi (kişi değil)"

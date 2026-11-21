@@ -43,8 +43,10 @@ class PosConfig(models.Model):
         """Employees a cashier may pick on a movement (taxi, food, advance…): the whole branch,
         not only the few people allowed to log in to the POS. Administrator accounts are excluded."""
         self.ensure_one()
-        employees = self.env['hr.employee'].sudo().search([('company_id', 'in', [self.company_id.id, False])])
-        return employees.filtered(lambda e: not (e.user_id and e.user_id.has_group('base.group_system'))).sorted('name')
+        employees = self.env['hr.employee'].sudo().with_context(active_test=True).search(
+            [('company_id', 'in', [self.company_id.id, False])])
+        return employees.filtered(lambda e: not e.cz_shared_login and not (
+            e.user_id and e.user_id.has_group('base.group_system'))).sorted('name')
 
     def _compute_cz_staff(self):
         for cfg in self:
