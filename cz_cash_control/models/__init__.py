@@ -3,6 +3,7 @@ from . import cz_cash_safe
 from . import cz_cash_safe_move
 from . import cz_cash_day
 from . import account_bank_statement_line
+from . import hr_employee
 from . import pos_config
 from . import pos_session
 from . import cz_cash_check

@@ -174,3 +174,22 @@ The cash itself matched the parallel Excel sheet; the recording did not. Three f
   alerts, safe position, button). Older than 3 days: *Managers to notify* are copied.
   Language per POS: *Language of the daily approval digest* (Arabic by default).
 
+## 18.0.1.6.1 — second branch (Kayaşehir / TONALLI)
+
+* `tools/configure_kayasehir.js` sets a branch up as an exact copy of the model branch (Metrokent):
+  cash payment method on a cash journal, safe, the 23 categories with their rules, POS flags, groups, staff.
+  Accounts are mapped by code; `ACCOUNT_OVERRIDE` holds the few accounts the company books differently.
+* **Safe balance = the safe's cash account.** If no other journal uses that account, every posted line counts,
+  including an opening balance booked in a miscellaneous journal — otherwise the first count would book the
+  opening amount again as a surplus. If the account is shared with another journal (Metrokent), unchanged:
+  only the safe journal's lines.
+* **Shared POS login** (Employees → HR Settings → *Shared POS login*): generic logins ("Kasa", "X"…) keep
+  working in the POS but are never offered as the staff member of an expense.
+
+## 18.0.1.6.2 — large payments: allowed, but the owners know at once
+
+POS settings → *Alert the owners above* (amount) and *Owners to alert*. A payment above the amount from the
+drawer or from the safe is accepted as usual; the owners get a notification immediately (branch, amount,
+category, description, staff, who recorded it), the POS shows a notice before confirming, and the daily
+sheet flags the line. Transfers drawer → safe are not concerned.
+

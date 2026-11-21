@@ -91,6 +91,9 @@
                     <div t-elif="czDiffWording === 'mixed'" class="alert alert-warning py-1 mt-2 mb-0">
                         <i class="fa fa-lock me-1" title="PIN"/> Açıklamada "eksik / fazla" geçiyor: bu gerçek bir ödeme ise yönetici PIN'i ile kaydedilir ve muhasebeye bildirilir.
                     </div>
+                    <div t-if="czLargeAlert" class="alert alert-warning py-1 mt-2 mb-0">
+                        <i class="fa fa-bell me-1" title="Uyarı"/> Büyük ödeme: kaydedilir ve işletme sahibine <b>anında bildirim</b> gider.
+                    </div>
                     <div t-if="czOverMax" class="alert alert-danger py-1 mt-2 mb-0">
                         Bu kategori için tek işlem limiti <t t-esc="env.utils.formatCurrency(czCategory.max_amount)"/>.
                     </div>
