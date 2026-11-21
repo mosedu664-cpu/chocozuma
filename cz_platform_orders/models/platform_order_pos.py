@@ -44,9 +44,12 @@ class CzPlatformOrderPos(models.Model):
         return str(uuid.uuid5(uuid.NAMESPACE_URL, 'cz-platform-order:%s:%s:%s' % (
             acc.platform, (acc.supplier_ref or '').strip(), self.package_ref)))
 
+    def _cz_label(self):
+        return 'YEMEKSEPETI' if self.platform == 'yemeksepeti' else 'TRENDYOL'
+
     def _cz_ref(self):
         self.ensure_one()
-        return 'TRENDYOL %s' % (self.order_number or self.package_ref[:12])
+        return '%s %s' % (self._cz_label(), self.order_number or self.package_ref[:12])
 
     # ------------------------------------------------------------------
     def _cz_lock_open_session(self, config):
@@ -69,6 +72,8 @@ class CzPlatformOrderPos(models.Model):
     def _cz_build_lines(self, config):
         """Return (lines, missing): lines = list of dicts ready for POS."""
         self.ensure_one()
+        if self.platform == 'yemeksepeti':
+            return self._cz_ys_build_lines(config)
         account = self.account_id
         Map = self.env['cz.platform.product.map'].sudo()
         maps = Map.search([('account_id', '=', account.id)])
@@ -226,7 +231,7 @@ class CzPlatformOrderPos(models.Model):
         amount_total = currency.round(amount_total)
         if float_compare(amount_total, self.amount_total, precision_rounding=currency.rounding) != 0:
             self.write({'state': 'review',
-                        'error': 'Tutar farkı: Odoo %.2f / Trendyol %.2f' % (amount_total, self.amount_total)})
+                        'error': 'Tutar farkı: Odoo %.2f / %s %.2f' % (amount_total, self._cz_label().title(), self.amount_total)})
             return False
 
         method = account.payment_method_id
@@ -234,7 +239,8 @@ class CzPlatformOrderPos(models.Model):
             self.write({'state': 'error', 'error': 'Payment method %s is not on POS %s.' % (method.name, config.name)})
             return False
 
-        note = 'TRENDYOL GO | %s | Sipariş %s' % (self.order_code or '-', self.order_number or self.package_ref[:12])
+        label = 'TRENDYOL GO' if self.platform != 'yemeksepeti' else 'YEMEKSEPETI'
+        note = '%s | %s | Sipariş %s' % (label, self.order_code or '-', self.order_number or self.package_ref[:12])
         if self.customer_note:
             note += '\n' + self.customer_note
         order_vals = {
@@ -260,7 +266,7 @@ class CzPlatformOrderPos(models.Model):
             'to_invoice': False,
             'general_note': note,
             # header of the kitchen-display card and name in the orders list
-            'floating_order_name': 'TRENDYOL GO | %s' % (self.order_code or (self.order_number or '')[-5:]),
+            'floating_order_name': '%s | %s' % (label, self.order_code or (self.order_number or '')[-5:]),
         }
         Order.with_context(cz_platform_post=True, preparation=False).sync_from_ui([order_vals])
         pos_order = Order.search([('uuid', '=', self._cz_uuid())], limit=1)
@@ -274,8 +280,10 @@ class CzPlatformOrderPos(models.Model):
             if parent and kids:
                 kids.write({'combo_parent_id': parent.id})
         self.write({'state': 'posted', 'pos_order_id': pos_order.id, 'error': False})
-        self._cz_send_to_kitchen(pos_order)
-        self._cz_notify_pos(pos_order)
+        if not (self.env.context.get('cz_backfill') or self.backfill):
+            # back-dated imports never reach the kitchen or the cashier toast
+            self._cz_send_to_kitchen(pos_order)
+            self._cz_notify_pos(pos_order)
         return True
 
     def _cz_send_to_kitchen(self, pos_order):
@@ -387,6 +395,12 @@ class CzPlatformOrderPos(models.Model):
 
     def action_retry(self):
         todo = self.filtered(lambda r: r.state in ('error', 'review', 'needs_mapping', 'waiting_session'))
+        ys = todo.filtered(lambda r: r.platform == 'yemeksepeti' and not r.pos_order_id)
         for rec in todo:
+            if rec in ys and rec.state == 'review':
+                continue  # a review is cleared with "Kontrol edildi, gir"
             rec.write({'state': 'posted' if rec.pos_order_id else 'new', 'attempts': 0})
-        todo.account_id._process_orders_locked()
+        for rec in ys.filtered(lambda r: r.state == 'new').sorted('order_date'):
+            with self.env.cr.savepoint():
+                rec.with_context(cz_backfill=True)._cz_post_to_pos()
+        (todo - ys).account_id._process_orders_locked()
