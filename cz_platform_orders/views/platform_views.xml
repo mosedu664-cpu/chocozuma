@@ -80,6 +80,10 @@
                             <field name="partner_id" required="auto_post"/>
                         </group>
                     </group>
+                    <group string="Kasada elle girilenlerle eşleştirme (Yemeksepeti)" invisible="platform != 'yemeksepeti'">
+                        <field name="manual_method_ids" widget="many2many_tags"/>
+                        <field name="manual_match_partner"/>
+                    </group>
                     <group string="Son durum">
                         <field name="last_sync"/>
                         <field name="last_result"/>
@@ -131,6 +135,10 @@
                             invisible="state not in ('error','review','needs_mapping') or pos_order_id"
                             confirm="Bu sipariş kasaya elle girildi mi? Otomatik girilmeyecek."
                             groups="base.group_system"/>
+                    <button name="action_ys_mark_reviewed" type="object" string="Kontrol edildi, kasaya gir"
+                            invisible="state != 'review' or platform != 'yemeksepeti' or pos_order_id"
+                            confirm="Bu sipariş kasada yok mu? Şimdi kasaya girilecek."
+                            groups="base.group_system"/>
                     <field name="state" widget="statusbar" statusbar_visible="new,posted"/>
                 </header>
                 <sheet>
@@ -142,7 +150,9 @@
                             <field name="order_number"/>
                             <field name="package_ref"/>
                             <field name="account_id"/>
+                            <field name="platform" invisible="1"/>
                             <field name="company_id"/>
+                            <field name="manual_pos_order_id" invisible="not manual_pos_order_id"/>
                             <field name="store_ref"/>
                         </group>
                         <group>
@@ -235,6 +245,41 @@
         <field name="view_mode">list</field>
     </record>
 
+    <!-- ================= Yemeksepeti export import ================= -->
+    <record id="view_cz_platform_report_import_form" model="ir.ui.view">
+        <field name="name">cz.platform.report.import.form</field>
+        <field name="model">cz.platform.report.import</field>
+        <field name="arch" type="xml">
+            <form string="Yemeksepeti rapor yükle">
+                <div class="alert alert-info" role="alert" invisible="result">
+                    Yemeksepeti Partner → Orders → <b>Order details</b> raporunu (xlsx) yükleyin.
+                    Kasaya zaten girilmiş siparişler (tek tek veya günlük toplu) tekrar girilmez;
+                    emin olunamayan günler "Needs review" olur. Geçmiş siparişler mutfak ekranına gitmez.
+                </div>
+                <group invisible="result">
+                    <field name="file" filename="filename"/>
+                    <field name="filename" invisible="1"/>
+                    <field name="post_now"/>
+                </group>
+                <group invisible="not result">
+                    <field name="result" nolabel="1" colspan="2"/>
+                </group>
+                <footer>
+                    <button name="action_import" type="object" string="Yükle" class="btn-primary" invisible="result"/>
+                    <button name="action_open_orders" type="object" string="Siparişleri aç" class="btn-primary" invisible="not result"/>
+                    <button special="cancel" string="Kapat"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cz_platform_report_import" model="ir.actions.act_window">
+        <field name="name">Yemeksepeti rapor yükle</field>
+        <field name="res_model">cz.platform.report.import</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
     <!-- ================= Menus (Point of Sale) ================= -->
     <menuitem id="menu_cz_platform_root" name="Platform Orders"
               parent="point_of_sale.menu_point_root" sequence="45"
@@ -245,4 +290,6 @@
               action="action_cz_platform_account" sequence="20" groups="base.group_system"/>
     <menuitem id="menu_cz_platform_mapping" name="Product Mapping" parent="menu_cz_platform_root"
               action="action_cz_platform_product_map" sequence="30" groups="base.group_system"/>
+    <menuitem id="menu_cz_platform_report_import" name="Yemeksepeti rapor yükle" parent="menu_cz_platform_root"
+              action="action_cz_platform_report_import" sequence="40" groups="base.group_system"/>
 </odoo>
