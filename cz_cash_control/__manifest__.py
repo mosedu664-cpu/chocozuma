@@ -31,7 +31,7 @@ Replaces the side Excel "kasa" sheets with a controlled flow inside Odoo:
     'author': 'Choco Zuma Yönetim',
     'website': 'https://chocozuma.com',
     'category': 'Accounting/Point of Sale',
-    'version': '18.0.1.6.0',
+    'version': '18.0.1.6.3',
     'license': 'LGPL-3',
     'depends': ['point_of_sale', 'pos_hr', 'account', 'hr'],
     'data': [
@@ -47,6 +47,7 @@ Replaces the side Excel "kasa" sheets with a controlled flow inside Odoo:
         'views/cz_cash_day_views.xml',
         'views/account_bank_statement_line_views.xml',
         'views/pos_config_views.xml',
+        'views/hr_employee_views.xml',
         'views/cz_dashboard_views.xml',
         'views/menus.xml',
     ],
