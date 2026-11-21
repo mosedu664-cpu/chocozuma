@@ -24,6 +24,8 @@
   // Same categories as Metrokent, but TONALLI books these three differently all year (safe journal 2026):
   // advances on 135001, salaries against the payroll accrual 335001, rent against 336003.
   const ACCOUNT_OVERRIDE = { AVANS: '135001', MAAS: '335001', KIRA: '336003' };
+  const LARGE_ALERT = 30000;                                                     // above this: accepted, owners notified at once
+  const USERS_OWNER = [2];                                                       // Mo (ADMIN)
 
   const ctx = { allowed_company_ids: [DST_COMPANY, SRC_COMPANY, 9, 1], lang: 'en_US', active_test: false };
   const rpc = async (model, method, args = [], kwargs = {}) => {
@@ -90,11 +92,38 @@
   }
   step(`${srcCats.length} categories copied from company ${SRC_COMPANY}`);
 
+  // ---- 3b. Kayaşehir only: found in its 2026 cash book, booked the way TONALLI's accountant books them today
+  const EXTRA = [
+    { code: 'CZADINA', name: 'Choco Zuma Adına Ödeme', kind: 'other', direction: 'out', account: '320000', requires_reason: true, requires_pin: true,
+      pos_available: true, safe_pos_available: true, icon: 'fa-exchange', color: 9, sequence: 13,
+      note: 'Choco Zuma (merkez) adına kasadan ödenen her şey: merkez personeline avans/taksi/yemek, pazarlama, depo kargosu… Açıklamaya KİM ve NE yazılır. Karşı hesap 320000 Suppliers — muhasebe onaydan önce satırda partner = CHOCO ZUMA seçer.' },
+    { code: 'MUHASEBE', name: 'Muhasebeye / Merkeze Teslim', kind: 'other', direction: 'out', account: '100005', requires_reason: true,
+      pos_available: false, safe_pos_available: true, icon: 'fa-briefcase', color: 8, sequence: 14,
+      note: 'Küçük kasadan muhasebeye / merkeze teslim edilen nakit. Karşı hesap 100005 Internal Transfers (Clearing) — muhasebe paranın nereye gittiğine göre kapatır.' },
+    { code: 'PAKET', name: 'Kurye Paket Başı', kind: 'expense', direction: 'out', account: '770107', requires_employee: true, typical_amount: 165,
+      pos_available: true, safe_pos_available: false, icon: 'fa-motorcycle', color: 2, sequence: 4, note: 'Kuryeye paket başı ödeme. Karşı hesap 770107 Order delivery fees.' },
+    { code: 'BAHSIS', name: 'Karttan Bahşiş / Fazla Çekim İadesi', kind: 'other', direction: 'out', account: '999000', requires_reason: true, requires_pin: true,
+      pos_available: true, safe_pos_available: false, icon: 'fa-credit-card', color: 6, sequence: 9,
+      note: 'Karttan fazla çekilen tutarın müşteriye nakit iadesi veya karttan çekilen bahşişin personele nakit ödenmesi. Satış iadesi DEĞİLDİR. Karşı hesap 999000.' },
+  ];
+  for (const { account, ...c } of EXTRA) {
+    const vals = { ...c, account_id: await dstAcc(account), company_id: DST_COMPANY };
+    const ex = await rpc('cz.cash.category', 'search', [[['code', '=', c.code], ['company_id', '=', DST_COMPANY]]]);
+    if (ex.length) await rpc('cz.cash.category', 'write', [ex, vals]); else ex.push(await rpc('cz.cash.category', 'create', [vals]));
+    out.categories[c.code] = ex[0];
+  }
+  step(`${EXTRA.length} Kayaşehir categories`);
+
   // ---- 4. POS flags: same as the model POS
   const FLAGS = ['cz_blind_count', 'cz_zero_count_pin', 'cz_diff_pin_above', 'cz_cash_out_pin_above', 'cz_opening_float', 'cz_enable_eod', 'cz_show_recent', 'cz_digest_lang'];
   const src = (await rpc('pos.config', 'read', [[SRC_POS]], { fields: FLAGS }))[0];
   const flags = Object.fromEntries(FLAGS.map(f => [f, src[f]]));
   await rpc('pos.config', 'write', [[DST_POS], { ...flags, cz_cash_control: true, cz_safe_id: out.safe, cz_accountant_ids: [[6, 0, USERS_ACCT]], cz_manager_ids: [[6, 0, [USER_MANAGER]]] }]);
+  const cfgFields = await rpc('pos.config', 'fields_get', [['cz_large_amount_alert']], { attributes: ['type'] });
+  if (cfgFields.cz_large_amount_alert) {                                        // module >= 18.0.1.6.2
+    await rpc('pos.config', 'write', [[DST_POS], { cz_large_amount_alert: LARGE_ALERT, cz_owner_ids: [[6, 0, USERS_OWNER]] }]);
+    step(`owners alerted above ${LARGE_ALERT}`);
+  } else step('module < 18.0.1.6.2: no large-payment alert yet');
   out.pos = (await rpc('pos.config', 'read', [[DST_POS]], { fields: ['name', 'cash_control', 'cz_cash_control', 'cz_safe_id', ...FLAGS, 'cz_accountant_ids', 'cz_manager_ids'] }))[0];
   if (!out.pos.cash_control) throw new Error('Odoo cash control is still off on the POS');
 

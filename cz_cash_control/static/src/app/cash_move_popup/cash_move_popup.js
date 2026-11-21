@@ -190,6 +190,13 @@ patch(CashMovePopup.prototype, {
         );
     },
 
+    /** Above the branch's alert amount the payment is accepted but the owners are notified. */
+    get czLargeAlert() {
+        const limit = this.pos.config.cz_large_amount_alert;
+        const c = this.czCategory;
+        return Boolean(limit && c && this.state.type === "out" && c.kind !== "safe_transfer" && this.czAmount > limit);
+    },
+
     get czOverMax() {
         const c = this.czCategory;
         return Boolean(c && c.max_amount && this.czAmount > c.max_amount);

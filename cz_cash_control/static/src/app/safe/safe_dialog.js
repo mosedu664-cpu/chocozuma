@@ -107,6 +107,11 @@ export class CzSafeDialog extends Component {
         return Boolean(c && c.max_amount && this.amount > c.max_amount);
     }
 
+    get largeAlert() {
+        const limit = this.pos.config.cz_large_amount_alert;
+        return Boolean(limit && this.amount > limit);
+    }
+
     get overSafe() {
         return this.amount > (this.info.expected || 0) + 0.001;
     }
