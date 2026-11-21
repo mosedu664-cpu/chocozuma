@@ -252,20 +252,26 @@ class CzPlatformOrderYs(models.Model):
 
     # --- matching with cashier entries -------------------------------------
     @api.model
-    def _cz_ys_match_manual(self, orders):
-        """Mark orders already typed by the cashier. orders: YS orders of ONE POS."""
-        todo = orders.filtered(lambda o: o.state in ('new', 'review') and not o.pos_order_id
-                               and o.order_date)
+    def _cz_ys_match_manual(self, config):
+        """Match ALL not-yet-posted Yemeksepeti orders of one POS against what
+        the cashier typed, from scratch (idempotent: every upload re-runs it,
+        so files of different stores sharing one till are matched together)."""
+        accounts = self.env['cz.platform.account'].sudo().search(
+            [('platform', '=', 'yemeksepeti'), ('pos_config_id', '=', config.id)])
+        todo = self.search([('account_id', 'in', accounts.ids), ('pos_order_id', '=', False),
+                            ('state', 'in', ('new', 'review', 'skipped')), ('order_date', '!=', False),
+                            ('status', '!=', 'Cancelled')])
+        # never undo a manager's "Kasada elle girildi"
+        todo = todo.filtered(lambda o: not (o.state == 'skipped' and (o.error or '').startswith('Kasada elle girildi (')))
         if not todo:
             return
-        config = todo[0].account_id.pos_config_id
-        accounts = todo.account_id
+        todo.write({'state': 'new', 'manual_pos_order_id': False, 'error': False}) 
         methods = accounts.manual_method_ids
         if not methods:
             return
         partner = accounts.filtered('manual_match_partner').partner_id[:1]
         posted_ids = self.search([('pos_order_id', '!=', False)]).pos_order_id.ids
-        linked_ids = self.search([('manual_pos_order_id', '!=', False)]).manual_pos_order_id.ids
+        linked_ids = []
         start = min(todo.mapped('order_date')) - timedelta(days=1)
         end = max(todo.mapped('order_date')) + timedelta(days=6)
         domain = [('config_id', '=', config.id), ('state', 'in', ('paid', 'done', 'invoiced')),
@@ -373,7 +379,7 @@ class CzPlatformReportImport(models.TransientModel):
         orders.filtered(lambda o: o.status == 'Cancelled' and not o.pos_order_id
                         and o.state in ('new', 'review')).write({'state': 'cancelled'})
         for config in orders.account_id.pos_config_id:
-            Order._cz_ys_match_manual(orders.filtered(lambda o: o.account_id.pos_config_id == config))
+            Order._cz_ys_match_manual(config)
         if self.post_now:
             for o in orders.filtered(lambda o: o.state in ('new', 'needs_mapping', 'waiting_session')
                                      and not o.pos_order_id).sorted('order_date'):
@@ -385,6 +391,8 @@ class CzPlatformReportImport(models.TransientModel):
         for o in orders:
             stats[o.state] += 1
         labels = dict(Order._fields['state'].selection)
+        labels.update({'skipped': 'Kasada zaten var (tekrar girilmez)', 'new': 'Eksik (kasaya girilecek)',
+                       'review': 'Kontrol gerekli', 'posted': 'Kasaya girildi'})
         lines = ['Dosyadaki sipariş: %d' % len(rows)]
         lines += ['%s: %d' % (labels.get(k, k), v) for k, v in sorted(stats.items())]
         posted = orders.filtered(lambda o: o.state == 'posted' and o.backfill)
