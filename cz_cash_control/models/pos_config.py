@@ -36,7 +36,7 @@ class PosConfig(models.Model):
     cz_large_amount_alert = fields.Float(
         string='Alert the owners above', default=0.0,
         help="A payment from the drawer or from the safe above this amount is still accepted, but the owners are "
-             "notified at once and the daily sheet flags it. 0 = no alert.")
+             "notified at once (drawer payments are also flagged on the daily sheet). 0 = no alert.")
     cz_owner_ids = fields.Many2many('res.users', 'cz_pos_config_owner_rel', 'config_id', 'user_id',
                                     string='Owners to alert (large payments)')
     cz_digest_lang = fields.Selection([('ar', 'العربية'), ('tr', 'Türkçe'), ('en', 'English')],

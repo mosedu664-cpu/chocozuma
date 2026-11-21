@@ -2227,3 +2227,19 @@ msgstr "Günlük onay özetinin dili"
 #: model:ir.model.fields,field_description:cz_cash_control.field_hr_employee__cz_shared_login
 msgid "Shared POS login (not a person)"
 msgstr "Ortak POS girişi (kişi değil)"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_large_amount_alert
+msgid "Alert the owners above"
+msgstr "Şu tutarın üzerinde sahiplere bildir"
+
+#. module: cz_cash_control
+#: model:ir.model.fields,field_description:cz_cash_control.field_pos_config__cz_owner_ids
+msgid "Owners to alert (large payments)"
+msgstr "Bildirilecek sahipler (büyük ödemeler)"
+
+#. module: cz_cash_control
+#. odoo-python
+#: code:addons/cz_cash_control/models/cz_cash_day.py:0
+msgid "Large payment (above %(limit)s): %(ref)s — %(amt)s"
+msgstr "Büyük ödeme (%(limit)s üzeri): %(ref)s — %(amt)s"

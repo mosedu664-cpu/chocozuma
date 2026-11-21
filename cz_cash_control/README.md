@@ -186,10 +186,10 @@ The cash itself matched the parallel Excel sheet; the recording did not. Three f
 * **Shared POS login** (Employees → HR Settings → *Shared POS login*): generic logins ("Kasa", "X"…) keep
   working in the POS but are never offered as the staff member of an expense.
 
-## 18.0.1.6.2 — large payments: allowed, but the owners know at once
+## 18.0.1.6.3 — large payments: allowed, but the owners know at once
 
 POS settings → *Alert the owners above* (amount) and *Owners to alert*. A payment above the amount from the
 drawer or from the safe is accepted as usual; the owners get a notification immediately (branch, amount,
 category, description, staff, who recorded it), the POS shows a notice before confirming, and the daily
 sheet flags the line. Transfers drawer → safe are not concerned.
-
+A failed notification never undoes the movement (it is logged).
