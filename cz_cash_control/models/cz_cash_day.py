@@ -229,7 +229,8 @@ class CzCashDay(models.Model):
                     uncategorised += line.amount
                     uncategorised_count += 1
 
-            first = sessions.sorted('start_at')[:1]
+            # a session closed before it was opened has no start time (and no cash): never the day's first
+            first = sessions.filtered('start_at').sorted('start_at')[:1]
             opening = first.cash_register_balance_start if first else 0.0
             # Expected = what Odoo expected at the last closing (before its own diff line)
             expected = opening + cash_sales + sum(lines.mapped('amount')) - diff_lines_total - system_total - booked_diff
@@ -272,6 +273,11 @@ class CzCashDay(models.Model):
             day._compute_alerts()
             if day.state == 'open' and day.all_sessions_closed:
                 day.state = 'to_approve'
+            elif day.state == 'to_approve' and not day.all_sessions_closed:
+                # a register was opened again on the same business day: nothing to approve yet
+                day.state = 'open'
+                todo = self.env.ref('mail.mail_activity_data_todo', raise_if_not_found=False)
+                day.activity_ids.filtered(lambda a: a.activity_type_id == todo).unlink()
 
     def _compute_alerts(self):
         for day in self:
