@@ -56,13 +56,24 @@ class CzCashSafe(models.Model):
     ]
 
     def _balance_domain(self):
+        """Book balance of the safe = its cash account.
+
+        When the account belongs to this safe alone, every posted line on it counts — including
+        an opening balance booked in a miscellaneous journal (otherwise the first count would book
+        that opening amount again as a false surplus). When another journal shares the account,
+        only the safe journal's own lines can be attributed to the safe.
+        """
         self.ensure_one()
-        return [
-            ('journal_id', '=', self.journal_id.id),
+        domain = [
             ('account_id', '=', self.account_id.id),
             ('parent_state', '=', 'posted'),
             ('company_id', '=', self.company_id.id),
         ]
+        shared = self.env['account.journal'].sudo().with_context(active_test=False).search_count([
+            ('default_account_id', '=', self.account_id.id), ('id', '!=', self.journal_id.id)], limit=1)
+        if shared:
+            domain.append(('journal_id', '=', self.journal_id.id))
+        return domain
 
     @api.depends('journal_id')
     def _compute_balance(self):
