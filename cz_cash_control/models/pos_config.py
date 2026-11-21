@@ -33,6 +33,12 @@ class PosConfig(models.Model):
                                          string='Accountants to notify')
     cz_manager_ids = fields.Many2many('res.users', 'cz_pos_config_manager_rel', 'config_id', 'user_id',
                                       string='Managers to notify')
+    cz_large_amount_alert = fields.Float(
+        string='Alert the owners above', default=0.0,
+        help="A payment from the drawer or from the safe above this amount is still accepted, but the owners are "
+             "notified at once and the daily sheet flags it. 0 = no alert.")
+    cz_owner_ids = fields.Many2many('res.users', 'cz_pos_config_owner_rel', 'config_id', 'user_id',
+                                    string='Owners to alert (large payments)')
     cz_digest_lang = fields.Selection([('ar', 'العربية'), ('tr', 'Türkçe'), ('en', 'English')],
                                       string='Language of the daily approval digest', default='ar', required=True)
     cz_staff = fields.Json(compute='_compute_cz_staff', string='Staff selectable on cash movements',

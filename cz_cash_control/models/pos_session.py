@@ -4,6 +4,8 @@ from datetime import timedelta
 import pytz
 
 from odoo import api, fields, models, _
+from markupsafe import Markup
+
 from odoo.exceptions import UserError, ValidationError
 
 from .cz_cash_day import cz_difference_wording
@@ -137,8 +139,48 @@ class PosSession(models.Model):
             res = super().try_cash_in_out(_type, amount, reason, extras)
         # keep the open day sheet in sync so the accountant sees movements live
         for session in controlled:
-            session.sudo()._cz_get_or_create_day()._compute_all()
+            day = session.sudo()._cz_get_or_create_day()
+            day._compute_all()
+            category = self.env['cz.cash.category'].sudo().browse(int(extras.get('cz_category_id') or 0)).exists()
+            if _type == 'out' and category and category.kind not in ('safe_transfer', 'difference') \
+                    and not self.env.context.get('cz_reversal'):
+                employee = self.env['hr.employee'].sudo().browse(int(extras.get('cz_employee_id') or 0)).exists()
+                session.sudo()._cz_alert_large_payment(
+                    day, amount, category, _("drawer"), reason, employee.name,
+                    extras.get('cz_manager_name') or extras.get('cz_cashier_name'))
         return res
+
+    _CZ_LARGE_LABELS = {
+        'ar': ("⚠ %(pos)s — دفعة كبيرة %(amount)s (%(cat)s)",
+               "دفعة أكبر من %(limit)s سُجّلت الآن من %(source)s.",
+               ["الفرع", "المبلغ", "الفئة", "الوصف", "الموظف", "سجّلها"]),
+        'tr': ("⚠ %(pos)s — büyük ödeme %(amount)s (%(cat)s)",
+               "%(limit)s üzerinde bir ödeme şimdi kaydedildi (%(source)s).",
+               ["Şube", "Tutar", "Kategori", "Açıklama", "Personel", "Kaydeden"]),
+        'en': ("⚠ %(pos)s — large payment %(amount)s (%(cat)s)",
+               "A payment above %(limit)s was just recorded from the %(source)s.",
+               ["Branch", "Amount", "Category", "Description", "Staff", "Recorded by"]),
+    }
+
+    def _cz_alert_large_payment(self, record, amount, category, source, description, employee_name, recorded_by):
+        """Above pos.config.cz_large_amount_alert a payment still goes through — the owners are told at once."""
+        self.ensure_one()
+        cfg = self.config_id
+        limit = cfg.cz_large_amount_alert
+        users = cfg.cz_owner_ids or cfg.cz_manager_ids
+        if not limit or float(amount) <= limit or not users:
+            return False
+        cur = cfg.currency_id
+        subject_t, intro_t, cols = self._CZ_LARGE_LABELS.get(cfg.cz_digest_lang) or self._CZ_LARGE_LABELS['ar']
+        vals = {'pos': cfg.name, 'amount': cur.format(float(amount)), 'cat': category.name, 'limit': cur.format(limit), 'source': source}
+        rows = Markup('').join(
+            Markup('<tr><td style="padding:2px 10px 2px 0;color:#777;">%s</td><td style="padding:2px 0;"><b>%s</b></td></tr>') % (label, value or '—')
+            for label, value in zip(cols, [cfg.name, vals['amount'], category.name, description, employee_name, recorded_by]))
+        body = Markup('<div dir="%s"><p>%s</p><table>%s</table></div>') % (
+            'rtl' if (cfg.cz_digest_lang or 'ar') == 'ar' else 'ltr', intro_t % vals, rows)
+        record.sudo().message_notify(partner_ids=users.partner_id.ids, subject=subject_t % vals, body=body,
+                                     subtype_xmlid='mail.mt_comment', email_layout_xmlid='mail.mail_notification_light')
+        return True
 
     # ----------------------------------------------------------------- POS helpers
     @api.model
@@ -449,6 +491,7 @@ class PosSession(models.Model):
         move.action_approve()
         move.message_post(body=_("Paid from the safe in the POS (%(session)s) — manager %(manager)s.",
                                  session=self.name, manager=manager.name))
+        self.sudo()._cz_alert_large_payment(move, amount, cat, _("safe"), note, employee.name, manager.name)
         safe.invalidate_recordset(['balance', 'expected_balance', 'pending_day_amount'])
         return {'name': move.name, 'amount': amount, 'expected': safe.currency_id.round(safe.expected_balance)}
 

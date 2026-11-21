@@ -94,6 +94,9 @@
                             </div>
                         </div>
                     </div>
+                    <div t-if="largeAlert" class="alert alert-warning py-1 mt-3 mb-0 small">
+                        <i class="fa fa-bell me-1" title="Uyarı"/>Büyük ödeme: kaydedilir ve işletme sahibine <b>anında bildirim</b> gider.
+                    </div>
                     <div t-if="problems.length and (state.categoryId or state.amount)" class="alert alert-warning py-1 mt-3 mb-0 small">
                         <i class="fa fa-info-circle me-1" title="Eksik"/><t t-esc="problems.join(' · ')"/>
                     </div>

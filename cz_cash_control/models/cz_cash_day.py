@@ -302,6 +302,11 @@ class CzCashDay(models.Model):
                 if cat and cat.requires_receipt_above and abs(line.amount) > cat.requires_receipt_above \
                         and not line.cz_receipt_ref and not line.cz_receipt_image:
                     alerts.append(('warning', _("Missing receipt number: %s", line.payment_ref)))
+                limit = day.config_id.cz_large_amount_alert
+                if cat and limit and line.amount < 0 and -line.amount > limit and cat.kind not in ('difference', 'safe_transfer') \
+                        and not line.cz_reversal_of_id and not line.cz_reversal_ids:
+                    alerts.append(('warning', _("Large payment (above %(limit)s): %(ref)s — %(amt)s",
+                                                limit=cur.format(limit), ref=line.payment_ref, amt=cur.format(-line.amount))))
                 if cat and cat.kind not in ('difference', 'safe_transfer') and not line.cz_reversal_of_id \
                         and not line.cz_reversal_ids and cz_difference_wording(
                             self.env['pos.session']._cz_reason_from_ref(line, cat)):

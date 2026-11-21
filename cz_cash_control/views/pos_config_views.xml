@@ -23,6 +23,8 @@
                         <field name="cz_accountant_ids" widget="many2many_tags" invisible="not cz_cash_control"/>
                         <field name="cz_manager_ids" widget="many2many_tags" invisible="not cz_cash_control"/>
                         <field name="cz_digest_lang" invisible="not cz_cash_control"/>
+                        <field name="cz_large_amount_alert" invisible="not cz_cash_control"/>
+                        <field name="cz_owner_ids" widget="many2many_tags" invisible="not cz_cash_control or not cz_large_amount_alert"/>
                     </group>
                 </group>
             </xpath>
