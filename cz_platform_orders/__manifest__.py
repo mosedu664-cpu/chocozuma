@@ -25,7 +25,7 @@ Credentials are visible to administrators only.
     'author': 'Choco Zuma Yönetim',
     'website': 'https://chocozuma.com',
     'category': 'Sales/Point of Sale',
-    'version': '18.0.2.3.0',
+    'version': '18.0.2.3.1',
     'license': 'LGPL-3',
     'depends': ['point_of_sale'],
     'data': [

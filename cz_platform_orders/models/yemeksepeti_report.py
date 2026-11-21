@@ -249,7 +249,8 @@ class CzPlatformOrderYs(models.Model):
     @api.model
     def _cz_ys_match_manual(self, orders):
         """Mark orders already typed by the cashier. orders: YS orders of ONE POS."""
-        todo = orders.filtered(lambda o: o.state in ('new', 'review') and not o.pos_order_id)
+        todo = orders.filtered(lambda o: o.state in ('new', 'review') and not o.pos_order_id
+                               and o.order_date)
         if not todo:
             return
         config = todo[0].account_id.pos_config_id
