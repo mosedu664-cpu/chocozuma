@@ -40,7 +40,7 @@ def clean_name(name):
     prev = None
     while prev != n:
         prev = n
-        n = re.sub(r"\s*\((?:P|P O|W|Custom Combo)\)\s*$", "", n, flags=re.I)
+        n = re.sub(r"\s*\((?:P|P O|W|T|Custom Combo)\)\s*$", "", n, flags=re.I)  # T = takeaway copy (Nov 2026)
     n = re.sub(r"\s+Base$", "", n, flags=re.I)
     if re.search(r"kampan", n, re.I):  # campaign copies: "24\\10 Kampanya Zuma Roll" -> "Zuma Roll"
         n = re.sub(r"\(P\)|\bkampan\w*\b|\d+(?:\s*[.\\/]\s*\d+)+", " ", n, flags=re.I)
@@ -69,6 +69,15 @@ def family(name, cats):
         return "Waffle"
     if "crepe" in n or "krep" in n or "crepe" in cats:
         return "Krep"
+    # numbered POS menu (Nov 2026: "1.1 Waffles", "2.3 Sweet Croissants", "3.1 Hot Coffee", "4.2 Merchandise"):
+    # the number is the family, so the report keeps working when the old categories are removed or renamed
+    groups = {m.group(1) for m in (re.match(r"\s*(\d)\.\d\b", c) for c in cats) if m}
+    if len(groups) == 1:
+        g = groups.pop()
+        if g == "1":
+            return "Krep" if any(c.startswith("1.2") for c in cats) else "Tatlı & Çikolata"
+        if g in ("2", "3", "4"):
+            return {"2": "Fırın & Brunch", "3": "İçecek", "4": "Diğer"}[g]
     if cats & DRINK_CATS or DRINK_RE.search(n):
         return "İçecek"
     if BAKERY_RE.search(n) or any(k in c for c in cats for k in ("bakery", "brunch", "breakfast", "croissant")):
