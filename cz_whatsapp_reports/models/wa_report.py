@@ -15,6 +15,23 @@ from . import brief_render, kitchen_render, marketing_data, marketing_render, or
 PAID = ("paid", "done", "invoiced")
 PLATFORM_RE = re.compile(r"trendyol|yemek|getir", re.I)
 STAFF_RE = re.compile(r"personel", re.I)
+# platform orders created by cz_platform_orders have no table: the channel comes from the generic partner
+# ("*TRENDYOL", "!TRENDYOL YEMEK", "*YEMEKSEPETI", "!YEMEK SEPETİ", "*GETİR")
+PLATFORM_PARTNERS = (("trendyol", "Trendyol Go"), ("sepet", "Yemeksepeti"), ("getir", "Getir"), ("migros", "Migros Yemek"))
+
+
+def platform_of(partner_name):
+    """Platform channel of a generic platform customer (name starting with * or !), else None."""
+    name = (partner_name or "").strip()
+    if name[:1] not in ("*", "!"):
+        return None
+    key = re.sub(r"[^a-z]", "", name.casefold().replace("i̇", "i").replace("ı", "i"))
+    for word, channel in PLATFORM_PARTNERS:
+        if word in key:
+            return channel
+    return None
+
+
 TZ = pytz.timezone("Europe/Istanbul")
 CHANNELS = {
     "salon": "Salon", "teras": "Teras", "whatsapp": "WhatsApp", "yemeksepeti": "Yemeksepeti",
@@ -78,10 +95,22 @@ class CzWaReport(models.Model):
     log_ids = fields.One2many("cz.wa.report.log", "report_id")
 
     # ------------------------------------------------------------------ data
-    def _session_stats(self, session, costs):
-        """KPIs of one closed POS session (= one business day of one branch)."""
+    def _day_orders(self, config, day):
+        """All orders of one branch whose creation falls in the business day (06:00 -> 06:00 Istanbul)."""
+        return self.env["pos.order"].search([
+            ("config_id", "=", config.id),
+            ("create_date", ">=", self._utc(day)), ("create_date", "<", self._utc(day + timedelta(days=1))),
+        ])
+
+    def _session_stats(self, config, day, costs):
+        """KPIs of one branch for one business day, over every session of that day.
+        (A night with several short sessions, e.g. test sessions after closing, must not replace the real day.)"""
         Order = self.env["pos.order"]
-        orders = Order.search([("session_id", "=", session.id)])
+        orders = self._day_orders(config, day)
+        sessions = self.env["pos.session"].search([
+            ("config_id", "=", config.id), ("state", "=", "closed"),
+            ("stop_at", ">=", self._utc(day)), ("stop_at", "<", self._utc(day + timedelta(days=1))),
+        ])
         paid = orders.filtered(lambda o: o.state in PAID)
         cancelled = orders.filtered(lambda o: o.state == "cancel")
         has_table = "table_id" in Order._fields
@@ -91,17 +120,18 @@ class CzWaReport(models.Model):
         def floor_name(order):
             if has_table and order.table_id:
                 return (order.table_id.floor_id.name or order.table_id.display_name or "").strip()
-            return ""
+            return platform_of(order.partner_id.name) or ""
 
         staff_orders = paid.filtered(lambda o: STAFF_RE.search(floor_name(o)))
         sales = paid - staff_orders
+        used = orders.mapped("session_id")
         res = {
-            "branch": session.config_id.name,
-            "session": session.name,
+            "branch": config.name,
+            "session": ", ".join(used.sorted("id").mapped("name")) or ", ".join(sessions.mapped("name")),
             "orders": len(paid),
             "net": sum(paid.mapped("amount_total")) - sum(paid.mapped("amount_tax")),
             "gross": sum(paid.mapped("amount_total")),
-            "cash_diff": session.cash_register_difference,
+            "cash_diff": sum(sessions.mapped("cash_register_difference")),
         }
         # channels
         channels = {}
@@ -195,14 +225,11 @@ class CzWaReport(models.Model):
             if fresh_since and sessions[0].stop_at and sessions[0].stop_at < fresh_since:
                 skipped.append(config.name)
                 continue
-            cur = self._session_stats(sessions[0], costs)
+            day = self._business_day(sessions[0].stop_at)
+            cur = self._session_stats(config, day, costs)
             cur["stop_at"] = sessions[0].stop_at
-            if len(sessions) > 1:
-                prev = sessions[1]
-                prev_orders = self.env["pos.order"].search([("session_id", "=", prev.id), ("state", "in", PAID)])
-                cur["prev_net"] = sum(prev_orders.mapped("amount_total")) - sum(prev_orders.mapped("amount_tax"))
-            else:
-                cur["prev_net"] = 0.0
+            prev_orders = self._day_orders(config, day - timedelta(days=1)).filtered(lambda o: o.state in PAID)
+            cur["prev_net"] = sum(prev_orders.mapped("amount_total")) - sum(prev_orders.mapped("amount_tax"))
             branches.append(cur)
         return {"branches": branches, "skipped": skipped}
 
@@ -241,12 +268,14 @@ class CzWaReport(models.Model):
         partners = env["res.partner"].with_context(active_test=False).browse(
             list({o["partner_id"][0] for o in orders if o["partner_id"]}))
         generic = {p.id for p in partners if (p.name or "").strip()[:1] in ("*", "!")}
+        pname = {p.id: p.name or "" for p in partners}
         Line = env["pos.order.line"]
         line_fields = ["order_id", "product_id", "qty", "price_subtotal", "price_unit"]
         if "is_reward_line" in Line._fields:
             line_fields += ["is_reward_line", "reward_id"]
         lines = Line.search_read([("order_id", "in", [o["id"] for o in orders])], line_fields)
-        products = env["product.product"].with_context(active_test=False, lang="tr_TR").browse(list({l["product_id"][0] for l in lines if l["product_id"]}))
+        # product names: the English names are the official menu names since the 22.11.2026 POS redesign
+        products = env["product.product"].with_context(active_test=False, lang="en_US").browse(list({l["product_id"][0] for l in lines if l["product_id"]}))
         pinfo = {}
         for p in products:
             # families are read from the English category names (the Turkish translations differ)
@@ -262,6 +291,9 @@ class CzWaReport(models.Model):
             local = self._local(o["create_date"])
             channel = self._channel(floor.get(o["table_id"][0]) if o["table_id"] else "")
             partner = o["partner_id"][0] if o["partner_id"] else 0
+            platform = platform_of(pname.get(partner))
+            if platform and channel not in ("STAFF", "MKT", "ERR"):
+                channel = platform
             out[o["id"]] = {
                 "day": (local - timedelta(hours=6)).date().isoformat(),
                 "hour": local.hour + (24 if local.hour < 6 else 0),

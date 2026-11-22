@@ -40,7 +40,7 @@ def clean_name(name):
     prev = None
     while prev != n:
         prev = n
-        n = re.sub(r"\s*\((?:P|P O|W|Custom Combo)\)\s*$", "", n, flags=re.I)
+        n = re.sub(r"\s*\((?:P|P O|W|T|Custom Combo)\)\s*$", "", n, flags=re.I)  # T = takeaway copy (Nov 2026)
     n = re.sub(r"\s+Base$", "", n, flags=re.I)
     if re.search(r"kampan", n, re.I):  # campaign copies: "24\\10 Kampanya Zuma Roll" -> "Zuma Roll"
         n = re.sub(r"\(P\)|\bkampan\w*\b|\d+(?:\s*[.\\/]\s*\d+)+", " ", n, flags=re.I)
