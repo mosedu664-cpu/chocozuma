@@ -9,6 +9,9 @@ from datetime import timedelta
 from odoo import api, fields, models
 
 SUSPECT_RATIO = 8.0  # invoice unit cost >= 8x or <= 1/8 of Odoo cost = unit error
+# one bill line whose unit cost is >= 5x or <= 1/5 of the product's median bill unit cost is a unit error
+# (e.g. "20 KG x 5,750" for 20 bags of 10 kg, "160 Units x 266.5" for 160 packs of 12 bottles): left out
+LINE_OUTLIER = 5.0
 
 
 class CzRealCost(models.AbstractModel):
@@ -27,6 +30,69 @@ class CzRealCost(models.AbstractModel):
         if not from_uom.factor:
             return None
         return qty / from_uom.factor * to_uom.factor
+
+    @api.model
+    def _bill_lines(self, date_from, date_to):
+        """Posted vendor bill lines in the window, as (product_id, partner_id, company_id, date, qty in product unit, balance)."""
+        rows = self.env["account.move.line"].search_read([
+            ("move_id.move_type", "=", "in_invoice"),
+            ("move_id.state", "=", "posted"),
+            ("display_type", "=", "product"),
+            ("product_id", "!=", False),
+            ("quantity", ">", 0),
+            ("balance", ">", 0),
+            ("move_id.invoice_date", ">=", date_from),
+            ("move_id.invoice_date", "<", date_to),
+        ], ["product_id", "product_uom_id", "partner_id", "company_id", "quantity", "balance", "invoice_date"])
+        products = {p.id: p for p in self.env["product.product"].browse(list({r["product_id"][0] for r in rows}))}
+        uoms = {u.id: u for u in self.env["uom.uom"].browse(list({r["product_uom_id"][0] for r in rows if r["product_uom_id"]}))}
+        out = []
+        for r in rows:
+            p = products[r["product_id"][0]]
+            q = self._conv(r["quantity"], uoms.get(r["product_uom_id"][0]) if r["product_uom_id"] else None, p.uom_id)
+            if q is None or q <= 0:
+                continue
+            out.append((p.id, r["partner_id"][0] if r["partner_id"] else 0, r["company_id"][0],
+                        fields.Date.to_date(r["invoice_date"]), q, r["balance"]))
+        return out
+
+    @staticmethod
+    def _clean_lines(lines):
+        """Drop the bill lines whose unit cost is far from the product's median line unit cost (unit errors)."""
+        units = {}
+        for pid, _partner, _company, _date, q, bal in lines:
+            units.setdefault(pid, []).append(bal / q)
+        ref = {}
+        for pid, vals in units.items():
+            vals.sort()
+            m = len(vals) // 2
+            ref[pid] = vals[m] if len(vals) % 2 else (vals[m - 1] + vals[m]) / 2.0
+        kept, dropped = [], {}
+        for line in lines:
+            pid, q, bal = line[0], line[4], line[5]
+            r = ref.get(pid) or 0.0
+            u = bal / q
+            if r > 0 and (u / r >= LINE_OUTLIER or u / r <= 1.0 / LINE_OUTLIER):
+                dropped[pid] = dropped.get(pid, 0) + 1
+                continue
+            kept.append(line)
+        return kept, dropped
+
+    @staticmethod
+    def _weighted(lines, date_from, date_to, partners, inside, company_ids=None):
+        """Weighted unit cost per product over the kept lines of one window and partner group."""
+        acc = {}
+        for pid, partner, company, date, q, bal in lines:
+            if not (date_from <= date < date_to):
+                continue
+            if (partner in partners) != inside:
+                continue
+            if company_ids is not None and company not in company_ids:
+                continue
+            row = acc.setdefault(pid, [0.0, 0.0])
+            row[0] += q
+            row[1] += bal
+        return {pid: v[1] / v[0] for pid, v in acc.items() if v[0] > 0}
 
     @api.model
     def _bill_costs(self, date_from, date_to, partner_domain, company_ids=None):
@@ -74,11 +140,13 @@ class CzRealCost(models.AbstractModel):
         group_partners = self.env["res.partner"].search(
             ["|", ("id", "in", companies.partner_id.ids), ("parent_id", "in", companies.partner_id.ids)]
         ).ids
-        ext = [("partner_id", "not in", group_partners)]
-        ext_win = self._bill_costs(d_win, date_to, ext)
-        ext_old = self._bill_costs(d_old, d_win, ext)
         branch_companies = companies.filtered(lambda c: c.partner_id.id in group_partners).ids
-        transfer = self._bill_costs(d_win, date_to, [("partner_id", "in", group_partners)], branch_companies)
+        # every bill line of the year, unit errors removed against the product's median line unit cost
+        lines, _dropped = self._clean_lines(self._bill_lines(d_old, date_to))
+        gp = set(group_partners)
+        ext_win = self._weighted(lines, d_win, date_to, gp, False)
+        ext_old = self._weighted(lines, d_old, d_win, gp, False)
+        transfer = self._weighted(lines, d_win, date_to, gp, True, set(branch_companies))
 
         products = self.env["product.product"].search([])
         prod = {p.id: p for p in products}

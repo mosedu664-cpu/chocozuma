@@ -178,6 +178,8 @@ class CzWaReport(models.Model):
         staff_items = 0
         staff_ids = set(staff_orders.ids)
         products = {}
+        has_combo = "combo_parent_id" in Line._fields
+        combo_extra = []  # cost of the items given inside a box at price 0 (chocolates of Share Box, Aztec Box)
         for line in Line.search([("order_id", "in", paid.ids)]):
             if line.order_id.id in staff_ids:
                 staff_items += 1
@@ -190,6 +192,10 @@ class CzWaReport(models.Model):
                 disc += -line.price_subtotal
                 continue
             c = (costs.get(line.product_id.id) or {}).get("cost")
+            if not line.price_subtotal:
+                if has_combo and line.combo_parent_id and c is not None and line.qty > 0:
+                    combo_extra.append((marketing_data.clean_name(line.combo_parent_id.product_id.name or ""), c * line.qty))
+                continue
             # one row per menu item: "Zuma Roll", "Zuma Roll (P)", "Zuma Roll (P O)", "Zuma Roll (T)" together
             pname = marketing_data.clean_name(line.product_id.name or "")
             row = products.setdefault(pname, [pname, 0.0, 0.0, 0.0, 0.0])
@@ -200,6 +206,11 @@ class CzWaReport(models.Model):
                 cov += line.price_subtotal
                 row[3] += line.price_subtotal
                 row[4] += c * line.qty
+        for name, value in combo_extra:
+            row = products.get(name)
+            if row and row[3] > 0:  # the box itself is costed: add what was given inside it
+                row[4] += value
+                real += value
         top = sorted(products.values(), key=lambda r: -r[2])[:5]
         res["top"] = [
             (r[0], r[1], r[2], ((r[3] - r[4]) / r[3] * 100.0) if r[3] and r[3] >= r[2] * 0.5 else None)
