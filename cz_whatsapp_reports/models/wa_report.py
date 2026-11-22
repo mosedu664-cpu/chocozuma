@@ -124,19 +124,27 @@ class CzWaReport(models.Model):
 
         staff_orders = paid.filtered(lambda o: STAFF_RE.search(floor_name(o)))
         sales = paid - staff_orders
-        used = orders.mapped("session_id")
+        used = paid.mapped("session_id")
+        # cash: only the sessions that sold that day (empty test sessions opened after closing are left out);
+        # a session closed with 0 counted while cash was expected was not counted, which is not a shortage
+        real_sessions = sessions & used
+        uncounted = real_sessions.filtered(
+            lambda s: not s.cash_register_balance_end_real and (s.cash_register_balance_end or 0.0) > 0)
         res = {
             "branch": config.name,
             "session": ", ".join(used.sorted("id").mapped("name")) or ", ".join(sessions.mapped("name")),
             "orders": len(paid),
             "net": sum(paid.mapped("amount_total")) - sum(paid.mapped("amount_tax")),
             "gross": sum(paid.mapped("amount_total")),
-            "cash_diff": sum(sessions.mapped("cash_register_difference")),
+            "cash_diff": sum((real_sessions - uncounted).mapped("cash_register_difference")),
+            "cash_uncounted": sum(uncounted.mapped("cash_register_balance_end")),
         }
         # channels
         channels = {}
+        channel_label = {"MKT": "Pazarlama", "ERR": "Hatalı sipariş"}
         for o in sales:
-            name = floor_name(o) or "(counter)"
+            name = self._channel(floor_name(o))
+            name = channel_label.get(name, name)
             row = channels.setdefault(name, [0, 0.0])
             row[0] += 1
             row[1] += o.amount_total - o.amount_tax
@@ -182,7 +190,9 @@ class CzWaReport(models.Model):
                 disc += -line.price_subtotal
                 continue
             c = (costs.get(line.product_id.id) or {}).get("cost")
-            row = products.setdefault(line.product_id.id, [line.product_id.name or "", 0.0, 0.0, 0.0, 0.0])
+            # one row per menu item: "Zuma Roll", "Zuma Roll (P)", "Zuma Roll (P O)", "Zuma Roll (T)" together
+            pname = marketing_data.clean_name(line.product_id.name or "")
+            row = products.setdefault(pname, [pname, 0.0, 0.0, 0.0, 0.0])
             row[1] += line.qty
             row[2] += line.price_subtotal
             if c is not None and line.price_subtotal > 0 and c * line.qty <= line.price_subtotal * 3:
@@ -702,6 +712,7 @@ class CzWaReport(models.Model):
                 "staff_items": b["staff_items"],
                 "staff_value": b["staff_value"],
                 "cash_diff": b["cash_diff"],
+                "cash_uncounted": b.get("cash_uncounted") or 0.0,
                 "channels": [(k, v[0], v[1]) for k, v in b["channels"][:6]],
                 "cashiers": [(k, v[0], v[1], v[2]) for k, v in b["cashiers"][:5]],
                 "top": b["top"],

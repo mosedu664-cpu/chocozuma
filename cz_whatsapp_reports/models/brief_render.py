@@ -78,7 +78,10 @@ def render_text(vm):
         add("الخصومات: %s" % _tl(b["discount"]))
         add("الولاء: %s" % _tl(b["reward"]))
         add("وجبات الموظفين: %s بقيمة %s بسعر القائمة" % (_l(b["staff_orders"]), _tl(b["staff_value"])))
-        add("فرق الكاش: %s" % _tl(b["cash_diff"]))
+        if b.get("cash_uncounted"):
+            add("الكاش: لم يُعدّ عند الإغلاق (المتوقع %s)" % _tl(b["cash_uncounted"]))
+        else:
+            add("فرق الكاش: %s" % _tl(b["cash_diff"]))
         if b["channels"]:
             add("القنوات:")
             for name, n, net in b["channels"]:
@@ -243,7 +246,8 @@ def render_html(vm, font_base="/cz_whatsapp_reports/static/src/fonts/"):
             ("الخصومات", _m(b["discount"]), ""),
             ("الولاء", _m(b["reward"]), ""),
             ("وجبات الموظفين بسعر القائمة", _m(b["staff_value"]), "عدد %s" % _num(b["staff_orders"])),
-            ("فرق الكاش", _m(b["cash_diff"]), ""),
+            ("فرق الكاش", _m(b["cash_diff"]), "") if not b.get("cash_uncounted")
+            else ("الكاش لم يُعدّ عند الإغلاق", _m(b["cash_uncounted"]), "المتوقع"),
         ]
         top_net = max([c[2] for c in b["channels"]] or [1.0]) or 1.0
         ch = []
