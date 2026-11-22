@@ -4,6 +4,7 @@
 Never uses the stored standard price as a real source: it is only a flagged
 fallback. Read-only: this model writes nothing.
 """
+import math
 from datetime import timedelta
 
 from odoo import api, fields, models
@@ -219,7 +220,13 @@ class CzRealCost(models.AbstractModel):
                 elif pid in transfer:
                     c, src = transfer[pid], "T"
                 if c is not None and od > 0 and (c / od >= SUSPECT_RATIO or c / od <= 1.0 / SUSPECT_RATIO):
-                    res = {"cost": od, "inv": 0.0, "fill": od, "source": "S", "missing": [], "suspect": 1}
+                    # bills and Odoo cost disagree: the group transfer price decides which one is in the right unit
+                    # (water: bills 6 TL, Odoo cost 132 TL from a pack-of-12 bill, transfer 12 TL -> bills)
+                    tr = transfer.get(pid)
+                    if tr and src != "T" and abs(math.log(c / tr)) < abs(math.log(od / tr)):
+                        res = {"cost": c, "inv": c, "fill": 0.0, "source": src, "missing": [], "suspect": 1}
+                    else:
+                        res = {"cost": od, "inv": 0.0, "fill": od, "source": "S", "missing": [], "suspect": 1}
                 elif c is not None:
                     res = {"cost": c, "inv": c, "fill": 0.0, "source": src, "missing": [], "suspect": 0}
                 elif od > 0:
