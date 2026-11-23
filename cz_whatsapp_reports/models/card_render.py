@@ -25,6 +25,7 @@ THEMES = {
     "kitchen_stock": ("#a6c886", "#475a37"),
     "orders_daily": ("#7ea9f2", "#33476b"),
 }
+DARK = {"ceo_daily": "#8a6a22", "branch_daily": "#1f6e64", "marketing": "#a3492b", "kitchen_stock": "#4f6b35", "orders_daily": "#2f5596"}
 TONE = {"up": "#7bd389", "down": "#ff8a7a", "warn": "#f3c969", "": "#cdbfa8"}
 
 # Emblems: original geometric glyphs on a 100x100 grid, filled with the accent colour.
@@ -71,14 +72,17 @@ def h(s):
 
 
 _NUM = re.compile(r"([+\-−]?[%]?\d[\d.,:/]*%?(?:\s?(?:TL|₺))?)")
+_LAT = "0-9A-Za-zÇĞİÖŞÜçğıöşüéè"
+# in Arabic text: numbers AND Latin runs (branch and product names) kept left-to-right
+_RUN = re.compile(r"([+\-−]?%%?[%(l)s][%(l)s.,:%%/&'+\- ()]*[%(l)s%%)])|([+\-−]?%%?[%(l)s])" % {"l": _LAT})
 
 
-def _ltr_numbers(text):
-    """Escape text and wrap each number run in an LTR span, so Arabic lines keep numbers intact."""
+def _ltr_numbers(text, rtl=False):
+    """Escape text and wrap each number run (and, in Arabic, each Latin run) in an LTR span."""
     out, last = [], 0
-    for m in _NUM.finditer(text):
+    for m in (_RUN if rtl else _NUM).finditer(text):
         out.append(h(text[last:m.start()]))
-        out.append('<span class="n">%s</span>' % h(m.group(1)))
+        out.append('<span class="n">%s</span>' % h(m.group(0)))
         last = m.end()
     out.append(h(text[last:]))
     return "".join(out)
@@ -121,8 +125,20 @@ def _font(name, font_base):
         return "data:font/ttf;base64," + base64.b64encode(f.read()).decode()
 
 
-def render(code, spec, font_base=None):
-    """spec: lang ('tr'/'ar'), kicker, title, date, weekday, kpis [(label, value, sub, tone)] (max 3)."""
+def _fonts(rtl, font_base):
+    f = ("@font-face{font-family:'CZM';font-weight:bold;src:url('%s') format('truetype');}"
+         "@font-face{font-family:'CZL';font-weight:normal;src:url('%s') format('truetype');}"
+         "@font-face{font-family:'CZL';font-weight:bold;src:url('%s') format('truetype');}" % (
+             _font("ElMessiri-Bold.ttf", font_base), _font("Latin-Regular.ttf", font_base), _font("Latin-Bold.ttf", font_base)))
+    if rtl:
+        f += ("@font-face{font-family:'CZA';font-weight:normal;src:url('%s') format('truetype');}"
+              "@font-face{font-family:'CZA';font-weight:bold;src:url('%s') format('truetype');}" % (
+                  _font("Plex-Regular.ttf", font_base), _font("Plex-SemiBold.ttf", font_base)))
+    return f
+
+
+def _block(code, spec, scope="czc"):
+    """The 1600x836 card as a scoped block (class .%(sc)s): (css, html). Used by the image and the PDF cover."""
     accent, shade = THEMES.get(code, THEMES["ceo_daily"])
     rtl = spec.get("lang") == "ar"
     kpis = (spec.get("kpis") or [])[:3]
@@ -132,62 +148,119 @@ def render(code, spec, font_base=None):
     tiles = []
     for i, (label, value, sub, tone) in enumerate(kpis):
         side = ("margin-right:%dpx;" if rtl else "margin-left:%dpx;") % gap if i else ""
-        vsize = {True: 124}.get(len(str(value)) <= 6) or (108 if len(str(value)) == 7 else 92)
+        vsize = 124 if len(str(value)) <= 6 else (108 if len(str(value)) == 7 else 92)
         tiles.append(
             '<div class="tile" style="width:%dpx;%s"><div class="tl">%s</div>'
             '<div class="tv" style="font-size:%dpx"><span class="n">%s</span></div>'
             '<div class="ts" style="color:%s">%s</div></div>' % (
-                tile_w - 4, side, _ltr_numbers(label), vsize, h(value),
-                TONE.get(tone or "", TONE[""]), _ltr_numbers(sub or "")))
-    rtl_fonts = (
-        "@font-face{font-family:'CZA';font-weight:normal;src:url('%s') format('truetype');}"
-        "@font-face{font-family:'CZA';font-weight:bold;src:url('%s') format('truetype');}" % (
-            _font("Plex-Regular.ttf", font_base), _font("Plex-SemiBold.ttf", font_base))) if rtl else ""
-    fonts = (
-        "@font-face{font-family:'CZM';font-weight:bold;src:url('%s') format('truetype');}"
-        "@font-face{font-family:'CZL';font-weight:normal;src:url('%s') format('truetype');}"
-        "@font-face{font-family:'CZL';font-weight:bold;src:url('%s') format('truetype');}" % (
-            _font("ElMessiri-Bold.ttf", font_base), _font("Latin-Regular.ttf", font_base), _font("Latin-Bold.ttf", font_base))
-    ) + rtl_fonts
+                tile_w - 4, side, _ltr_numbers(label, rtl), vsize, h(value),
+                TONE.get(tone or "", TONE[""]), _ltr_numbers(sub or "", rtl)))
     body_font = "'CZA','CZL',sans-serif" if rtl else "'CZL','CZA',sans-serif"
     al, op = ("right", "left") if rtl else ("left", "right")
     css = """
-    html,body{margin:0;padding:0;width:%(W)dpx;height:%(H)dpx;overflow:hidden;background:%(bg)s;}
-    .c{position:relative;width:%(W)dpx;height:%(H)dpx;overflow:hidden;color:#f7f1e6;
+    .%(sc)s,.%(sc)s *{-webkit-box-sizing:content-box;box-sizing:content-box;}
+    .%(sc)s{position:relative;width:%(W)dpx;height:%(H)dpx;overflow:hidden;color:#f7f1e6;background:%(bg)s;
        background:-webkit-linear-gradient(top,#26170e 0%%,#1c110a 60%%,#150d08 100%%);
-       font-family:%(bf)s;direction:%(dir)s;text-align:%(al)s;}
-    .fz{position:absolute;left:0;width:%(W)dpx;height:34px;}
-    .wm{position:absolute;top:150px;%(op)s:-70px;width:620px;height:620px;opacity:0.07;}
-    .n{direction:ltr;unicode-bidi:embed;}
-    .hd{position:absolute;top:66px;%(al)s:60px;%(op)s:60px;height:130px;}
-    .em{float:%(al)s;width:124px;height:124px;}
-    .nm{float:%(al)s;margin-%(al)s:28px;margin-top:2px;}
-    .brand{font-family:'CZL',sans-serif;font-weight:bold;letter-spacing:10px;font-size:26px;color:%(ac)s;}
-    .kick{font-family:'CZM','CZA',sans-serif;font-weight:bold;font-size:%(ks)dpx;line-height:1.05;color:#f7f1e6;margin-top:6px;white-space:nowrap;}
-    .date{float:%(op)s;text-align:%(op)s;margin-top:24px;%(dm)s}
-    .date .d{font-family:'CZM','CZA',sans-serif;font-weight:bold;font-size:60px;line-height:1;color:%(ac)s;}
-    .date .w{font-size:34px;color:#cdbfa8;margin-top:8px;}
-    .title{position:absolute;top:228px;%(al)s:60px;%(op)s:60px;font-family:'CZM','CZA',sans-serif;font-weight:bold;
+       font-family:%(bf)s;direction:%(dir)s;text-align:%(al)s;line-height:normal;}
+    .%(sc)s img{max-width:none;}
+    .%(sc)s .fz{position:absolute;left:0;width:%(W)dpx;height:34px;}
+    .%(sc)s .wm{position:absolute;top:150px;%(op)s:-70px;width:620px;height:620px;opacity:0.07;}
+    .%(sc)s .n{direction:ltr;unicode-bidi:embed;}
+    .%(sc)s .hd{position:absolute;top:66px;%(al)s:60px;%(op)s:60px;height:130px;}
+    .%(sc)s .em{float:%(al)s;width:124px;height:124px;}
+    .%(sc)s .nm{float:%(al)s;margin-%(al)s:28px;margin-top:2px;}
+    .%(sc)s .brand{font-family:'CZL',sans-serif;font-weight:bold;letter-spacing:10px;font-size:26px;color:%(ac)s;}
+    .%(sc)s .kick{font-family:'CZM','CZA',sans-serif;font-weight:bold;font-size:%(ks)dpx;line-height:1.05;color:#f7f1e6;margin-top:6px;white-space:nowrap;}
+    .%(sc)s .date{float:%(op)s;text-align:%(op)s;margin-top:24px;%(dm)s}
+    .%(sc)s .date .d{font-family:'CZM','CZA',sans-serif;font-weight:bold;font-size:60px;line-height:1;color:%(ac)s;}
+    .%(sc)s .date .w{font-size:34px;color:#cdbfa8;margin-top:8px;}
+    .%(sc)s .title{position:absolute;top:228px;%(al)s:60px;%(op)s:60px;font-family:'CZM','CZA',sans-serif;font-weight:bold;
            font-size:58px;line-height:1.1;color:#f7f1e6;white-space:nowrap;overflow:hidden;}
-    .bar{display:inline-block;width:14px;height:52px;background:%(ac)s;vertical-align:-6px;margin-%(op)s:22px;}
-    .tiles{position:absolute;top:340px;%(al)s:60px;width:%(TW)dpx;height:410px;}
-    .tile{float:%(al)s;height:400px;background:rgba(48,30,18,0.82);border-top:10px solid %(ac)s;
+    .%(sc)s .bar{display:inline-block;width:14px;height:52px;background:%(ac)s;vertical-align:-6px;margin-%(op)s:22px;}
+    .%(sc)s .tiles{position:absolute;top:340px;%(al)s:60px;width:%(TW)dpx;height:410px;}
+    .%(sc)s .tile{float:%(al)s;height:400px;background:rgba(48,30,18,0.82);border-top:10px solid %(ac)s;
           border-bottom:2px solid %(sh)s;}
-    .tl{font-size:40px;color:#e8dcc8;padding:30px 34px 0 34px;height:52px;overflow:hidden;white-space:nowrap;}
-    .tv{font-family:'CZM','CZL',sans-serif;font-weight:bold;line-height:1;color:#ffffff;
+    .%(sc)s .tl{font-size:40px;color:#e8dcc8;padding:30px 34px 0 34px;height:52px;overflow:hidden;white-space:nowrap;}
+    .%(sc)s .tv{font-family:'CZM','CZL',sans-serif;font-weight:bold;line-height:1;color:#ffffff;
         padding:42px 34px 0 34px;height:136px;white-space:nowrap;}
-    .ts{font-size:38px;padding:34px 34px 0 34px;white-space:nowrap;overflow:hidden;}
+    .%(sc)s .ts{font-size:38px;padding:34px 34px 0 34px;white-space:nowrap;overflow:hidden;}
     """ % {"W": W, "H": H, "bg": BG, "bf": body_font, "dir": "rtl" if rtl else "ltr", "al": al, "op": op,
-           "ac": accent, "sh": shade, "TW": W - 120, "dm": "" if rtl else "margin-right:60px;", "ks": 64 if rtl else 58}
-    return (
-        '<!DOCTYPE html><html><head><meta charset="utf-8"/><style>%(fonts)s%(css)s</style></head><body>'
-        '<div class="c"><img class="fz" style="top:0" src="%(fz)s"/><img class="wm" src="%(wm)s"/>'
+           "ac": accent, "sh": shade, "TW": W - 120, "dm": "" if rtl else "margin-right:60px;", "ks": 64 if rtl else 58, "sc": scope}
+    html = (
+        '<div class="%s">' % scope + '<img class="fz" style="top:0" src="%(fz)s"/><img class="wm" src="%(wm)s"/>'
         '<div class="hd"><div class="date"><div class="d"><span class="n">%(date)s</span></div><div class="w">%(wd)s</div></div>'
         '<img class="em" src="%(em)s"/><div class="nm"><div class="brand">CHOCO ZUMA</div><div class="kick">%(kick)s</div></div></div>'
         '<div class="title"><span class="bar"></span>%(title)s</div>'
         '<div class="tiles">%(tiles)s</div>'
-        '<img class="fz" style="bottom:0" src="%(fzb)s"/></div></body></html>'
-    ) % {"fonts": fonts, "css": css, "fz": _frieze(accent, shade), "fzb": _frieze(accent, shade, flip=True),
+        '<img class="fz" style="bottom:0" src="%(fzb)s"/></div>'
+    ) % {"fz": _frieze(accent, shade), "fzb": _frieze(accent, shade, flip=True),
          "wm": _emblem(code, accent, 620), "em": _emblem(code, accent, 124), "date": h(spec.get("date", "")),
          "wd": h(spec.get("weekday", "")), "kick": h(spec.get("kicker", "")),
-         "title": _ltr_numbers(spec.get("title", "")), "tiles": "".join(tiles)}
+         "title": _ltr_numbers(spec.get("title", ""), rtl), "tiles": "".join(tiles)}
+    return css, html
+
+
+def render(code, spec, font_base=None):
+    """Full HTML page of the card, for wkhtmltoimage (1600 x 836)."""
+    css, block = _block(code, spec)
+    return ('<!DOCTYPE html><html><head><meta charset="utf-8"/><style>%s'
+            'html,body{margin:0;padding:0;width:%dpx;height:%dpx;overflow:hidden;background:%s;}%s</style></head>'
+            '<body>%s</body></html>') % (_fonts(spec.get("lang") == "ar", font_base), W, H, BG, css, block)
+
+
+# ------------------------------------------------------------------ PDF cover (page 1)
+PAGE_W, PAGE_H = 794, 1121   # A4 at 96 dpi, no margins (paperformat_ceo_brief)
+COVER_TXT = {
+    "tr": {"hl": "ÖNE ÇIKANLAR", "more": "Ayrıntılı rapor sonraki sayfalarda", "auto": "Odoo verisinden otomatik hazırlanır",
+           "none": "Bugün öne çıkan bir konu yok."},
+    "ar": {"hl": "أبرز النقاط", "more": "التقرير المفصّل في الصفحات التالية", "auto": "يُعدّ تلقائياً من بيانات أودو",
+           "none": "لا توجد نقاط بارزة اليوم."},
+}
+
+
+def cover(code, spec, font_base="/cz_whatsapp_reports/static/src/fonts/", generated=""):
+    """A4 page 1 of every report PDF: the card on top (what WhatsApp shows as the file preview),
+    the day's highlights below, then a page break before the full report."""
+    accent, shade = THEMES.get(code, THEMES["ceo_daily"])
+    rtl = spec.get("lang") == "ar"
+    t = COVER_TXT["ar" if rtl else "tr"]
+    scope = "czp_" + code
+    css, block = _block(code, spec, "czc_" + code)
+    z = PAGE_W / float(W)
+    al = "right" if rtl else "left"
+    lines = [x for x in (spec.get("lines") or []) if x][:7]
+    rows = "".join(
+        '<tr><td class="ix"><div>%d</div></td><td class="tx">%s</td></tr>' % (i + 1, _ltr_numbers(x, rtl))
+        for i, x in enumerate(lines)) or '<tr><td class="tx" colspan="2">%s</td></tr>' % h(t["none"])
+    pcss = """
+    .czp{position:relative;width:%(PW)dpx;height:%(PH)dpx;overflow:hidden;background:#f7f1e6;page-break-after:always;
+         direction:%(dir)s;text-align:%(al)s;font-family:%(bf)s;color:#2a1b12;}
+    .czp,.czp *{-webkit-box-sizing:content-box;box-sizing:content-box;}
+    .czp .card{zoom:%(z).5f;}
+    .czp .low{position:absolute;top:%(top)dpx;left:0;width:%(PW)dpx;bottom:0;background:#f7f1e6;}
+    .czp .sec{margin:40px 48px 0 48px;font-family:%(sf)s;font-weight:bold;font-size:%(sfs)dpx;letter-spacing:%(ls)dpx;
+              color:%(dk)s;border-bottom:2px solid %(ac)s;padding-bottom:10px;}
+    .czp table.hl{margin:4px 48px 0 48px;width:698px;border-collapse:collapse;table-layout:fixed;}
+    .czp table.hl td{border:0 none;padding:15px 0 14px 0;border-bottom:1px solid #e3d6bd;vertical-align:top;}
+    .czp td.ix{width:46px;}
+    .czp td.ix div{width:28px;height:28px;line-height:28px;text-align:center;background:%(ac)s;color:#1c110a;
+                   font-family:'CZL',sans-serif;font-weight:bold;font-size:14px;}
+    .czp td.tx{font-size:%(fs)dpx;line-height:1.5;color:#2a1b12;width:652px;overflow:hidden;}
+    .czp .n{direction:ltr;unicode-bidi:embed;}
+    .czp .ft{position:absolute;bottom:40px;left:48px;right:48px;border-top:1px solid #d9c9a8;padding-top:10px;font-size:12px;color:#7a6652;}
+    .czp .ft .r{float:%(op)s;}
+    .czp .ft .l{float:%(al)s;color:%(dk)s;font-weight:bold;}
+    .czp .bz{position:absolute;bottom:0;left:0;width:%(PW)dpx;height:17px;}
+    """.replace(".czp", "." + scope) % {"PW": PAGE_W, "PH": PAGE_H, "dir": "rtl" if rtl else "ltr", "al": al, "op": "left" if rtl else "right",
+           "bf": "'CZA','CZL',sans-serif" if rtl else "'CZL',sans-serif", "z": z, "top": int(H * z),
+           "ac": accent, "dk": DARK.get(code, "#5f4b3a"), "fs": 18 if rtl else 16,
+           "sf": "'CZA',sans-serif" if rtl else "'CZL',sans-serif", "sfs": 18 if rtl else 13, "ls": 0 if rtl else 4}
+    return (
+        '<style>%(fonts)s%(css)s%(pcss)s</style>'
+        '<div class="%(scope)s"><div class="card">%(block)s</div>'
+        '<div class="low"><div class="sec">%(hl)s</div><table class="hl">%(rows)s</table></div>'
+        '<div class="ft"><span class="l">%(more)s &#8595;</span><span class="r">CHOCO ZUMA · %(auto)s%(gen)s</span></div>'
+        '<img class="bz" src="%(fz)s"/></div>'
+    ) % {"fonts": _fonts(rtl, font_base), "css": css, "pcss": pcss, "block": block, "scope": scope,
+         "hl": h(t["hl"]), "rows": rows, "more": h(t["more"]), "auto": h(t["auto"]),
+         "gen": (" · %s" % h(generated)) if generated else "", "fz": _frieze(accent, shade, flip=True)}

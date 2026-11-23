@@ -472,6 +472,78 @@ class CzWaReport(models.Model):
         return "\n".join(lines)
 
     def _payload(self, data=None):
+        """What one send needs; the PDF always opens with the cover page (card + highlights)."""
+        self.ensure_one()
+        if data is None:
+            data = self._data_for_send()
+        pay = self._payload_base(data)
+        try:
+            spec = dict(self._card_spec(data, pay), lines=self._cover_lines(data))
+            now = fields.Datetime.context_timestamp(self.with_context(tz="Europe/Istanbul"), fields.Datetime.now())
+            pay["html"] = card_render.cover(self.code, spec, generated=now.strftime("%d.%m.%Y %H:%M")) + pay["html"]
+        except Exception as err:  # a cover problem must never stop the report itself
+            _logger.warning("cz cover failed for %s: %s", self.code, err)
+        return pay
+
+    def _cover_lines(self, data):
+        """Up to six plain sentences for the cover's highlights, from the same data as the report."""
+        code = self.code
+        out = []
+        if code == "ceo_daily":
+            vm = self._ceo_brief_vm(data)
+            ar = {"kayasehir": "كاياشهير", "kayaşehir": "كاياشهير", "metrokent": "متروكنت"}
+            for b in vm["branches"]:
+                key = (b["name"] or "").replace("Choco Zuma", "").strip().casefold().replace("i̇", "i")
+                name = ar.get(key, (b["name"] or "").replace("Choco Zuma", "").strip())
+                m = ("، هامش %.0f%%" % b["margin"]) if b["margin"] is not None else ""
+                out.append("%s: %s ليرة من %d طلب%s" % (name, brief_render.money(b["net"]), b["orders"], m))
+            for a in vm["alerts"][:3]:
+                out.append(a["text"].format(**a["vals"]))
+            tops = {}
+            for b in vm["branches"]:
+                for name, _q, net, _m in b["top"]:
+                    tops[name] = tops.get(name, 0.0) + net
+            if tops:
+                out.append("الأكثر مبيعاً: %s" % " · ".join(sorted(tops, key=lambda k: -tops[k])[:3]))
+        elif code == "branch_daily":
+            for b in data["branches"]:
+                for a in b["actions"][:3]:
+                    out.append("%s — %s" % (b["short"], a["text"]))
+            if not out:
+                out = ["%s: net %s, %d sipariş" % (b["short"], branch_render.tl(b["net"]), b["orders"]) for b in data["branches"]]
+        elif code == "marketing":
+            stars = {}
+            for k in sorted(data["br"]):
+                b = data["br"][k]
+                pct = brief_render.pct_change(b["day"]["net"], b["avg4"][0])[0] if b["avg4"][2] else "-"
+                out.append("%s: %s TL net, %d sipariş, 4 hafta ortalamasına göre %s" % (
+                    b["name"], marketing_render.num(b["day"]["net"]), b["day"]["n"], pct.replace(brief_render.MINUS, "-")))
+                for name, _q, net in b["day"].get("top") or []:
+                    stars[name] = stars.get(name, 0.0) + net
+            if stars:
+                out.append("En çok satanlar: %s" % " · ".join(sorted(stars, key=lambda k: -stars[k])[:3]))
+        elif code == "kitchen_stock":
+            if data.get("orders"):
+                _now, produce, ship, _stock, expired = workcard_render._simple(data)
+                out += ["Üret: %s %s %s — %s (%s)" % (x["name"], x["qty"], x["uom"], x["who"], x["when"]) for x in produce[:4]]
+                out += ["Gönder: %s — %s (%s)" % (x["who"], "hazır" if not x["missing"] else "%d eksik" % x["missing"], x["when"])
+                        for x in ship[:2]]
+                if expired:
+                    out.append("Süresi dolan: %s" % ", ".join(r["name"] for r in expired[:3]))
+            else:
+                out.append(kitchen_render.summary(data))
+        elif code == "orders_daily":
+            for o in sorted(data["orders"], key=lambda o: -(o.get("untaxed") or 0))[:4]:
+                amt = (" — %s" % orders_render.tl(o["untaxed"])) if data["show_prices"] else ""
+                out.append("%s %s · %d kalem%s" % (o["name"], o["partner"], len(o["lines"]), amt))
+            late = sum(1 for o in data.get("open_orders") or [] if o["late"])
+            if late:
+                out.append("%d açık sipariş teslim tarihini geçti" % late)
+            if data.get("unusual"):
+                out.append("%d olağandışı miktar uyarısı" % len(data["unusual"]))
+        return out[:6]
+
+    def _payload_base(self, data=None):
         """What one send needs: business day text, totals for the template and the PDF html."""
         self.ensure_one()
         if self.code == "branch_daily":
@@ -1032,19 +1104,7 @@ class CzWaReport(models.Model):
     def _ceo_brief_html(self):
         """HTML body of the PDF brief (used by the QWeb report)."""
         self.ensure_one()
-        if self.code == "branch_daily":
-            return Markup(branch_render.render_html(self._branch_data()))
-        if self.code == "orders_daily":
-            return Markup(orders_render.render_html(self._orders_data()))
-        if self.code == "kitchen_stock":
-            snap = self._kitchen_snapshot()
-            return Markup(workcard_render.render_html(snap) if snap.get("orders") else kitchen_render.render_html(snap))
-        if self.code == "marketing":
-            return Markup(marketing_render.render_html(self._marketing_data()))
-        data = self._ceo_brief_data()
-        if not data["branches"]:
-            raise UserError(_("No closed POS session found."))
-        return Markup(brief_render.render_html(self._ceo_brief_vm(data)))
+        return Markup(self._payload(self._data_for_send())["html"])
 
     def action_preview(self):
         for report in self:
