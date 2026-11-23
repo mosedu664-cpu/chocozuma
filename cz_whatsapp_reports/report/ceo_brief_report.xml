@@ -76,6 +76,26 @@
         <field name="paperformat_id" ref="paperformat_ceo_brief"/>
     </record>
 
+    <record id="action_report_branch" model="ir.actions.report">
+        <field name="name">Şube Raporu</field>
+        <field name="model">cz.wa.report</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cz_whatsapp_reports.report_ceo_brief</field>
+        <field name="report_file">cz_whatsapp_reports.report_ceo_brief</field>
+        <field name="print_report_name">'ChocoZuma_Sube_Raporu'</field>
+        <field name="paperformat_id" ref="paperformat_ceo_brief"/>
+    </record>
+
+    <record id="action_report_branch_log" model="ir.actions.report">
+        <field name="name">Şube Raporu (WhatsApp)</field>
+        <field name="model">cz.wa.report.log</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cz_whatsapp_reports.report_ceo_brief_log</field>
+        <field name="report_file">cz_whatsapp_reports.report_ceo_brief_log</field>
+        <field name="print_report_name">'ChocoZuma_Sube_Raporu_%s' % (object.business_day or '').replace('/', '-')</field>
+        <field name="paperformat_id" ref="paperformat_ceo_brief"/>
+    </record>
+
     <record id="action_report_orders" model="ir.actions.report">
         <field name="name">Dünkü Siparişler</field>
         <field name="model">cz.wa.report</field>

@@ -43,7 +43,9 @@
                             <field name="name"/>
                             <field name="code"/>
                             <field name="report_day" invisible="code not in ('marketing', 'orders_daily')"/>
-                            <field name="send_hour" widget="float_time" invisible="code not in ('kitchen_stock', 'orders_daily')"/>
+                            <field name="send_hour" widget="float_time" invisible="code not in ('kitchen_stock', 'orders_daily', 'branch_daily')"/>
+                            <field name="targets_text" invisible="code != 'branch_daily'"/>
+                            <field name="ikram_cap_pct" invisible="code != 'branch_daily'"/>
                             <field name="warehouse_ids" widget="many2many_tags" invisible="code != 'orders_daily'"/>
                             <field name="show_prices" invisible="code != 'orders_daily'"/>
                             <field name="kitchen_only" invisible="code != 'orders_daily'"/>

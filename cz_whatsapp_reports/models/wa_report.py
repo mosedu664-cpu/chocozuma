@@ -10,7 +10,7 @@ from markupsafe import Markup
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
-from . import brief_render, kitchen_render, marketing_data, marketing_render, orders_render, workcard_render
+from . import branch_render, brief_render, kitchen_render, marketing_data, marketing_render, orders_render, workcard_render
 
 PAID = ("paid", "done", "invoiced")
 PLATFORM_RE = re.compile(r"trendyol|yemek|getir", re.I)
@@ -48,6 +48,11 @@ OR_BODY = (
     "Özet: {{2}}.\n"
     "Toplam {{3}} kalemin müşteri müşteri ayrıntısı ekteki PDF dosyasında."
 )
+BR_BODY = (
+    "Merhaba, Choco Zuma şube raporu hazır: {{1}}.\n"
+    "Net satış: {{2}}.\n"
+    "Bugün yapılacaklar: {{3}}. Ayrıntılar ekteki tek sayfada."
+)
 KS_BODY = (
     "Günaydın, mutfak için bugünün işi hazır: {{1}}.\n"
     "Bugün: {{2}}.\n"
@@ -64,7 +69,14 @@ class CzWaReport(models.Model):
     code = fields.Selection(
         [("ceo_daily", "CEO Daily Brief"), ("marketing", "Marketing Report (TR)"),
          ("kitchen_stock", "Mutfak & Depo Stok Raporu (TR)"),
-         ("orders_daily", "Dünkü Siparişler (TR)")], required=True, default="ceo_daily")
+         ("orders_daily", "Dünkü Siparişler (TR)"),
+         ("branch_daily", "Şube Raporu (TR)")], required=True, default="ceo_daily")
+    targets_text = fields.Char(
+        string="Monthly targets (TL)", default="6:4300000, 13:2200000",
+        help="Branch report: monthly net sales target per POS, as pos_config_id:amount separated by commas.")
+    ikram_cap_pct = fields.Float(
+        string="İkram cap (% of net, at cost)", default=2.5,
+        help="Branch report: daily ikram cost above this share of net sales is flagged (plan: 2.5 → 2.0 → 1.5 → 1.0).")
     warehouse_ids = fields.Many2many("stock.warehouse", string="Warehouses",
                                      help="Yesterday's orders report: sale orders of these warehouses.")
     show_prices = fields.Boolean("Show amounts", help="Yesterday's orders report: amounts and invoice status (accounting).")
@@ -405,6 +417,14 @@ class CzWaReport(models.Model):
     def _payload(self, data=None):
         """What one send needs: business day text, totals for the template and the PDF html."""
         self.ensure_one()
+        if self.code == "branch_daily":
+            bd = data or self._branch_data()
+            return {
+                "day": branch_render.day_txt(bd["day"]),
+                "net_text": branch_render.summary(bd),
+                "orders_text": branch_render.actions_count(bd),
+                "html": branch_render.render_html(bd),
+            }
         if self.code == "orders_daily":
             od = data or self._orders_data()
             return {
@@ -438,6 +458,202 @@ class CzWaReport(models.Model):
             "day": vm["date"], "net_text": brief_render.money(vm["net"]), "orders_text": str(vm["orders"]),
             "html": brief_render.render_html(vm),
         }
+
+    # ---------------------------------------------------------- branch report
+    def _branch_targets(self):
+        out = {}
+        for part in re.split(r"[,;\n]", self.targets_text or ""):
+            if ":" not in part:
+                continue
+            key, val = part.split(":", 1)
+            try:
+                out[int(key.strip())] = float(re.sub(r"[^\d.]", "", val) or 0)
+            except ValueError:
+                continue
+        return out
+
+    def _daily_net(self, config, start, end):
+        """{business day: net of paid orders} for one branch, days start..end inclusive."""
+        rows = self.env["pos.order"].search_read([
+            ("config_id", "=", config.id), ("state", "in", PAID),
+            ("create_date", ">=", self._utc(start)), ("create_date", "<", self._utc(end + timedelta(days=1))),
+        ], ["create_date", "amount_total", "amount_tax"])
+        out = {}
+        for r in rows:
+            d = self._business_day(r["create_date"])
+            out[d] = out.get(d, 0.0) + r["amount_total"] - r["amount_tax"]
+        return out
+
+    def _hour_counts(self, config, day):
+        """{local hour (+24 before 06:00): sales orders} (staff floor left out)."""
+        out = {}
+        for o in self._day_orders(config, day).filtered(lambda o: o.state in PAID and o.amount_total > 0):
+            if o.table_id and STAFF_RE.search(o.table_id.floor_id.name or ""):
+                continue
+            local = self._local(o.create_date)
+            hr = local.hour + (24 if local.hour < 6 else 0)
+            out[hr] = out.get(hr, 0) + 1
+        return out
+
+    def _branch_one(self, config, day, costs, targets):
+        st = self._session_stats(config, day, costs)
+        Line = self.env["pos.order.line"]
+        orders = self._day_orders(config, day)
+        paid = orders.filtered(lambda o: o.state in PAID)
+        has_code = "discount_reason_code" in Line._fields
+        has_reward = "is_reward_line" in Line._fields
+        has_combo = "combo_parent_id" in Line._fields
+        # discounts by reason, ikram at cost
+        reasons, no_reason = {}, []
+        order_cost, order_gross, ikram_disc = {}, {}, {}
+        ikram_items_cost = 0.0
+        for line in Line.search([("order_id", "in", paid.ids)]):
+            if has_reward and line.is_reward_line:
+                continue
+            code = (line.discount_reason_code or "") if has_code else ""
+            o = line.order_id
+            value = 0.0
+            if line.price_subtotal < 0 and line.qty > 0:  # discount product line
+                value = -line.price_subtotal
+            elif line.discount and line.price_subtotal > 0 and line.discount < 100:  # % discount on the line
+                value = line.price_subtotal / (1 - line.discount / 100.0) * line.discount / 100.0
+            elif line.discount >= 100 and line.qty > 0:  # 100% discount: value at the line's list price
+                value = abs(line.price_unit * line.qty) / 1.1
+            if value:
+                row = reasons.setdefault(code, [0.0, 0])
+                row[0] += value
+                row[1] += 1
+                if not code:
+                    no_reason.append((o.name or o.pos_reference or "", o.employee_id.name if "employee_id" in o._fields else "", value))
+                if code == "IKRAM":
+                    ikram_disc[o.id] = ikram_disc.get(o.id, 0.0) + value
+            c = (costs.get(line.product_id.id) or {}).get("cost")
+            if line.price_subtotal > 0 and c is not None:
+                order_cost[o.id] = order_cost.get(o.id, 0.0) + c * line.qty
+                order_gross[o.id] = order_gross.get(o.id, 0.0) + line.price_subtotal / (1 - min(line.discount, 99.0) / 100.0)
+            elif not line.price_subtotal and line.qty > 0 and c is not None and not (has_combo and line.combo_parent_id):
+                name = (line.product_id.name or "").lower()
+                cats = " ".join(line.product_id.pos_categ_ids.mapped("name")).lower() if "pos_categ_ids" in line.product_id._fields else ""
+                if "ikram" in name or "complimentary" in name or "ikram" in cats:
+                    ikram_items_cost += c * line.qty
+        ratio = (sum(order_cost.values()) / sum(order_gross.values())) if sum(order_gross.values()) else 0.3
+        ikram_cost = ikram_items_cost + sum(
+            v * ((order_cost.get(oid, 0.0) / order_gross[oid]) if order_gross.get(oid) else ratio) for oid, v in ikram_disc.items())
+        # open orders left at closing, cancels without a reason
+        drafts = orders.filtered(lambda o: o.state == "draft" and o.amount_total > 0)
+        has_reason = "cancel_reason_code" in orders._fields
+        cancels_nr = orders.filtered(lambda o: o.state == "cancel" and has_reason and not o.cancel_reason_code)
+        # target and month pace
+        month_start = day.replace(day=1)
+        month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        hist = self._daily_net(config, min(day - timedelta(days=56), month_start), day)
+        wd = {}
+        for d, v in hist.items():
+            if day - timedelta(days=56) <= d < day and v > 0:
+                wd.setdefault(d.weekday(), []).append(v)
+        avg_wd = {k: sum(v) / len(v) for k, v in wd.items()}
+        month_days = [month_start + timedelta(days=i) for i in range((month_end - month_start).days + 1)]
+        T = targets.get(config.id) or 0.0
+        denom = sum(avg_wd.get(d.weekday(), 0.0) for d in month_days)
+
+        def tday(d):
+            return T * avg_wd.get(d.weekday(), 0.0) / denom if (T and denom) else 0.0
+
+        mtd = sum(v for d, v in hist.items() if month_start <= d <= day)
+        mtd_target = sum(tday(d) for d in month_days if d <= day)
+        left = [d for d in month_days if d > day]
+        last28 = [hist.get(day - timedelta(days=i), 0.0) for i in range(28)]
+        same = [hist[day - timedelta(days=7 * k)] for k in range(1, 5) if hist.get(day - timedelta(days=7 * k))]
+        # load by hour against the same weekday of the last 4 weeks
+        hours_now = self._hour_counts(config, day)
+        base = {}
+        for k in range(1, 5):
+            for hr, n in self._hour_counts(config, day - timedelta(days=7 * k)).items():
+                base[hr] = base.get(hr, 0) + n / 4.0
+        span = sorted(set(hours_now) | {hr for hr, v in base.items() if v >= 0.5})
+        hours = [(hr, hours_now.get(hr, 0), base.get(hr, 0.0)) for hr in range(span[0], span[-1] + 1)] if span else []
+        net = st["net"]
+        sales_net = st.get("sales_net") or 0.0
+        name = (config.name or "").replace("Choco Zuma", "").strip()
+        b = {
+            "name": config.name, "short": (name[:1].upper() + name[1:]) if name else config.name,
+            "net": net, "orders": st["orders"], "basket": (sales_net / max(1, st["orders"] - st["staff_orders"])) if st["orders"] else 0.0,
+            "sales_net": sales_net,
+            "lw": hist.get(day - timedelta(days=7), 0.0), "avg4": (sum(same) / len(same)) if same else 0.0,
+            "target_day": tday(day), "target_pct": (net / tday(day) * 100.0) if tday(day) else None,
+            "next_target": tday(day + timedelta(days=1)),
+            "month_target": T, "mtd": mtd, "mtd_days": (day - month_start).days + 1,
+            "mtd_pct": (mtd / T * 100.0) if T else 0.0, "mtd_expected_pct": (mtd_target / T * 100.0) if T else 0.0,
+            "days_left": len(left), "need_per_day": ((T - mtd) / len(left)) if (T and left) else 0.0,
+            "avg_daily": sum(last28) / 28.0,
+            "discounts": sorted(((k, v[0], v[1]) for k, v in reasons.items()), key=lambda r: -r[1]),
+            "discount_total": sum(v[0] for v in reasons.values()),
+            "no_reason": sorted(no_reason, key=lambda r: -r[2]),
+            "ikram_cost": ikram_cost, "ikram_cap_pct": self.ikram_cap_pct or 0.0,
+            "ikram_cap": (self.ikram_cap_pct or 0.0) / 100.0 * max(net, 0.0),
+            "staff_orders": st["staff_orders"], "staff_value": st["staff_value"],
+            "cancel_n": st["cancel_n"], "cancel_value": st["cancel_value"], "cancel_no_reason": st["cancel_no_reason"],
+            "cancels_nr": [(o.name or o.pos_reference or "/", o.employee_id.name if "employee_id" in o._fields else "", o.amount_total)
+                           for o in cancels_nr.sorted(lambda o: -o.amount_total)],
+            "open_n": len(drafts), "open_value": sum(drafts.mapped("amount_total")),
+            "channels": [(k, v[0], v[1]) for k, v in st["channels"]],
+            "hours": hours, "top": st["top"],
+        }
+        b["discount_pct"] = (b["discount_total"] / net * 100.0) if net else 0.0
+        b["actions"] = self._branch_actions(b)
+        return b
+
+    @staticmethod
+    def _branch_actions(b):
+        """Red items only, the largest TL impact first (at most 5)."""
+        acts = []
+        if b["target_pct"] is not None and b["target_pct"] < 85:
+            acts.append((b["target_day"] - b["net"], "Satış günlük hedefin %%%.0f'inde kaldı (eksik %s). Bugünün hedefi %s." % (
+                b["target_pct"], branch_render.tl(b["target_day"] - b["net"]), branch_render.tl(b["next_target"]))))
+        nr = sum(v for _o, _e, v in b["no_reason"])
+        if nr:
+            who = ", ".join(sorted({e for _o, e, _v in b["no_reason"] if e})) or "kasiyer bilinmiyor"
+            acts.append((nr, "Sebepsiz indirim %s (%d satır; %s): sebebi girilsin, kasiyerle konuşulsun." % (
+                branch_render.tl(nr), len(b["no_reason"]), who)))
+        if b["ikram_cost"] > b["ikram_cap"] and b["ikram_cost"] > 0:
+            acts.append((b["ikram_cost"] - b["ikram_cap"], "İkram sınırı aşıldı: %s (sınır %s). Bugün ikram onayla verilsin." % (
+                branch_render.tl(b["ikram_cost"]), branch_render.tl(b["ikram_cap"]))))
+        if b["cancel_no_reason"]:
+            val = sum(v for _o, _e, v in b["cancels_nr"])
+            who = ", ".join(sorted({e for _o, e, _v in b["cancels_nr"] if e})) or "kasiyer bilinmiyor"
+            acts.append((val, "%d iptalin sebebi girilmemiş (%s; %s)." % (b["cancel_no_reason"], branch_render.tl(val), who)))
+        if b["open_n"]:
+            acts.append((b["open_value"], "Kapanışta %d sipariş açık kaldı (%s): ödendiyse kapatılsın, değilse sebepli iptal edilsin." % (
+                b["open_n"], branch_render.tl(b["open_value"]))))
+        busy = [hr for hr, v, avg in b["hours"] if avg >= 3 and v > avg * 1.3]
+        if busy:
+            acts.append((0.0, "Yoğun saat: %s normalin %%130 üstündeydi — bugün o saatlere kadro planlansın." % (
+                ", ".join("%02d:00" % (hr % 24) for hr in busy[:3]))))
+        if b["need_per_day"] and b["avg_daily"] and b["need_per_day"] > b["avg_daily"] * 1.15:
+            acts.append((0.0, "Ay hedefi için kalan günlerde günde %s gerekiyor (son 4 hafta ort. %s)." % (
+                branch_render.tl(b["need_per_day"]), branch_render.tl(b["avg_daily"]))))
+        acts.sort(key=lambda a: -a[0])
+        return [{"value": v, "text": t} for v, t in acts[:5]]
+
+    def _branch_data(self, day=None):
+        self.ensure_one()
+        companies = self.env["res.company"].sudo().search([])
+        self = self.sudo().with_context(allowed_company_ids=companies.ids)
+        if not self.config_ids:
+            raise UserError(_("Choose the POS branches on the report."))
+        day = day or self.report_day or self._orders_day()
+        costs = self.env["cz.real.cost"].compute(days=self.cost_days or 90)
+        targets = self._branch_targets()
+        return {"day": day, "branches": [self._branch_one(c, day, costs, targets) for c in self.config_ids.sorted("id")]}
+
+    def get_branch_data(self, day=None):
+        """JSON of the branch report (cross-check from the browser)."""
+        self.ensure_one()
+        if not self.env.user.has_group("base.group_system"):
+            raise UserError(_("Only administrators."))
+        data = self._branch_data(fields.Date.to_date(day) if day else None)
+        data["day"] = data["day"].isoformat()
+        return data
 
     # ---------------------------------------------------- yesterday's orders
     def _orders_day(self, local_now=None):
@@ -756,6 +972,8 @@ class CzWaReport(models.Model):
     def _ceo_brief_html(self):
         """HTML body of the PDF brief (used by the QWeb report)."""
         self.ensure_one()
+        if self.code == "branch_daily":
+            return Markup(branch_render.render_html(self._branch_data()))
         if self.code == "orders_daily":
             return Markup(orders_render.render_html(self._orders_data()))
         if self.code == "kitchen_stock":
@@ -772,6 +990,11 @@ class CzWaReport(models.Model):
         for report in self:
             log = self.env["cz.wa.report.log"].create({"report_id": report.id, "state": "preview"})
             try:
+                if report.code == "branch_daily":
+                    report.write({"preview_text": branch_render.render_text(report._branch_data()),
+                                  "preview_date": fields.Datetime.now()})
+                    log.write({"note": "ok"})
+                    continue
                 if report.code == "orders_daily":
                     report.write({"preview_text": orders_render.render_text(report._orders_data()),
                                   "preview_date": fields.Datetime.now()})
@@ -825,6 +1048,8 @@ class CzWaReport(models.Model):
                           ("18.11.2026", "199.788", "217")),
             "kitchen_stock": ("CZ Kitchen Stock Report", "cz_kitchen_stock_daily", "tr", "action_report_kitchen_log", KS_BODY,
                               ("21.11.2026", "8 ürün üretilecek, 3 sipariş gönderilecek", "37")),
+            "branch_daily": ("CZ Branch Daily", "cz_branch_daily", "tr", "action_report_branch_log", BR_BODY,
+                             ("22.11.2026", "Kayaşehir 142.820 TL (hedef %97) · Metrokent 76.025 TL (hedef %103)", "3 madde")),
             "orders_daily": ("CZ Orders Daily", "cz_orders_daily", "tr", "action_report_orders_log", OR_BODY,
                              ("20.11.2026", "11 sipariş, 4 müşteri, toplam 61.240 TL (KDV hariç)", "96")),
         }[self.code]
@@ -933,6 +1158,8 @@ class CzWaReport(models.Model):
             data = self._kitchen_snapshot()
         elif self.code == "orders_daily":
             data = self._orders_data()
+        elif self.code == "branch_daily":
+            data = self._branch_data()
         else:
             data = self._marketing_data() if self.code == "marketing" else self._ceo_brief_data()
         logs = self._send_brief(data)
@@ -954,7 +1181,7 @@ class CzWaReport(models.Model):
         fresh_since = now - timedelta(hours=10)
         local_now = fields.Datetime.context_timestamp(self.with_context(tz="Europe/Istanbul"), now)
         local_hour = local_now.hour
-        for report in self.search([("code", "in", ("kitchen_stock", "orders_daily")), ("wa_template_id.status", "=", "approved")]):
+        for report in self.search([("code", "in", ("kitchen_stock", "orders_daily", "branch_daily")), ("wa_template_id.status", "=", "approved")]):
             try:
                 if local_now.hour + local_now.minute / 60.0 < (report.send_hour or 0):
                     continue
@@ -965,6 +1192,8 @@ class CzWaReport(models.Model):
                     continue
                 if report.code == "kitchen_stock":
                     report._send_brief(report._kitchen_snapshot())
+                elif report.code == "branch_daily":
+                    report._send_brief(report._branch_data(day))
                 else:
                     report._send_brief(report._orders_data(day))
                 self.env.cr.commit()
@@ -1009,7 +1238,7 @@ class CzWaReport(models.Model):
     def action_print_pdf(self):
         self.ensure_one()
         ref = {"marketing": "action_report_marketing", "kitchen_stock": "action_report_kitchen",
-               "orders_daily": "action_report_orders"}.get(self.code, "action_report_ceo_brief")
+               "orders_daily": "action_report_orders", "branch_daily": "action_report_branch"}.get(self.code, "action_report_ceo_brief")
         return self.env.ref("cz_whatsapp_reports.%s" % ref).report_action(self)
 
 

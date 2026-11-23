@@ -16,4 +16,12 @@
         <field name="sequence">30</field>
         <field name="phone_numbers">+905444436338, +905458682649, +905357730567</field>
     </record>
+    <record id="report_branch_daily" model="cz.wa.report">
+        <field name="name">Şube Raporu (Kayaşehir + Metrokent)</field>
+        <field name="code">branch_daily</field>
+        <field name="sequence">15</field>
+        <field name="send_hour">16.0</field>
+        <field name="phone_numbers">+905333760295</field>
+        <field name="config_ids" eval="[(6, 0, [6, 13])]"/>
+    </record>
 </odoo>
