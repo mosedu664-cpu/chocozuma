@@ -164,7 +164,7 @@ def render(code, spec, font_base=None):
     .nm{float:%(al)s;margin-%(al)s:28px;margin-top:2px;}
     .brand{font-family:'CZL',sans-serif;font-weight:bold;letter-spacing:10px;font-size:26px;color:%(ac)s;}
     .kick{font-family:'CZM','CZA',sans-serif;font-weight:bold;font-size:%(ks)dpx;line-height:1.05;color:#f7f1e6;margin-top:6px;white-space:nowrap;}
-    .date{float:%(op)s;text-align:%(op)s;}
+    .date{float:%(op)s;text-align:%(op)s;margin-top:24px;%(dm)s}
     .date .d{font-family:'CZM','CZA',sans-serif;font-weight:bold;font-size:60px;line-height:1;color:%(ac)s;}
     .date .w{font-size:34px;color:#cdbfa8;margin-top:8px;}
     .title{position:absolute;top:228px;%(al)s:60px;%(op)s:60px;font-family:'CZM','CZA',sans-serif;font-weight:bold;
@@ -178,7 +178,7 @@ def render(code, spec, font_base=None):
         padding:42px 34px 0 34px;height:136px;white-space:nowrap;}
     .ts{font-size:38px;padding:34px 34px 0 34px;white-space:nowrap;overflow:hidden;}
     """ % {"W": W, "H": H, "bg": BG, "bf": body_font, "dir": "rtl" if rtl else "ltr", "al": al, "op": op,
-           "ac": accent, "sh": shade, "TW": W - 120, "ks": 64 if rtl else 58}
+           "ac": accent, "sh": shade, "TW": W - 120, "dm": "" if rtl else "margin-right:60px;", "ks": 64 if rtl else 58}
     return (
         '<!DOCTYPE html><html><head><meta charset="utf-8"/><style>%(fonts)s%(css)s</style></head><body>'
         '<div class="c"><img class="fz" style="top:0" src="%(fz)s"/><img class="wm" src="%(wm)s"/>'
