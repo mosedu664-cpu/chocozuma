@@ -61,6 +61,7 @@
                             <field name="wa_template_status"/>
                             <field name="card_template_id"/>
                             <field name="card_template_status"/>
+                            <field name="card_live"/>
                         </group>
                     </group>
                     <group string="Thresholds" invisible="code != 'ceo_daily'">

@@ -153,6 +153,9 @@ class CzWaReport(models.Model):
         "whatsapp.template", string="Card template", readonly=True, copy=False,
         help="Picture header + button to the full PDF. Used instead of the document template once Meta approves it.")
     card_template_status = fields.Selection(related="card_template_id.status", string="Card template status")
+    card_live = fields.Boolean(
+        "Send as card", copy=False,
+        help="Switch every send to the card template. Turned on after a test send to the owner's number.")
     preview_text = fields.Text(readonly=True)
     preview_date = fields.Datetime(readonly=True)
     log_ids = fields.One2many("cz.wa.report.log", "report_id")
@@ -1159,7 +1162,8 @@ class CzWaReport(models.Model):
             d = datetime.strptime(vm["date"], "%d/%m/%Y")
             head = {1: "يوم صاعد", -1: "يوم أهدأ من سابقه", 0: "يوم مستقر"}[vm["dir"]]
             n_al = len(vm["alerts"])
-            head += (" · %d تنبيه للمتابعة" % n_al) if n_al else " · بلا تنبيهات"
+            head += " · " + ({0: "بلا تنبيهات", 1: "تنبيه واحد للمتابعة", 2: "تنبيهان للمتابعة"}.get(n_al)
+                             or ("%d تنبيهات للمتابعة" % n_al if n_al <= 10 else "%d تنبيهاً للمتابعة" % n_al))
             return {"lang": "ar", "kicker": "موجز المدير", "title": head, "date": vm["date"], "weekday": AR_WD[d.weekday()],
                     "kpis": [("صافي المجموعة", brief_render.money(vm["net"]), "%d طلب · ليرة" % vm["orders"], ""),
                              ("عن اليوم السابق", vm["pct"].replace(brief_render.MINUS, "-"), "مقابل %s" % brief_render.money(prev),
@@ -1262,6 +1266,18 @@ class CzWaReport(models.Model):
             return self._branch_data()
         return self._marketing_data() if self.code == "marketing" else self._ceo_brief_data()
 
+    def card_test_send(self, number="+905444436338"):
+        """Send this report's card once, to one number only (owner test before switching on)."""
+        self.ensure_one()
+        if not self.env.user.has_group("base.group_system"):
+            raise UserError(_("Only administrators."))
+        if self.card_template_id.status != "approved":
+            raise UserError(_("The card template is not approved yet."))
+        logs = self._send_brief(self._data_for_send(), numbers=[number], card_test=True)
+        for log in logs:  # a test must not count as the day's send
+            log.write({"state": "preview" if log.state == "sent" else log.state, "note": "CARD TEST · %s" % (log.note or "")})
+        return [(l.id, l.state, l.note) for l in logs]
+
     def get_card_preview(self):
         """Base64 JPEG of today's card (admin check from the browser)."""
         self.ensure_one()
@@ -1338,16 +1354,18 @@ class CzWaReport(models.Model):
                 out.append((partner_id, number))
         return out
 
-    def _send_brief(self, data):
-        """One log per recipient, then one WhatsApp template message per log."""
+    def _send_brief(self, data, numbers=None, card_test=False):
+        """One log per recipient, then one WhatsApp template message per log.
+        numbers: send only to these numbers (test); card_test: use the card template before it is switched on."""
         self.ensure_one()
-        card = self.card_template_id if self.card_template_id.status == "approved" else False
+        use_card = (self.card_live or card_test) and self.card_template_id.status == "approved"
+        card = self.card_template_id if use_card else False
         template = card or self.wa_template_id
         if not template:
             raise UserError(_("Create the WhatsApp template first."))
         if template.status != "approved":
             raise UserError(_("The WhatsApp template is not approved by Meta yet (status: %s).", template.status))
-        recipients = self._recipient_numbers()
+        recipients = [(False, n) for n in numbers] if numbers else self._recipient_numbers()
         if not recipients:
             raise UserError(_("No WhatsApp number on the report."))
         pay = self._payload(data)
