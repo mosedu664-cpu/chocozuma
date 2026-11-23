@@ -1385,8 +1385,18 @@ class CzWaReport(models.Model):
             attachment = self._card_attachment(data, pay)
             logs.write({"card_attachment_id": attachment.id})
             vals["attachment_id"] = attachment.id
-        composer = self.env["whatsapp.composer"].with_context(active_model=Log._name, active_ids=logs.ids).create(vals)
-        composer._send_whatsapp_template(force_send_by_cron=False)
+        if card:
+            # the button URL is a composer free text in Odoo, not a record field: one composer per recipient,
+            # each with its own secret link
+            base = self.env["ir.config_parameter"].sudo().get_param("web.base.url").rstrip("/")
+            for log in logs:
+                composer = self.env["whatsapp.composer"].with_context(active_model=Log._name, active_ids=log.ids).create(
+                    dict(vals, res_ids=str(log.ids)))
+                composer.button_dynamic_url_1 = "%s/cz/r/%s" % (base, log.access_token)
+                composer._send_whatsapp_template(force_send_by_cron=False)
+        else:
+            composer = self.env["whatsapp.composer"].with_context(active_model=Log._name, active_ids=logs.ids).create(vals)
+            composer._send_whatsapp_template(force_send_by_cron=False)
         messages = self.env["whatsapp.message"].sudo().search([
             ("mail_message_id.model", "=", Log._name), ("mail_message_id.res_id", "in", logs.ids),
         ])
