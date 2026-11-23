@@ -68,37 +68,40 @@ KS_BODY = (
 )
 
 # ---- image-card templates (v2): picture header + button to the full PDF
+# Meta classed the first (emoji, "creative") card texts as MARKETING (per-user caps, error 131049).
+# v2: plain, factual account-update wording so they stay UTILITY. Bold title only, no emoji, no greeting.
 CARD_BODY = {
     "ceo_daily": (
-        "☕ *موجز شوكو زوما — {{1}}*\n\n"
-        "صافي المجموعة *{{2}} ليرة* من {{3}} طلب.\n"
-        "الفروع، الهامش الحقيقي والتنبيهات كلها في التقرير الكامل — من الزر في الأسفل."),
+        "*الموجز اليومي — {{1}}*\n"
+        "صافي مبيعات المجموعة: {{2}} ليرة، عدد الطلبات: {{3}}.\n"
+        "التقرير الكامل متاح من الزر أدناه."),
     "branch_daily": (
-        "🏪 *Şube Raporu — {{1}}*\n\n"
-        "Dün: {{2}}.\n"
-        "Bugün yapılacaklar: *{{3}}*.\n"
-        "Her şubenin tek sayfası aşağıdaki butonda. Kolay gelsin!"),
+        "*Şube raporu — {{1}}*\n"
+        "Net satış: {{2}}.\n"
+        "Yapılacak işler: {{3}}.\n"
+        "Tam rapor aşağıdaki butondadır."),
     "marketing": (
-        "📣 *Pazarlama Nabzı — {{1}}*\n\n"
-        "Kayaşehir + Metrokent: *{{2}} TL* net, {{3}} sipariş.\n"
-        "Günlük, haftalık ve aylık tablo; ürün ve müşteri hareketi butonda."),
+        "*Satış raporu — {{1}}*\n"
+        "İki şube net satış: {{2}} TL, {{3}} sipariş.\n"
+        "Tam rapor aşağıdaki butondadır."),
     "kitchen_stock": (
-        "👨‍🍳 *Günaydın mutfak! İş kartı — {{1}}*\n\n"
+        "*Mutfak iş kartı — {{1}}*\n"
         "Bugün: {{2}}.\n"
-        "Hazır stokta {{3}} ürün var. Ne üretilecek, kime gidecek: hepsi butonda, tek sayfa."),
+        "Hazır stok: {{3}} ürün.\n"
+        "Tam iş kartı aşağıdaki butondadır."),
     "orders_daily": (
-        "📦 *Dünkü Siparişler — {{1}}*\n\n"
+        "*Dünkü siparişler — {{1}}*\n"
         "Özet: {{2}}.\n"
-        "Toplam {{3}} kalemin müşteri müşteri ayrıntısı butonda."),
+        "{{3}} kalemin ayrıntısı aşağıdaki butondadır."),
 }
 CARD_TEMPLATES = {  # code: (name, template_name, lang, button text, demo values)
-    "ceo_daily": ("CZ CEO Brief Card", "cz_ceo_card", "ar", "افتح التقرير الكامل", ("22/11/2026", "218,846", "236")),
-    "branch_daily": ("CZ Branch Card", "cz_branch_card", "tr", "Tam raporu aç",
+    "ceo_daily": ("CZ CEO Brief Card v2", "cz_ceo_card_v2", "ar", "فتح التقرير", ("22/11/2026", "218,846", "236")),
+    "branch_daily": ("CZ Branch Card v2", "cz_branch_card_v2", "tr", "Raporu aç",
                      ("22.11.2026", "Kayaşehir 142.820 TL (hedef %86) · Metrokent 76.025 TL (hedef %96)", "2 madde")),
-    "marketing": ("CZ Marketing Card", "cz_marketing_card", "tr", "Tam raporu aç", ("22.11.2026", "217.882", "223")),
-    "kitchen_stock": ("CZ Kitchen Card", "cz_kitchen_card", "tr", "İş kartını aç",
+    "marketing": ("CZ Sales Card v2", "cz_sales_card_v2", "tr", "Raporu aç", ("22.11.2026", "217.882", "223")),
+    "kitchen_stock": ("CZ Kitchen Card v2", "cz_kitchen_card_v2", "tr", "İş kartını aç",
                       ("23.11.2026", "20 ürün üretilecek, 5 sipariş gönderilecek", "37")),
-    "orders_daily": ("CZ Orders Card", "cz_orders_card", "tr", "Ayrıntıyı aç",
+    "orders_daily": ("CZ Orders Card v2", "cz_orders_card_v2", "tr", "Raporu aç",
                      ("22.11.2026", "dün 8 yeni sipariş, 2 müşteri", "96")),
 }
 LOG_REPORT = {"ceo_daily": "action_report_ceo_brief_log", "marketing": "action_report_marketing_log",
@@ -1203,7 +1206,7 @@ class CzWaReport(models.Model):
             head = {1: "Ortalamanın üstünde bir gün", -1: "Ortalamanın altında bir gün", 0: "Ortalama bir gün"}[direction]
             if stars:
                 head += " · yıldız: %s" % max(stars, key=stars.get)
-            return {"lang": "tr", "kicker": "Pazarlama Nabzı", "title": head, "date": tr_date, "weekday": wd, "kpis": kpis}
+            return {"lang": "tr", "kicker": "Satış Nabzı", "title": head, "date": tr_date, "weekday": wd, "kpis": kpis}
         if code == "kitchen_stock":
             if data.get("orders"):
                 _now, produce, ship, _stock, expired = workcard_render._simple(data)
@@ -1290,8 +1293,9 @@ class CzWaReport(models.Model):
     def action_create_card_template(self):
         """Picture-header template with a button to the full PDF (draft; submit it to Meta from the template)."""
         self.ensure_one()
-        if self.card_template_id:
+        if self.card_template_id and self.card_template_id.template_name == CARD_TEMPLATES[self.code][1]:
             raise UserError(_("The card template already exists."))
+        self.card_live = False  # a new template starts with tests to the owner again
         account = self.env["whatsapp.account"].search([], limit=1)
         if not account:
             raise UserError(_("No WhatsApp account is configured."))

@@ -25,8 +25,7 @@
                     <button name="action_print_pdf" type="object" string="PDF"/>
                     <button name="action_create_wa_template" type="object" string="Create WhatsApp template"
                             invisible="wa_template_id"/>
-                    <button name="action_create_card_template" type="object" string="Create card template"
-                            invisible="card_template_id"/>
+                    <button name="action_create_card_template" type="object" string="Create card template"/>
                     <button name="action_send_now" type="object" string="Send now"
                             invisible="wa_template_status != 'approved'"
                             confirm="Send the brief by WhatsApp to all numbers on this report now?"/>
