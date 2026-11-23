@@ -1384,6 +1384,11 @@ class CzWaReport(models.Model):
         if card:
             attachment = self._card_attachment(data, pay)
             logs.write({"card_attachment_id": attachment.id})
+            try:  # all recipients of one send see the same PDF: render it once now, the button opens it instantly
+                logs[0]._cached_pdf()
+                logs[1:].write({"pdf_attachment_id": logs[0].pdf_attachment_id.id})
+            except Exception as err:
+                _logger.warning("cz card: PDF pre-render failed, it will render on first open: %s", err)
             vals["attachment_id"] = attachment.id
         if card:
             # the button URL is a composer free text in Odoo, not a record field: one composer per recipient,
@@ -1527,6 +1532,22 @@ class CzWaReportLog(models.Model):
     access_token = fields.Char(copy=False, index=True, default=lambda self: uuid.uuid4().hex,
                                help="Secret part of the link behind the WhatsApp button (/cz/r/<token>).")
     card_attachment_id = fields.Many2one("ir.attachment", string="Card image", copy=False)
+    pdf_attachment_id = fields.Many2one("ir.attachment", string="PDF (cached)", copy=False,
+                                        help="Rendered once when sent, so the WhatsApp button opens instantly.")
+
+    def _cached_pdf(self):
+        """PDF bytes of this send: rendered once, then served from the attachment."""
+        self.ensure_one()
+        if self.pdf_attachment_id:
+            return self.pdf_attachment_id.raw
+        ref = "cz_whatsapp_reports.%s" % LOG_REPORT.get(self.report_id.code, "action_report_ceo_brief_log")
+        pdf, _ = self.env["ir.actions.report"].sudo()._render_qweb_pdf(ref, [self.id])
+        att = self.env["ir.attachment"].sudo().create({
+            "name": "%s-%s.pdf" % (self.report_id.code, re.sub(r"\W", "-", self.business_day or "")),
+            "raw": pdf, "mimetype": "application/pdf", "res_model": self._name, "res_id": self.id,
+        })
+        self.sudo().pdf_attachment_id = att.id
+        return pdf
 
 
 class ReportCeoBriefLog(models.AbstractModel):
