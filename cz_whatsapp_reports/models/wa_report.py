@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
+import base64
+import logging
+import os
 import re
+import subprocess
+import tempfile
+import uuid
 from collections import defaultdict
 from datetime import datetime, time, timedelta
 
@@ -10,7 +16,9 @@ from markupsafe import Markup
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
-from . import branch_render, brief_render, kitchen_render, marketing_data, marketing_render, orders_render, workcard_render
+from . import branch_render, brief_render, card_render, kitchen_render, marketing_data, marketing_render, orders_render, workcard_render
+
+_logger = logging.getLogger(__name__)
 
 PAID = ("paid", "done", "invoiced")
 PLATFORM_RE = re.compile(r"trendyol|yemek|getir", re.I)
@@ -59,6 +67,45 @@ KS_BODY = (
     "Üretilecekler, gönderilecekler ve {{3}} hazır ürünün mutfak ve depo stoğu ekteki tek sayfada."
 )
 
+# ---- image-card templates (v2): picture header + button to the full PDF
+CARD_BODY = {
+    "ceo_daily": (
+        "☕ *موجز شوكو زوما — {{1}}*\n\n"
+        "صافي المجموعة *{{2}} ليرة* من {{3}} طلب.\n"
+        "الفروع، الهامش الحقيقي والتنبيهات كلها في التقرير الكامل — من الزر في الأسفل."),
+    "branch_daily": (
+        "🏪 *Şube Raporu — {{1}}*\n\n"
+        "Dün: {{2}}.\n"
+        "Bugün yapılacaklar: *{{3}}*.\n"
+        "Her şubenin tek sayfası aşağıdaki butonda. Kolay gelsin!"),
+    "marketing": (
+        "📣 *Pazarlama Nabzı — {{1}}*\n\n"
+        "Kayaşehir + Metrokent: *{{2}} TL* net, {{3}} sipariş.\n"
+        "Günlük, haftalık ve aylık tablo; ürün ve müşteri hareketi butonda."),
+    "kitchen_stock": (
+        "👨‍🍳 *Günaydın mutfak! İş kartı — {{1}}*\n\n"
+        "Bugün: {{2}}.\n"
+        "Hazır stokta {{3}} ürün var. Ne üretilecek, kime gidecek: hepsi butonda, tek sayfa."),
+    "orders_daily": (
+        "📦 *Dünkü Siparişler — {{1}}*\n\n"
+        "Özet: {{2}}.\n"
+        "Toplam {{3}} kalemin müşteri müşteri ayrıntısı butonda."),
+}
+CARD_TEMPLATES = {  # code: (name, template_name, lang, button text, demo values)
+    "ceo_daily": ("CZ CEO Brief Card", "cz_ceo_card", "ar", "افتح التقرير الكامل", ("22/11/2026", "218,846", "236")),
+    "branch_daily": ("CZ Branch Card", "cz_branch_card", "tr", "Tam raporu aç",
+                     ("22.11.2026", "Kayaşehir 142.820 TL (hedef %86) · Metrokent 76.025 TL (hedef %96)", "2 madde")),
+    "marketing": ("CZ Marketing Card", "cz_marketing_card", "tr", "Tam raporu aç", ("22.11.2026", "217.882", "223")),
+    "kitchen_stock": ("CZ Kitchen Card", "cz_kitchen_card", "tr", "İş kartını aç",
+                      ("23.11.2026", "20 ürün üretilecek, 5 sipariş gönderilecek", "37")),
+    "orders_daily": ("CZ Orders Card", "cz_orders_card", "tr", "Ayrıntıyı aç",
+                     ("22.11.2026", "dün 8 yeni sipariş, 2 müşteri", "96")),
+}
+LOG_REPORT = {"ceo_daily": "action_report_ceo_brief_log", "marketing": "action_report_marketing_log",
+              "kitchen_stock": "action_report_kitchen_log", "orders_daily": "action_report_orders_log",
+              "branch_daily": "action_report_branch_log"}
+AR_WD = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"]
+
 
 class CzWaReport(models.Model):
     _name = "cz.wa.report"
@@ -102,6 +149,10 @@ class CzWaReport(models.Model):
         help="International format, separated by commas. Added to the mobiles of the recipients.")
     wa_template_id = fields.Many2one("whatsapp.template", string="WhatsApp template", readonly=True, copy=False)
     wa_template_status = fields.Selection(related="wa_template_id.status", string="Template status")
+    card_template_id = fields.Many2one(
+        "whatsapp.template", string="Card template", readonly=True, copy=False,
+        help="Picture header + button to the full PDF. Used instead of the document template once Meta approves it.")
+    card_template_status = fields.Selection(related="card_template_id.status", string="Card template status")
     preview_text = fields.Text(readonly=True)
     preview_date = fields.Datetime(readonly=True)
     log_ids = fields.One2many("cz.wa.report.log", "report_id")
@@ -1093,6 +1144,181 @@ class CzWaReport(models.Model):
             "res_id": template.id, "view_mode": "form", "target": "current",
         }
 
+    # ---------------------------------------------------------------- image card
+    def _card_spec(self, data, pay):
+        """What the picture shows: headline and three numbers, built from the same data as the PDF."""
+        self.ensure_one()
+        code = self.code
+        if code == "ceo_daily":
+            vm = self._ceo_brief_vm(data)
+            br = data["branches"]
+            prev = sum(b["prev_net"] for b in br)
+            cov = sum(b["covered"] for b in vm["branches"] if b["margin"] is not None)
+            cost = sum(b["real_cost"] for b in vm["branches"] if b["margin"] is not None)
+            margin = ("%.1f%%" % ((cov - cost) / cov * 100.0)) if cov else "-"
+            d = datetime.strptime(vm["date"], "%d/%m/%Y")
+            head = {1: "يوم صاعد", -1: "يوم أهدأ من سابقه", 0: "يوم مستقر"}[vm["dir"]]
+            n_al = len(vm["alerts"])
+            head += (" · %d تنبيه للمتابعة" % n_al) if n_al else " · بلا تنبيهات"
+            return {"lang": "ar", "kicker": "موجز المدير", "title": head, "date": vm["date"], "weekday": AR_WD[d.weekday()],
+                    "kpis": [("صافي المجموعة", brief_render.money(vm["net"]), "%d طلب · ليرة" % vm["orders"], ""),
+                             ("عن اليوم السابق", vm["pct"].replace(brief_render.MINUS, "-"), "مقابل %s" % brief_render.money(prev),
+                              {1: "up", -1: "down", 0: ""}[vm["dir"]]),
+                             ("هامش المواد", margin, "تكلفة حقيقية", "")]}
+        tr_date = pay["day"]
+        try:
+            wd = marketing_render.WD[datetime.strptime(tr_date, "%d.%m.%Y").weekday()]
+        except ValueError:
+            wd = ""
+        if code == "branch_daily":
+            brs = data["branches"]
+            kpis = []
+            for b in brs[:2]:
+                tp = b.get("target_pct")
+                tone = "" if tp is None else ("up" if tp >= 100 else ("warn" if tp >= 85 else "down"))
+                kpis.append((b["short"], branch_render.num(b["net"]), ("günlük hedef %%%.0f" % tp) if tp is not None else "%d sipariş" % b["orders"], tone))
+            T = sum(b["month_target"] or 0.0 for b in brs)
+            if T:
+                mtd = sum(b["mtd"] for b in brs) / T * 100.0
+                exp = sum((b["mtd_expected_pct"] or 0.0) * (b["month_target"] or 0.0) for b in brs) / T
+                kpis.append(("Ay hedefi", "%%%.0f" % mtd, "olması gereken %%%.0f" % exp, "up" if mtd >= exp else "down"))
+            n = sum(len(b["actions"]) for b in brs)
+            head = ("Bugün yapılacak %d madde" % n) if n else "Bugün kritik konu yok"
+            return {"lang": "tr", "kicker": "Şube Raporu", "title": head, "date": tr_date, "weekday": wd, "kpis": kpis}
+        if code == "marketing":
+            brs = [data["br"][k] for k in sorted(data["br"])]
+            tot = sum(b["day"]["net"] for b in brs)
+            avg = sum(b["avg4"][0] for b in brs if b["avg4"][2])
+            kpis = [(b["name"], marketing_render.num(b["day"]["net"]), "%d sipariş" % b["day"]["n"], "") for b in brs[:2]]
+            pct, direction = brief_render.pct_change(tot, avg) if avg else ("-", 0)
+            kpis.append(("4 hafta ort. göre", pct.replace(brief_render.MINUS, "-"), "%s ortalaması" % wd, {1: "up", -1: "down", 0: ""}[direction]))
+            stars = {}
+            for b in brs:
+                for name, _qty, net in b["day"].get("top") or []:
+                    stars[name] = stars.get(name, 0.0) + net
+            head = {1: "Ortalamanın üstünde bir gün", -1: "Ortalamanın altında bir gün", 0: "Ortalama bir gün"}[direction]
+            if stars:
+                head += " · yıldız: %s" % max(stars, key=stars.get)
+            return {"lang": "tr", "kicker": "Pazarlama Nabzı", "title": head, "date": tr_date, "weekday": wd, "kpis": kpis}
+        if code == "kitchen_stock":
+            if data.get("orders"):
+                _now, produce, ship, _stock, expired = workcard_render._simple(data)
+                p, sh, ex = len(produce), len(ship), len(expired)
+            else:
+                a = data["alerts"]
+                p, sh, ex = len(a["produce"]) + len(a["shortage"]), len(a["fetch"]), len(a["expired"])
+            head = ("Bugün: %d ürün, %d sipariş" % (p, sh)) if (p or sh) else "Bugün sakin: acil iş yok"
+            return {"lang": "tr", "kicker": "Mutfak İş Kartı", "title": head, "date": tr_date, "weekday": wd,
+                    "kpis": [("Üretilecek", str(p), "ürün", ""), ("Gönderilecek", str(sh), "sipariş", ""),
+                             ("Süresi dolan", str(ex), "ürün", "down" if ex else "up")]}
+        # orders_daily
+        orders = data["orders"]
+        cust = len({o["partner"] for o in orders})
+        op = data.get("open_orders") or []
+        late = sum(1 for o in op if o["late"])
+        kpis = [("Yeni sipariş", str(len(orders)), "%d müşteri" % cust, "")]
+        if data["show_prices"]:
+            kpis.append(("Tutar", marketing_render.num(data["untaxed"]), "TL, KDV hariç", ""))
+        else:
+            kpis.append(("Açık sipariş", str(len(op)), "henüz teslim edilmedi", ""))
+        kpis.append(("Gecikmiş", str(late), "teslim tarihi geçti" if late else "gecikme yok", "down" if late else "up"))
+        head = ("%d sipariş, %d müşteri" % (len(orders), cust)) if orders else "Dün yeni sipariş gelmedi"
+        return {"lang": "tr", "kicker": "Dünkü Siparişler", "title": head, "date": tr_date, "weekday": wd, "kpis": kpis}
+
+    def _card_image(self, data, pay):
+        """JPEG bytes of the card. wkhtmltoimage is the binary Odoo already uses for report previews."""
+        html = card_render.render(self.code, self._card_spec(data, pay))
+        Report = self.env["ir.actions.report"]
+        try:
+            images = Report._run_wkhtmltoimage([html], card_render.W, card_render.H, image_format="jpg")
+            if images and images[0]:
+                return images[0]
+        except Exception as err:  # fall back to the binary itself
+            _logger.warning("cz card: _run_wkhtmltoimage failed: %s", err)
+        from odoo.tools.misc import find_in_path
+        binary = find_in_path("wkhtmltoimage")
+        with tempfile.TemporaryDirectory() as tmp:
+            src, out = os.path.join(tmp, "card.html"), os.path.join(tmp, "card.jpg")
+            with open(src, "w", encoding="utf-8") as f:
+                f.write(html)
+            subprocess.run([binary, "--quiet", "--width", str(card_render.W), "--height", str(card_render.H),
+                            "--format", "jpg", "--quality", "90", src, out], check=True, timeout=120)
+            with open(out, "rb") as f:
+                return f.read()
+
+    def _card_attachment(self, data, pay):
+        img = self._card_image(data, pay)
+        return self.env["ir.attachment"].sudo().create({
+            "name": "%s-%s.jpg" % (self.code, re.sub(r"\W", "-", pay["day"])),
+            "raw": img, "mimetype": "image/jpeg", "res_model": self._name, "res_id": self.id,
+        })
+
+    def _data_for_send(self):
+        if self.code == "kitchen_stock":
+            return self._kitchen_snapshot()
+        if self.code == "orders_daily":
+            return self._orders_data()
+        if self.code == "branch_daily":
+            return self._branch_data()
+        return self._marketing_data() if self.code == "marketing" else self._ceo_brief_data()
+
+    def get_card_preview(self):
+        """Base64 JPEG of today's card (admin check from the browser)."""
+        self.ensure_one()
+        if not self.env.user.has_group("base.group_system"):
+            raise UserError(_("Only administrators."))
+        data = self._data_for_send()
+        pay = self._payload(data)
+        return {"spec": self._card_spec(data, pay), "jpg": base64.b64encode(self._card_image(data, pay)).decode()}
+
+    def action_create_card_template(self):
+        """Picture-header template with a button to the full PDF (draft; submit it to Meta from the template)."""
+        self.ensure_one()
+        if self.card_template_id:
+            raise UserError(_("The card template already exists."))
+        account = self.env["whatsapp.account"].search([], limit=1)
+        if not account:
+            raise UserError(_("No WhatsApp account is configured."))
+        name, tname, lang, btn, demo = CARD_TEMPLATES[self.code]
+        existing = self.env["whatsapp.template"].search([("template_name", "=", tname), ("wa_account_id", "=", account.id)], limit=1)
+        if existing:
+            self.card_template_id = existing.id
+            return {"type": "ir.actions.act_window", "res_model": "whatsapp.template", "res_id": existing.id,
+                    "view_mode": "form", "target": "current"}
+        data = self._data_for_send()
+        sample = self._card_attachment(data, self._payload(data))
+        base = self.env["ir.config_parameter"].sudo().get_param("web.base.url").rstrip("/")
+        template = self.env["whatsapp.template"].create({
+            "name": name, "template_name": tname, "wa_account_id": account.id,
+            "model_id": self.env["ir.model"]._get_id("cz.wa.report.log"), "phone_field": "mobile",
+            "lang_code": lang, "template_type": "utility", "header_type": "image",
+            "header_attachment_ids": [(6, 0, sample.ids)],
+            "body": CARD_BODY[self.code], "footer_text": "Choco Zuma",
+        })
+        Variable = self.env["whatsapp.template.variable"]
+        for i, field_name in enumerate(("business_day", "net_text", "orders_text")):
+            vname = "{{%d}}" % (i + 1)
+            if vname not in CARD_BODY[self.code]:
+                continue
+            vals = {"field_type": "field", "field_name": field_name, "demo_value": demo[i]}
+            var = template.variable_ids.filtered(lambda v: v.name == vname and v.line_type == "body")
+            if var:
+                var.write(vals)
+            else:
+                Variable.create(dict(vals, name=vname, line_type="body", wa_template_id=template.id))
+        url = "%s/cz/r/" % base
+        template.write({"button_ids": [(0, 0, {"name": btn, "button_type": "url", "url_type": "dynamic", "website_url": url})]})
+        button = template.button_ids[:1]
+        bvals = {"field_type": "field", "field_name": "access_token", "demo_value": url + "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6"}
+        bvar = template.variable_ids.filtered(lambda v: v.line_type == "button")
+        if bvar:
+            bvar.write(bvals)
+        else:
+            Variable.create(dict(bvals, name="{{1}}", line_type="button", button_id=button.id, wa_template_id=template.id))
+        self.card_template_id = template.id
+        return {"type": "ir.actions.act_window", "res_model": "whatsapp.template", "res_id": template.id,
+                "view_mode": "form", "target": "current"}
+
     def _recipient_numbers(self):
         self.ensure_one()
         numbers = []
@@ -1115,7 +1341,8 @@ class CzWaReport(models.Model):
     def _send_brief(self, data):
         """One log per recipient, then one WhatsApp template message per log."""
         self.ensure_one()
-        template = self.wa_template_id
+        card = self.card_template_id if self.card_template_id.status == "approved" else False
+        template = card or self.wa_template_id
         if not template:
             raise UserError(_("Create the WhatsApp template first."))
         if template.status != "approved":
@@ -1135,11 +1362,12 @@ class CzWaReport(models.Model):
             "orders_text": pay["orders_text"],
             "brief_html": pay["html"],
         } for partner_id, number in recipients])
-        composer = self.env["whatsapp.composer"].with_context(active_model=Log._name, active_ids=logs.ids).create({
-            "res_model": Log._name,
-            "res_ids": str(logs.ids),
-            "wa_template_id": template.id,
-        })
+        vals = {"res_model": Log._name, "res_ids": str(logs.ids), "wa_template_id": template.id}
+        if card:
+            attachment = self._card_attachment(data, pay)
+            logs.write({"card_attachment_id": attachment.id})
+            vals["attachment_id"] = attachment.id
+        composer = self.env["whatsapp.composer"].with_context(active_model=Log._name, active_ids=logs.ids).create(vals)
         composer._send_whatsapp_template(force_send_by_cron=False)
         messages = self.env["whatsapp.message"].sudo().search([
             ("mail_message_id.model", "=", Log._name), ("mail_message_id.res_id", "in", logs.ids),
@@ -1157,15 +1385,7 @@ class CzWaReport(models.Model):
 
     def action_send_now(self):
         self.ensure_one()
-        if self.code == "kitchen_stock":
-            data = self._kitchen_snapshot()
-        elif self.code == "orders_daily":
-            data = self._orders_data()
-        elif self.code == "branch_daily":
-            data = self._branch_data()
-        else:
-            data = self._marketing_data() if self.code == "marketing" else self._ceo_brief_data()
-        logs = self._send_brief(data)
+        logs = self._send_brief(self._data_for_send())
         failed = logs.filtered(lambda l: l.state == "error")
         return {
             "type": "ir.actions.client", "tag": "display_notification",
@@ -1184,7 +1404,7 @@ class CzWaReport(models.Model):
         fresh_since = now - timedelta(hours=10)
         local_now = fields.Datetime.context_timestamp(self.with_context(tz="Europe/Istanbul"), now)
         local_hour = local_now.hour
-        for report in self.search([("code", "in", ("kitchen_stock", "orders_daily", "branch_daily")), ("wa_template_id.status", "=", "approved")]):
+        for report in self.search([("code", "in", ("kitchen_stock", "orders_daily", "branch_daily")), "|", ("wa_template_id.status", "=", "approved"), ("card_template_id.status", "=", "approved")]):
             try:
                 if local_now.hour + local_now.minute / 60.0 < (report.send_hour or 0):
                     continue
@@ -1204,7 +1424,7 @@ class CzWaReport(models.Model):
                 self.env.cr.rollback()
                 self.env["cz.wa.report.log"].create({"report_id": report.id, "state": "error", "note": "cron: %s" % str(err)[:1500]})
                 self.env.cr.commit()
-        for report in self.search([("code", "=", "marketing"), ("wa_template_id.status", "=", "approved")]):
+        for report in self.search([("code", "=", "marketing"), "|", ("wa_template_id.status", "=", "approved"), ("card_template_id.status", "=", "approved")]):
             try:
                 day, skipped = report._marketing_last_day(fresh_since=fresh_since)
                 if not day or (skipped and not (4 <= local_hour < 12)):
@@ -1219,7 +1439,7 @@ class CzWaReport(models.Model):
                 self.env.cr.rollback()
                 self.env["cz.wa.report.log"].create({"report_id": report.id, "state": "error", "note": "cron: %s" % str(err)[:1500]})
                 self.env.cr.commit()
-        for report in self.search([("code", "=", "ceo_daily"), ("wa_template_id.status", "=", "approved")]):
+        for report in self.search([("code", "=", "ceo_daily"), "|", ("wa_template_id.status", "=", "approved"), ("card_template_id.status", "=", "approved")]):
             try:
                 data = report._ceo_brief_data(fresh_since=fresh_since)
                 if not data["branches"]:
@@ -1276,6 +1496,9 @@ class CzWaReportLog(models.Model):
     net_text = fields.Char()
     orders_text = fields.Char()
     brief_html = fields.Text()
+    access_token = fields.Char(copy=False, index=True, default=lambda self: uuid.uuid4().hex,
+                               help="Secret part of the link behind the WhatsApp button (/cz/r/<token>).")
+    card_attachment_id = fields.Many2one("ir.attachment", string="Card image", copy=False)
 
 
 class ReportCeoBriefLog(models.AbstractModel):
