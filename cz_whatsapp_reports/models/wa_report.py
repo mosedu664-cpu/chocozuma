@@ -532,8 +532,9 @@ class CzWaReport(models.Model):
                 order_cost[o.id] = order_cost.get(o.id, 0.0) + c * line.qty
                 order_gross[o.id] = order_gross.get(o.id, 0.0) + line.price_subtotal / (1 - min(line.discount, 99.0) / 100.0)
             elif not line.price_subtotal and line.qty > 0 and c is not None and not (has_combo and line.combo_parent_id):
-                name = (line.product_id.name or "").lower()
-                cats = " ".join(line.product_id.pos_categ_ids.mapped("name")).lower() if "pos_categ_ids" in line.product_id._fields else ""
+                name = (line.product_id.name or "").casefold().replace("i̇", "i")
+                cats = " ".join(line.product_id.pos_categ_ids.mapped("name")).casefold().replace("i̇", "i") \
+                    if "pos_categ_ids" in line.product_id._fields else ""
                 if "ikram" in name or "complimentary" in name or "ikram" in cats:
                     ikram_items_cost += c * line.qty
         ratio = (sum(order_cost.values()) / sum(order_gross.values())) if sum(order_gross.values()) else 0.3
@@ -542,7 +543,9 @@ class CzWaReport(models.Model):
         # open orders left at closing, cancels without a reason
         drafts = orders.filtered(lambda o: o.state == "draft" and o.amount_total > 0)
         has_reason = "cancel_reason_code" in orders._fields
-        cancels_nr = orders.filtered(lambda o: o.state == "cancel" and has_reason and not o.cancel_reason_code)
+        # an order opened and cancelled empty (0 TL) is not a cancellation to explain
+        cancels = orders.filtered(lambda o: o.state == "cancel" and o.amount_total > 0)
+        cancels_nr = cancels.filtered(lambda o: has_reason and not o.cancel_reason_code)
         # target and month pace
         month_start = day.replace(day=1)
         month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)
@@ -592,7 +595,7 @@ class CzWaReport(models.Model):
             "ikram_cost": ikram_cost, "ikram_cap_pct": self.ikram_cap_pct or 0.0,
             "ikram_cap": (self.ikram_cap_pct or 0.0) / 100.0 * max(net, 0.0),
             "staff_orders": st["staff_orders"], "staff_value": st["staff_value"],
-            "cancel_n": st["cancel_n"], "cancel_value": st["cancel_value"], "cancel_no_reason": st["cancel_no_reason"],
+            "cancel_n": len(cancels), "cancel_value": sum(cancels.mapped("amount_total")), "cancel_no_reason": len(cancels_nr),
             "cancels_nr": [(o.name or o.pos_reference or "/", o.employee_id.name if "employee_id" in o._fields else "", o.amount_total)
                            for o in cancels_nr.sorted(lambda o: -o.amount_total)],
             "open_n": len(drafts), "open_value": sum(drafts.mapped("amount_total")),
