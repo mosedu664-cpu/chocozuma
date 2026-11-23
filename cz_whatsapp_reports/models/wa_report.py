@@ -477,6 +477,8 @@ class CzWaReport(models.Model):
         if data is None:
             data = self._data_for_send()
         pay = self._payload_base(data)
+        if self.code == "kitchen_stock":
+            return pay  # the chefs print page 1 of the work card: no cover in front of it
         try:
             spec = dict(self._card_spec(data, pay), lines=self._cover_lines(data))
             now = fields.Datetime.context_timestamp(self.with_context(tz="Europe/Istanbul"), fields.Datetime.now())
@@ -1329,14 +1331,14 @@ class CzWaReport(models.Model):
             return self._branch_data()
         return self._marketing_data() if self.code == "marketing" else self._ceo_brief_data()
 
-    def card_test_send(self, number="+905444436338"):
-        """Send this report's card once, to one number only (owner test before switching on)."""
+    def card_test_send(self, number="+905444436338", card=True):
+        """Send this report once, to one number only (owner test). card=False: the normal document template."""
         self.ensure_one()
         if not self.env.user.has_group("base.group_system"):
             raise UserError(_("Only administrators."))
-        if self.card_template_id.status != "approved":
+        if card and self.card_template_id.status != "approved":
             raise UserError(_("The card template is not approved yet."))
-        logs = self._send_brief(self._data_for_send(), numbers=[number], card_test=True)
+        logs = self._send_brief(self._data_for_send(), numbers=[number], card_test=card)
         for log in logs:  # a test must not count as the day's send
             log.write({"state": "preview" if log.state == "sent" else log.state, "note": "CARD TEST · %s" % (log.note or "")})
         return [(l.id, l.state, l.note) for l in logs]
