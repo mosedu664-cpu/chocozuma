@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Installed OFF: nothing happens until a manager switches the mode. -->
+    <record id="cz_loyalty_config_main" model="cz.loyalty.config" forcecreate="True">
+        <field name="name">Kakao Hazinesi</field>
+        <field name="mode">off</field>
+        <field name="small_at">4</field>
+        <field name="cycle_len">8</field>
+        <field name="code_valid_hours">72</field>
+        <field name="reward_valid_days">60</field>
+        <field name="min_order_amount">300</field>
+        <field name="shop_number">+905392231801</field>
+    </record>
+</odoo>
