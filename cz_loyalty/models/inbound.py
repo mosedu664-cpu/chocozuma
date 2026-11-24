@@ -195,7 +195,29 @@ class CzLoyaltyInbound(models.Model):
             member.awaiting_consent = True
             texts.append(MESSAGES["consent"].format(kvkk_url=cfg.kvkk_url or ""))
             result += "_new"
-        return self._finish(result, texts, member)
+        res = self._finish(result, texts, member)
+        if result.startswith("gift_"):
+            self._send_gift_qr(reward)
+        return res
+
+    def _send_gift_qr(self, reward):
+        """Second message with the gift code as a QR picture, so the cashier can scan the guest's phone.
+        Best effort: the code was already sent as text."""
+        if self.simulated or not self.wa_message_id:
+            return
+        try:
+            with self.env.cr.savepoint():
+                channel = self._channel()
+                if not channel:
+                    return
+                png = self.env["ir.actions.report"].sudo().barcode("QR", reward.token, width=400, height=400)
+                channel.message_post(
+                    body=Markup("%s") % ("%s kodunuz" % GIFT_NAMES[reward.kind]),
+                    attachments=[("ikram-%s.png" % reward.token[-4:], png)],
+                    message_type="whatsapp_message", subtype_xmlid="mail.mt_comment",
+                )
+        except Exception:  # noqa: BLE001
+            _logger.exception("cz_loyalty: gift QR picture not sent (text code was sent)")
 
     # ------------------------------------------------------------------ helpers
     @staticmethod

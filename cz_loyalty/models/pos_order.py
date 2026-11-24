@@ -34,6 +34,31 @@ class PosOrder(models.Model):
             _logger.exception("cz_loyalty: code generation failed (sale is unaffected)")
         return orders
 
+    def action_pos_order_paid(self):
+        res = super().action_pos_order_paid()
+        try:
+            for order in self.filtered("uuid"):
+                rewards = self.env["cz.loyalty.reward"].sudo().search(
+                    [("used_order_uuid", "=", order.uuid), ("state", "=", "used"), ("used_order_id", "=", False)])
+                if rewards:
+                    rewards.write({"used_order_id": order.id, "used_order_ref": order.pos_reference})
+        except Exception:
+            _logger.exception("cz_loyalty: could not link the gift to its order (payment is unaffected)")
+        return res
+
+    def action_pos_order_cancel(self):
+        res = super().action_pos_order_cancel()
+        try:
+            uuids = [u for u in self.filtered(lambda o: o.state == "cancel").mapped("uuid") if u]
+            if uuids:
+                self.env["cz.loyalty.reward"].sudo().search(
+                    [("used_order_uuid", "in", uuids), ("state", "=", "used")]
+                ).write({"state": "issued", "used_at": False, "used_config_id": False, "used_company_id": False,
+                         "used_order_uuid": False, "used_order_ref": False, "used_by_id": False, "used_order_id": False})
+        except Exception:
+            _logger.exception("cz_loyalty: could not release the gift of a cancelled order")
+        return res
+
     def _cz_loyalty_wa_link(self):
         """wa.me link printed as QR on the receipt (Increment 2)."""
         self.ensure_one()
@@ -42,3 +67,13 @@ class PosOrder(models.Model):
             return False
         number = "".join(c for c in cfg.shop_number if c.isdigit())
         return f"https://wa.me/{number}?text=Kakao%20Hazinesi%20%E2%9C%A6%20ZUMA-{self.cz_loyalty_code}"
+
+
+class PosOrderLine(models.Model):
+    _inherit = "pos.order.line"
+
+    cz_reward_token = fields.Char(string="Kakao gift code", copy=False, index=True)
+
+    @api.model
+    def _load_pos_data_fields(self, config_id):
+        return super()._load_pos_data_fields(config_id) + ["cz_reward_token"]
