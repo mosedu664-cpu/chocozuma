@@ -46,17 +46,20 @@ class PosOrder(models.Model):
             _logger.exception("cz_loyalty: could not link the gift to its order (payment is unaffected)")
         return res
 
-    def action_pos_order_cancel(self):
-        res = super().action_pos_order_cancel()
-        try:
-            uuids = [u for u in self.filtered(lambda o: o.state == "cancel").mapped("uuid") if u]
-            if uuids:
-                self.env["cz.loyalty.reward"].sudo().search(
-                    [("used_order_uuid", "in", uuids), ("state", "=", "used")]
-                ).write({"state": "issued", "used_at": False, "used_config_id": False, "used_company_id": False,
-                         "used_order_uuid": False, "used_order_ref": False, "used_by_id": False, "used_order_id": False})
-        except Exception:
-            _logger.exception("cz_loyalty: could not release the gift of a cancelled order")
+    def write(self, vals):
+        res = super().write(vals)
+        # Whatever cancels an order (POS, back office, another module): its gift code is usable again.
+        if vals.get("state") == "cancel":
+            try:
+                uuids = [u for u in self.mapped("uuid") if u]
+                if uuids:
+                    self.env["cz.loyalty.reward"].sudo().search(
+                        [("used_order_uuid", "in", uuids), ("state", "=", "used")]
+                    ).write({"state": "issued", "used_at": False, "used_config_id": False, "used_company_id": False,
+                             "used_order_uuid": False, "used_order_ref": False, "used_by_id": False,
+                             "used_order_id": False})
+            except Exception:
+                _logger.exception("cz_loyalty: could not release the gift of a cancelled order")
         return res
 
     def _cz_loyalty_wa_link(self):
