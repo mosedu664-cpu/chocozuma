@@ -42,6 +42,10 @@ class CzLoyaltyConfig(models.Model):
     test_skip_daily_limit = fields.Boolean(
         string="Test mode: allow several beans per day", default=True, tracking=True,
         help="Only applies in Test mode, so a full cycle can be tested in one sitting.")
+    print_on_receipt = fields.Boolean(
+        string="Print the cacao banknote on receipts", tracking=True,
+        help="Adds the banknote with the QR code under every eligible receipt and bill of the branches above. "
+             "Switch it on only when guests can really use it (mode Live), or on staging.")
     kvkk_url = fields.Char(string="KVKK notice URL", default="https://b2b.chocozuma.com/kvkk-aydinlatma-metni")
     alert_partner_ids = fields.Many2many("res.partner", string="Alert recipients")
 
@@ -51,6 +55,13 @@ class CzLoyaltyConfig(models.Model):
         if not cfg:
             cfg = self.sudo().create({})
         return cfg
+
+    def _platform_partner_ids(self):
+        """POS customers that stand for a delivery platform (*TRENDYOL, ...): their orders never earn."""
+        if "cz.platform.account" not in self.env:
+            return []
+        accounts = self.env["cz.platform.account"].sudo().with_context(active_test=False).search([("partner_id", "!=", False)])
+        return accounts.mapped("partner_id").ids
 
     @api.constrains("small_at", "cycle_len", "code_valid_hours", "reward_valid_days")
     def _check_positive(self):
