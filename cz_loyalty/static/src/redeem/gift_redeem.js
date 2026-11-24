@@ -114,13 +114,20 @@ patch(PosOrder.prototype, {
 });
 
 patch(ProductScreen.prototype, {
-    async _barcodeProductAction(code) {
-        const raw = String(code?.base_code || code?.code || "").replace(/\s/g, "");
-        if (this.pos.config.cz_loyalty_redeem && GIFT_CODE.test(raw)) {
-            await this.pos.czRedeemGift(raw);
-            return;
-        }
-        return super._barcodeProductAction(...arguments);
+    setup() {
+        // Wrap the whole barcode chain on the instance, before the screen registers it with the
+        // scanner: other modules (barcode lookup) look the code up as a product first, whatever
+        // the load order. A gift code must never reach them.
+        const productAction = this._barcodeProductAction;
+        this._barcodeProductAction = async (code) => {
+            const raw = String(code?.base_code || code?.code || "").replace(/\\s/g, "");
+            if (this.pos?.config?.cz_loyalty_redeem && GIFT_CODE.test(raw)) {
+                await this.pos.czRedeemGift(raw);
+                return;
+            }
+            return productAction.call(this, code);
+        };
+        super.setup(...arguments);
     },
 });
 
