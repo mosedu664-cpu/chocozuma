@@ -27,6 +27,7 @@
                             <field name="pos_config_ids" widget="many2many_tags"/>
                             <field name="wa_account_ids" widget="many2many_tags"/>
                             <field name="shop_number"/>
+                            <field name="print_on_receipt"/>
                             <field name="kvkk_url" widget="url"/>
                             <field name="alert_partner_ids" widget="many2many_tags"/>
                         </group>

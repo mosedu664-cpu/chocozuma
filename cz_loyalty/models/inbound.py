@@ -154,6 +154,8 @@ class CzLoyaltyInbound(models.Model):
             return self._finish("expired", MESSAGES["expired"])
         if order.amount_total < cfg.min_order_amount:
             return self._finish("small_order", MESSAGES["small_order"])
+        if order.partner_id and order.partner_id.id in cfg._platform_partner_ids():
+            return self._finish("platform_order", MESSAGES["small_order"])
         if self._is_refunded(order):
             return self._finish("refunded", MESSAGES["invalid"])
         Ledger = self.env["cz.loyalty.ledger"].sudo()
