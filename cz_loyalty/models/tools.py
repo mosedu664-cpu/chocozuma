@@ -53,35 +53,50 @@ def extract_code(text):
 
 
 KEYWORDS = {
-    "balance": {"kase", "hazine", "kasem", "bakiye"},
+    "balance": {"kese", "kesem", "kase", "hazine", "bakiye", "tane"},
+    "code": {"kod", "kodum", "ikram", "ikramim"},
     "optin": {"evet"},
     "optout": {"durdur", "stop", "iptal", "hayir", "hayir, tesekkurler"},
 }
 
 
 def keyword_intent(text):
-    t = norm_text(text)
+    t = norm_text(text).strip(" .!«»\"'")
     for intent, words in KEYWORDS.items():
         if t in words:
             return intent
     return False
 
 
-# Customer-facing texts (Turkish). "siz" form, one emoji at most, no discount words.
+def bean_row(beans, small_at, cycle_len):
+    """● ● ● ○ up to the next gift."""
+    total = small_at if beans < small_at else cycle_len
+    beans = max(0, min(beans, total))
+    return " ".join(["●"] * beans + ["○"] * (total - beans))
+
+
+def fmt_token(token):
+    return " ".join(token[i:i + 4] for i in range(0, len(token), 4))
+
+
+GIFT_NAMES = {"small": "Şefin İkramı", "big": "Hazine Tabağı"}
+
+# Customer-facing texts (Turkish). "siz" form, only the ✦ mark, hospitality words (ikram, misafir).
 MESSAGES = {
-    "welcome": "Choco Zuma'ya hoş geldiniz ☀️ İlk kakao taneniz kâsenize eklendi: {beans}/{target}.\nSize nasıl hitap edelim?",
-    "name_thanks": "Memnun olduk {name}. Her {target} ziyarette menüde olmayan bir Zuma Sürprizi sizi bekliyor.",
-    "consent": "Size özel günlerden WhatsApp'tan haberdar olmak ister misiniz? Lütfen «Evet» ya da «Hayır» yazın.\nAydınlatma metni: {kvkk_url}",
-    "credit": "+1 kakao tanesi 🍫 {beans}/{target}",
-    "reward": "Kâseniz doldu {name}! Zuma Sürprizi sizi bekliyor: menüde olmayan, size özel bir tabak.\nBir sonraki ziyaretinizde bu kodu kasada gösterin: {token}\n{expiry} tarihine kadar geçerli.",
-    "balance": "Kâsenizde {beans}/{target} kakao tanesi var.",
-    "balance_reward": "Zuma Sürpriziniz hazır: {token} ({expiry} tarihine kadar geçerli).",
-    "used": "Bu fişin tanesi daha önce bir kâseye eklenmiş. Bir karışıklık varsa yazın, hemen bakalım.",
-    "expired": "Bu fişin süresi dolmuş. Bir sonraki ziyaretinizde taneniz sizi bekliyor olacak.",
+    "welcome": "Kakao Hazinesi'ne hoş geldiniz{name} ✦\nİlk taneniz sizden, biri de bizden.\n{row}\n{gift}'na {left} tane kaldı.",
+    "consent": "İkramınız hazır olduğunda WhatsApp'tan haber verelim mi? «Evet» ya da «Hayır» yazmanız yeterli.\nAydınlatma metni: {kvkk_url}",
+    "credit": "Kakao taneniz kesenize eklendi ✦\n{row}\n{gift}'na {left} tane kaldı.",
+    "gift_small": "Dördüncü kakao taneniz kesenizde ✦\nŞefin İkramı sizi bekliyor: menümüzde yer almayan, yalnızca Kakao Hazinesi misafirlerimize hazırladığımız küçük bir lezzet.\nBir sonraki gelişinizde sipariş verirken bu kodu göstermeniz yeterli:\n{token}\nSon gün: {expiry}",
+    "gift_big": "Keseniz doldu ✦\nHazine Tabağı artık sizin: menüde bulamayacağınız, şefimizin özel tabağı.\nBir sonraki gelişinizde sipariş verirken bu kodu göstermeniz yeterli:\n{token}\nSon gün: {expiry}\nKeseniz yeni taneler için yeniden açıldı.",
+    "balance": "Kesenizde {beans} kakao tanesi var ✦\n{row}\n{gift}'na {left} tane kaldı.",
+    "code_line": "{gift} kodunuz: {token} (son gün {expiry})",
+    "no_code": "Şu an bekleyen bir ikramınız yok. {gift}'na {left} tane kaldı.",
+    "used": "Bu fişin tanesi daha önce bir keseye eklenmiş. Bir karışıklık varsa buradan yazın, hemen bakalım.",
+    "expired": "Bu fişin süresi dolmuş. Bir sonraki gelişinizde taneniz sizi bekliyor olacak.",
     "invalid": "Bu kodu bulamadık. Fişteki QR'ı bir kez daha okutabilir misiniz?",
-    "pending": "Fişiniz sisteme düştüğünde taneniz otomatik olarak eklenecek.",
-    "daily": "Bugünün tanesi zaten kâsenizde. Yine bekleriz ✨",
-    "small": "Bu fiş Kakao Hazinesi'ne dahil değil. Yine bekleriz.",
-    "optin": "Teşekkürler. Size özel günlerde haber vereceğiz.",
-    "optout": "Bilgilendirme mesajlarını durdurduk. Kâseniz aynen devam ediyor.",
+    "pending": "Hesabınız kapandığında taneniz kesenize kendiliğinden eklenecek ✦",
+    "daily": "Bugünkü taneniz zaten kesenizde. Yarın görüşmek üzere ✦",
+    "small_order": "Bu fiş Kakao Hazinesi'ne dahil değil. Yine bekleriz ✦",
+    "optin": "Teşekkür ederiz. İkramınız hazır olduğunda haber vereceğiz ✦",
+    "optout": "Bilgilendirme mesajlarını durdurduk. Keseniz aynen devam ediyor.",
 }

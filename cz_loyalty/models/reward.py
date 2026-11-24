@@ -15,6 +15,8 @@ class CzLoyaltyReward(models.Model):
 
     member_id = fields.Many2one("cz.loyalty.member", required=True, ondelete="cascade", index=True)
     token = fields.Char(required=True, index=True, copy=False)
+    kind = fields.Selection([("small", "Şefin İkramı"), ("big", "Hazine Tabağı")], required=True, default="small")
+    cycle = fields.Integer(help="Member cycle number this gift belongs to")
     state = fields.Selection(
         [("issued", "Ready"), ("used", "Used"), ("expired", "Expired"), ("cancelled", "Cancelled")],
         default="issued", required=True, index=True,
@@ -29,7 +31,7 @@ class CzLoyaltyReward(models.Model):
     _sql_constraints = [("token_uniq", "unique(token)", "Reward token must be unique.")]
 
     @api.model
-    def _issue(self, member):
+    def _issue(self, member, kind):
         cfg = self.env["cz.loyalty.config"].get()
         token = new_reward_token()
         while self.sudo().search_count([("token", "=", token)]):
@@ -37,12 +39,15 @@ class CzLoyaltyReward(models.Model):
         reward = self.sudo().create({
             "member_id": member.id,
             "token": token,
+            "kind": kind,
+            "cycle": member.cycles_done,
             "expires_at": fields.Datetime.now() + timedelta(days=cfg.reward_valid_days),
         })
-        self.env["cz.loyalty.ledger"].sudo().create({
-            "member_id": member.id, "kind": "bowl", "beans": -cfg.visits_per_reward,
-            "reward_id": reward.id, "note": "Bowl full",
-        })
+        if kind == "big":
+            self.env["cz.loyalty.ledger"].sudo().create({
+                "member_id": member.id, "kind": "bowl", "beans": -cfg.cycle_len,
+                "reward_id": reward.id, "note": "Pouch full",
+            })
         return reward
 
     def action_mark_used_manual(self):

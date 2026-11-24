@@ -13,8 +13,12 @@
                     <div class="oe_title"><h1><field name="name"/></h1></div>
                     <group>
                         <group string="Program">
-                            <field name="visits_per_reward"/>
-                            <field name="reward_product_id"/>
+                            <field name="small_at"/>
+                            <field name="reward_small_product_id"/>
+                            <field name="cycle_len"/>
+                            <field name="reward_big_product_id"/>
+                            <field name="welcome_beans"/>
+                            <field name="test_skip_daily_limit"/>
                             <field name="reward_valid_days"/>
                             <field name="code_valid_hours"/>
                             <field name="min_order_amount"/>
@@ -53,7 +57,7 @@
                 <field name="phone"/>
                 <field name="beans"/>
                 <field name="total_visits"/>
-                <field name="rewards_issued"/>
+                <field name="cycles_done"/>
                 <field name="last_visit"/>
                 <field name="marketing_optin"/>
                 <field name="blocked" optional="hide"/>
@@ -76,7 +80,7 @@
                         <group>
                             <field name="beans"/>
                             <field name="total_visits"/>
-                            <field name="rewards_issued"/>
+                            <field name="cycles_done"/>
                             <field name="first_visit"/>
                             <field name="last_visit"/>
                             <field name="marketing_optin"/>
@@ -100,6 +104,7 @@
                         <page string="Rewards">
                             <field name="reward_ids" readonly="1">
                                 <list>
+                                    <field name="kind"/>
                                     <field name="token"/>
                                     <field name="state"/>
                                     <field name="expires_at"/>
@@ -127,6 +132,7 @@
             <list>
                 <field name="create_date"/>
                 <field name="member_id"/>
+                <field name="kind"/>
                 <field name="token"/>
                 <field name="state" decoration-success="state == 'issued'" decoration-muted="state in ('used', 'expired', 'cancelled')"/>
                 <field name="expires_at"/>

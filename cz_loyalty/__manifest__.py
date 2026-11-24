@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Choco Zuma — Kakao Hazinesi (Loyalty)",
-    "version": "18.0.0.1.0",
-    "summary": "One loyalty wallet for all Choco Zuma branches: receipt code → WhatsApp → bean; every 5 visits a Zuma Sürprizi",
+    "version": "18.0.0.2.0",
+    "summary": "One loyalty wallet for all Choco Zuma branches: receipt code → WhatsApp → bean; gifts at 4 and 8 visits",
     "description": """
 Kakao Hazinesi
 ==============
@@ -11,7 +11,7 @@ Increment 1 (server side only, no POS changes):
 * One company-neutral wallet per phone number (cz.loyalty.member + ledger),
   shared by Kayaşehir (TONALLI) and Metrokent (Mayapan).
 * Every paid POS order gets a one-time code. The guest sends it on WhatsApp,
-  the system adds one bean. Every N beans (default 5) a reward token is issued.
+  the system adds one bean. At 4 beans a small gift code (Şefin İkramı), at 8 the big one (Hazine Tabağı).
 * Inbound WhatsApp messages are queued (never raise inside the webhook) and
   processed by a cron with retries; every decision is logged.
 * Mode: off / test (only whitelisted phones get credits and replies) / live.

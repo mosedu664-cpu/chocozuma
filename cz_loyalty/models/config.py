@@ -27,14 +27,21 @@ class CzLoyaltyConfig(models.Model):
     pos_config_ids = fields.Many2many("pos.config", string="Branches (POS)", tracking=True)
     wa_account_ids = fields.Many2many("whatsapp.account", string="WhatsApp accounts", tracking=True)
     shop_number = fields.Char(string="Shop WhatsApp number", help="Number printed on receipts, e.g. +905392231801")
-    visits_per_reward = fields.Integer(default=5, required=True, tracking=True)
-    code_valid_hours = fields.Integer(default=48, required=True, tracking=True)
-    reward_valid_days = fields.Integer(default=30, required=True, tracking=True)
-    min_order_amount = fields.Float(default=250.0, tracking=True, help="Orders below this total earn nothing.")
-    reward_product_id = fields.Many2one(
-        "product.product", string="Reward product (Zuma Sürprizi)", tracking=True,
-        help="The off-menu dish given every N visits. It must be available in every branch POS.",
-    )
+    small_at = fields.Integer(string="Small gift at (visits)", default=4, required=True, tracking=True)
+    cycle_len = fields.Integer(string="Big gift at (visits)", default=8, required=True, tracking=True)
+    welcome_beans = fields.Integer(string="Welcome beans (first scan only)", default=1, tracking=True)
+    code_valid_hours = fields.Integer(default=72, required=True, tracking=True)
+    reward_valid_days = fields.Integer(default=60, required=True, tracking=True)
+    min_order_amount = fields.Float(default=300.0, tracking=True, help="Orders below this total earn nothing.")
+    reward_small_product_id = fields.Many2one(
+        "product.product", string="Small gift product (Şefin İkramı)", tracking=True,
+        help="Off-menu dish at the small threshold. Must be available in every branch POS.")
+    reward_big_product_id = fields.Many2one(
+        "product.product", string="Big gift product (Hazine Tabağı)", tracking=True,
+        help="Off-menu dish at the big threshold. Must be available in every branch POS.")
+    test_skip_daily_limit = fields.Boolean(
+        string="Test mode: allow several beans per day", default=True, tracking=True,
+        help="Only applies in Test mode, so a full cycle can be tested in one sitting.")
     kvkk_url = fields.Char(string="KVKK notice URL", default="https://b2b.chocozuma.com/kvkk-aydinlatma-metni")
     alert_partner_ids = fields.Many2many("res.partner", string="Alert recipients")
 
@@ -45,11 +52,11 @@ class CzLoyaltyConfig(models.Model):
             cfg = self.sudo().create({})
         return cfg
 
-    @api.constrains("visits_per_reward", "code_valid_hours", "reward_valid_days")
+    @api.constrains("small_at", "cycle_len", "code_valid_hours", "reward_valid_days")
     def _check_positive(self):
         for rec in self:
-            if rec.visits_per_reward < 1 or rec.code_valid_hours < 1 or rec.reward_valid_days < 1:
-                raise UserError("Visits per reward, code validity and reward validity must be at least 1.")
+            if rec.small_at < 1 or rec.cycle_len <= rec.small_at or rec.code_valid_hours < 1 or rec.reward_valid_days < 1:
+                raise UserError("Small gift must be at 1 or more visits, the big gift later than the small one, and validities at least 1.")
 
     @staticmethod
     def _phone_set(text):

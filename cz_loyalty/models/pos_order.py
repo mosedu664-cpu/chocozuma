@@ -14,6 +14,7 @@ class PosOrder(models.Model):
     cz_loyalty_code = fields.Char(string="Kakao code", copy=False, readonly=True, index=True)
 
     def init(self):
+        super().init()
         self.env.cr.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS pos_order_cz_loyalty_code_uniq "
             "ON pos_order (cz_loyalty_code) WHERE cz_loyalty_code IS NOT NULL"

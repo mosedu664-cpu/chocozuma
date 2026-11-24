@@ -16,10 +16,9 @@ class CzLoyaltyMember(models.Model):
     reward_ids = fields.One2many("cz.loyalty.reward", "member_id")
     beans = fields.Integer(compute="_compute_beans", store=True, help="Beans in the current bowl")
     total_visits = fields.Integer(compute="_compute_beans", store=True)
-    rewards_issued = fields.Integer(compute="_compute_beans", store=True)
+    cycles_done = fields.Integer(compute="_compute_beans", store=True, help="Full pouches completed")
     first_visit = fields.Datetime()
     last_visit = fields.Datetime(index=True)
-    awaiting_name = fields.Boolean(default=False)
     awaiting_consent = fields.Boolean(default=False)
     marketing_optin = fields.Boolean(string="Marketing consent")
     marketing_optin_date = fields.Datetime()
@@ -34,16 +33,13 @@ class CzLoyaltyMember(models.Model):
 
     @api.depends("ledger_ids.beans", "ledger_ids.kind")
     def _compute_beans(self):
-        target = self.env["cz.loyalty.config"].get().visits_per_reward or 5
         for m in self:
-            earned = sum(m.ledger_ids.filtered(lambda l: l.kind in ("earn", "reverse", "manual", "migration")).mapped("beans"))
-            spent = -sum(m.ledger_ids.filtered(lambda l: l.kind == "bowl").mapped("beans"))
             m.total_visits = len(m.ledger_ids.filtered(lambda l: l.kind == "earn"))
-            m.rewards_issued = spent // target if target else 0
-            m.beans = max(earned - spent, 0)
+            m.cycles_done = len(m.ledger_ids.filtered(lambda l: l.kind == "bowl"))
+            m.beans = max(sum(m.ledger_ids.mapped("beans")), 0)
 
     @api.model
-    def _find_or_create(self, phone):
+    def _find_or_create(self, phone, profile_name=False):
         member = self.sudo().search([("phone", "=", phone)], limit=1)
         if member:
             return member, False
@@ -53,8 +49,11 @@ class CzLoyaltyMember(models.Model):
             tail = phone[-10:]
             partner = Partner.search(["|", ("mobile", "like", tail), ("phone", "like", tail)], limit=1)
         if not partner:
-            partner = Partner.create({"name": phone, "mobile": phone, "company_id": False})
-        return self.sudo().create({"phone": phone, "partner_id": partner.id, "name": False if partner.name == phone else partner.name.split(" ")[0]}), True
+            partner = Partner.create({"name": profile_name or phone, "mobile": phone, "company_id": False})
+        name = (profile_name or partner.name or "").strip()
+        if not name or sum(c.isdigit() for c in name) >= 6 or name.startswith(("*", "!")):
+            name = False
+        return self.sudo().create({"phone": phone, "partner_id": partner.id, "name": name and name.split(" ")[0].capitalize()}), True
 
 
 class CzLoyaltyLedger(models.Model):
@@ -64,7 +63,7 @@ class CzLoyaltyLedger(models.Model):
 
     member_id = fields.Many2one("cz.loyalty.member", required=True, ondelete="cascade", index=True)
     kind = fields.Selection(
-        [("earn", "Visit"), ("reverse", "Refund reversal"), ("bowl", "Bowl full (reward issued)"),
+        [("earn", "Visit"), ("welcome", "Welcome bean"), ("reverse", "Refund reversal"), ("bowl", "Pouch full (new cycle)"),
          ("manual", "Manual correction"), ("migration", "Migration")],
         required=True,
     )
@@ -76,6 +75,7 @@ class CzLoyaltyLedger(models.Model):
     note = fields.Char()
 
     def init(self):
+        super().init()
         # One earn line per receipt, enforced by the database (idempotency guarantee).
         self.env.cr.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS cz_loyalty_ledger_earn_once "
