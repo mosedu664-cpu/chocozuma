@@ -55,21 +55,20 @@ class CzLoyaltyInbound(models.Model):
     def _enqueue(self, wa_messages):
         cfg = self.env["cz.loyalty.config"].get()
         if cfg.mode == "off":
-            return False
-        created = False
+            return self.browse()
+        created = self.browse()
         for msg in wa_messages:
             if cfg.wa_account_ids and msg.wa_account_id not in cfg.wa_account_ids:
                 continue
             if msg.msg_uid and self.search_count([("msg_uid", "=", msg.msg_uid)]):
                 continue
-            self.create({
+            created |= self.create({
                 "wa_message_id": msg.id,
                 "msg_uid": msg.msg_uid or False,
                 "mobile_raw": msg.mobile_number,
                 "phone": normalize_phone(msg.mobile_number),
                 "body": html2plaintext(msg.body or "").strip(),
             })
-            created = True
         return created
 
     # ------------------------------------------------------------------ cron
@@ -189,7 +188,7 @@ class CzLoyaltyInbound(models.Model):
             result = "gift_big"
         else:
             key = "welcome" if first_ever else "credit"
-            texts.append(MESSAGES[key].format(name=(" " + member.name) if member.name else "", **self._progress(cfg, after)))
+            texts.append(MESSAGES[key].format(name="", **self._progress(cfg, after)))
         if first_ever:
             member.awaiting_consent = True
             texts.append(MESSAGES["consent"].format(kvkk_url=cfg.kvkk_url or ""))
