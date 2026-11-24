@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="cz_loyalty_simulate_form" model="ir.ui.view">
+        <field name="name">cz.loyalty.simulate.form</field>
+        <field name="model">cz.loyalty.simulate</field>
+        <field name="arch" type="xml">
+            <form string="Simulate an incoming WhatsApp message">
+                <p class="text-muted">Runs the real logic and writes real beans, but sends nothing to WhatsApp. Use it on staging.</p>
+                <group>
+                    <field name="phone" placeholder="+905xxxxxxxxx"/>
+                    <field name="pos_order_id" options="{'no_create': True}"/>
+                    <field name="text" placeholder="Kakao Hazinesi ✦ ZUMA-XXXXXXXX, kâse, evet, durdur, a first name…"/>
+                </group>
+                <group invisible="not result">
+                    <field name="result"/>
+                    <field name="reply_text"/>
+                </group>
+                <footer>
+                    <button name="action_run" type="object" string="Send" class="btn-primary"/>
+                    <button name="action_assign_codes" type="object" string="Give codes to recent receipts"/>
+                    <button special="cancel" string="Close"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_cz_loyalty_simulate" model="ir.actions.act_window">
+        <field name="name">Simulate message</field>
+        <field name="res_model">cz.loyalty.simulate</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
