@@ -120,7 +120,7 @@ patch(ProductScreen.prototype, {
         // the load order. A gift code must never reach them.
         const productAction = this._barcodeProductAction;
         this._barcodeProductAction = async (code) => {
-            const raw = String(code?.base_code || code?.code || "").replace(/\\s/g, "");
+            const raw = String(code?.base_code || code?.code || "").replace(/\s/g, "");
             if (this.pos?.config?.cz_loyalty_redeem && GIFT_CODE.test(raw)) {
                 await this.pos.czRedeemGift(raw);
                 return;
