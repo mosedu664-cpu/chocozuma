@@ -150,7 +150,12 @@ class CzLoyaltyInbound(models.Model):
         self.pos_order_id = order.id
         if order.config_id not in cfg.pos_config_ids:
             return self._finish("invalid", MESSAGES["invalid"])
-        if self.received_at - order.date_order > window:
+        launch_start = cfg._launch_start_utc()
+        deadline = order.date_order + window
+        if launch_start and order.date_order < launch_start:
+            # Sealed receipts of the last days before launch say "scan on launch day": keep them alive until then.
+            deadline = max(deadline, launch_start + window)
+        if self.received_at > deadline:
             return self._finish("expired", MESSAGES["expired"])
         if order.amount_total < cfg.min_order_amount:
             return self._finish("small_order", MESSAGES["small_order"])
@@ -191,6 +196,8 @@ class CzLoyaltyInbound(models.Model):
         else:
             key = "welcome" if first_ever else "credit"
             texts.append(MESSAGES[key].format(name="", **self._progress(cfg, after)))
+        if cfg._is_prelaunch():
+            texts.insert(0, MESSAGES["prelaunch"].format(day=self._fmt_launch(cfg.launch_date)))
         if first_ever:
             member.awaiting_consent = True
             texts.append(MESSAGES["consent"].format(kvkk_url=cfg.kvkk_url or ""))
@@ -270,6 +277,11 @@ class CzLoyaltyInbound(models.Model):
         if "refunded_orderline_id" not in Line._fields:
             return False
         return bool(Line.search_count([("refunded_orderline_id", "in", order.lines.ids)]))
+
+    @staticmethod
+    def _fmt_launch(day):
+        months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+        return "%d %s" % (day.day, months[day.month - 1])
 
     @staticmethod
     def _local_day_start_utc():
