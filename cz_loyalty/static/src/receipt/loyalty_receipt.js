@@ -3,6 +3,7 @@
 import { PosOrder } from "@point_of_sale/app/models/pos_order";
 import { patch } from "@web/core/utils/patch";
 import { qrCodeSrc } from "@point_of_sale/utils";
+import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment_screen";
 
 /**
  * Kakao Hazinesi: the cacao banknote under the receipt.
@@ -46,5 +47,33 @@ patch(PosOrder.prototype, {
             serial: `${code.slice(0, 4)} ${code.slice(4)}`,
             hours: config.cz_loyalty_valid_hours || 72,
         };
+    },
+});
+
+/**
+ * First weeks: right after the payment of a receipt that carries the banknote, remind the cashier
+ * what to say. One short toast, no click needed; switched off in the settings once it is a habit.
+ */
+patch(PaymentScreen.prototype, {
+    async afterOrderValidation() {
+        let hint = false;
+        try {
+            const order = this.currentOrder;
+            hint = Boolean(this.pos.config.cz_loyalty_hint && order && order.czKakaoData());
+        } catch (e) {
+            console.error("cz_loyalty: hint skipped", e);
+        }
+        const result = await super.afterOrderValidation(...arguments);
+        if (hint) {
+            try {
+                this.pos.notification.add(
+                    "Misafire söyleyin: «Fişinizde bir kakao taneniz var, kameranızla okutun.»",
+                    { title: "\u2726 Bu fişte kakao banknotu var", type: "info" }
+                );
+            } catch (e) {
+                console.error("cz_loyalty: hint skipped", e);
+            }
+        }
+        return result;
     },
 });

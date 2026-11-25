@@ -46,6 +46,10 @@ class CzLoyaltyConfig(models.Model):
         string="Print the cacao banknote on receipts", tracking=True,
         help="Adds the banknote with the QR code under every eligible receipt and bill of the branches above. "
              "Switch it on only when guests can really use it (mode Live), or on staging.")
+    cashier_hint = fields.Boolean(
+        string="Remind the cashier at payment", default=True, tracking=True,
+        help="After the payment of a receipt that carries the banknote, the POS shows a short reminder with the "
+             "sentence to say to the guest. Useful in the first weeks; switch it off when it has become a habit.")
     kvkk_url = fields.Char(string="KVKK notice URL", default="https://b2b.chocozuma.com/kvkk-aydinlatma-metni")
     alert_partner_ids = fields.Many2many("res.partner", string="Alert recipients")
 
