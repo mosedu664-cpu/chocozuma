@@ -101,6 +101,9 @@ class CzLoyaltyReward(models.Model):
         order = self.env["pos.order"].sudo().search([("uuid", "=", order_uuid)], limit=1)
         if order and order.state in ("paid", "done", "invoiced"):
             return False
+        if self.env["pos.order.line"].sudo().search_count([
+                ("cz_reward_token", "=", token), ("order_id.state", "in", ("paid", "done", "invoiced"))]):
+            return False
         reward.write({"state": "issued", "used_at": False, "used_config_id": False, "used_company_id": False,
                       "used_order_uuid": False, "used_order_ref": False, "used_by_id": False, "used_order_id": False})
         return True

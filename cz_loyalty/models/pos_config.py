@@ -8,6 +8,7 @@ class PosConfig(models.Model):
     # Read-only mirrors of the Kakao Hazinesi settings, loaded with the POS so the receipt can print the banknote.
     cz_loyalty_receipt = fields.Boolean(compute="_compute_cz_loyalty")
     cz_loyalty_redeem = fields.Boolean(compute="_compute_cz_loyalty")
+    cz_loyalty_hint = fields.Boolean(compute="_compute_cz_loyalty")
     cz_loyalty_wa_number = fields.Char(compute="_compute_cz_loyalty")
     cz_loyalty_min_amount = fields.Float(compute="_compute_cz_loyalty")
     cz_loyalty_valid_hours = fields.Integer(compute="_compute_cz_loyalty")
@@ -20,6 +21,7 @@ class PosConfig(models.Model):
         for config in self:
             config.cz_loyalty_receipt = bool(
                 cfg.mode != "off" and cfg.print_on_receipt and number and config in cfg.pos_config_ids)
+            config.cz_loyalty_hint = bool(cfg.cashier_hint)
             config.cz_loyalty_redeem = bool(cfg.mode != "off" and config in cfg.pos_config_ids)
             config.cz_loyalty_wa_number = number
             config.cz_loyalty_min_amount = cfg.min_order_amount

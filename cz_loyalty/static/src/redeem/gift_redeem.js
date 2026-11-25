@@ -98,16 +98,30 @@ patch(PosOrder.prototype, {
             .filter(Boolean);
         const uuid = this.uuid;
         const result = super.removeOrderline(...arguments);
-        for (const token of tokens) {
-            const stillThere = this.lines.some((l) => l.cz_reward_token === token);
-            if (!stillThere) {
-                rpc("/web/dataset/call_kw/cz.loyalty.reward/pos_release", {
-                    model: "cz.loyalty.reward",
-                    method: "pos_release",
-                    args: [token, uuid],
-                    kwargs: {},
-                }).catch((e) => console.error("cz_loyalty: release failed", e));
-            }
+        if (tokens.length) {
+            // A split bill or a table transfer removes the line here and re-creates it on another
+            // bill: wait for that to settle, then free only the codes that are on no open bill.
+            const models = this.models;
+            setTimeout(() => {
+                for (const token of tokens) {
+                    let stillThere = true;
+                    try {
+                        stillThere = models["pos.order.line"]
+                            .getAll()
+                            .some((l) => l.cz_reward_token === token);
+                    } catch (e) {
+                        console.error("cz_loyalty: could not check the gift line", e);
+                    }
+                    if (!stillThere) {
+                        rpc("/web/dataset/call_kw/cz.loyalty.reward/pos_release", {
+                            model: "cz.loyalty.reward",
+                            method: "pos_release",
+                            args: [token, uuid],
+                            kwargs: {},
+                        }).catch((e) => console.error("cz_loyalty: release failed", e));
+                    }
+                }
+            }, 1500);
         }
         return result;
     },
