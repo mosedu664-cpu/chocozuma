@@ -52,12 +52,16 @@ def extract_code(text):
     return m.group(1).upper() if m else False
 
 
+# On the shop's own number guests also chat about orders, so only words nobody uses in an order
+# conversation act at any time. "evet" / "hayır" answer the consent question only (24 hours after it).
 KEYWORDS = {
-    "balance": {"kese", "kesem", "kase", "hazine", "bakiye", "tane"},
-    "code": {"kod", "kodum", "ikram", "ikramim"},
+    "balance": {"kese", "kesem", "bakiye"},
+    "code": {"kod", "kodum"},
     "optin": {"evet"},
-    "optout": {"durdur", "stop", "iptal", "hayir", "hayir, tesekkurler"},
+    "consent_no": {"hayir", "hayir, tesekkurler"},
+    "optout": {"durdur", "stop"},
 }
+CONSENT_WINDOW_HOURS = 24
 
 
 def keyword_intent(text):
