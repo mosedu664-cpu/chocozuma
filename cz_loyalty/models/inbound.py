@@ -152,7 +152,7 @@ class CzLoyaltyInbound(models.Model):
             return self._finish("invalid", MESSAGES["invalid"])
         launch_start = cfg._launch_start_utc()
         deadline = order.date_order + window
-        if launch_start and order.date_order < launch_start:
+        if launch_start and launch_start - timedelta(days=3) <= order.date_order < launch_start:
             # Sealed receipts of the last days before launch say "scan on launch day": keep them alive until then.
             deadline = max(deadline, launch_start + window)
         if self.received_at > deadline:
