@@ -12,6 +12,27 @@ import { PaymentScreen } from "@point_of_sale/app/screens/payment_screen/payment
  * is only known once the order has been synced. No code → no banknote: the
  * receipt prints exactly as before. Nothing here may ever break a print.
  */
+const CZ_MONTHS = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+
+/** Whole days from today (the POS's local date) to the launch day; 0 or less once launched. */
+function czDaysToLaunch(iso) {
+    if (!iso) {
+        return 0;
+    }
+    const [y, m, d] = iso.split("-").map(Number);
+    const now = new Date();
+    const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    return Math.round((Date.UTC(y, m - 1, d) - today) / 86400000);
+}
+
+function czLaunchLabel(iso) {
+    if (!iso) {
+        return "";
+    }
+    const [, m, d] = iso.split("-").map(Number);
+    return `${d} ${CZ_MONTHS[m - 1]}`.toLocaleUpperCase("tr-TR");
+}
+
 patch(PosOrder.prototype, {
     export_for_printing(baseUrl, headerData) {
         const result = super.export_for_printing(...arguments);
@@ -42,10 +63,17 @@ patch(PosOrder.prototype, {
             return false;
         }
         const text = encodeURIComponent(`Kakao Hazinesi \u2726 ZUMA-${code}`);
+        const days = czDaysToLaunch(config.cz_loyalty_launch);
+        // live: the banknote · sealed (last 3 days): banknote with a real QR, "opens on launch day"
+        // count (4+ days out): a countdown with no QR at all.
+        const phase = days <= 0 ? "live" : days <= 3 ? "sealed" : "count";
         return {
-            qr: qrCodeSrc(`https://wa.me/${number}?text=${text}`, { size: 300 }),
+            phase,
+            days,
+            qr: phase === "count" ? false : qrCodeSrc(`https://wa.me/${number}?text=${text}`, { size: 300 }),
             serial: `${code.slice(0, 4)} ${code.slice(4)}`,
             hours: config.cz_loyalty_valid_hours || 72,
+            launch: czLaunchLabel(config.cz_loyalty_launch),
         };
     },
 });
@@ -59,17 +87,24 @@ patch(PaymentScreen.prototype, {
         let hint = false;
         try {
             const order = this.currentOrder;
-            hint = Boolean(this.pos.config.cz_loyalty_hint && order && order.czKakaoData());
+            hint = this.pos.config.cz_loyalty_hint && order && order.czKakaoData();
         } catch (e) {
             console.error("cz_loyalty: hint skipped", e);
         }
         const result = await super.afterOrderValidation(...arguments);
         if (hint) {
             try {
-                this.pos.notification.add(
-                    "Misafire söyleyin: «Fişinizde bir kakao taneniz var, kameranızla okutun.»",
-                    { title: "\u2726 Bu fişte kakao banknotu var", type: "info" }
-                );
+                const msg = {
+                    live: ["\u2726 Bu fişte kakao banknotu var",
+                        "Misafire söyleyin: «Fişinizde bir kakao taneniz var, kameranızla okutun.»"],
+                    sealed: ["\u2726 Bu fişte mühürlü kakao tanesi var",
+                        "Misafire söyleyin: «Bu fişi saklayın, 1 Aralık'ta açılıyor. İlk kakao taneniz içinde.»"],
+                    count: ["\u2726 Kakao Hazinesi geliyor",
+                        "Misafir sorarsa: «Çok yakında. Fişinizin altında ipucu var.»"],
+                }[hint.phase] || [];
+                if (msg.length) {
+                    this.pos.notification.add(msg[1], { title: msg[0], type: "info" });
+                }
             } catch (e) {
                 console.error("cz_loyalty: hint skipped", e);
             }

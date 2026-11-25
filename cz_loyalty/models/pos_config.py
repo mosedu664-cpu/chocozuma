@@ -13,6 +13,7 @@ class PosConfig(models.Model):
     cz_loyalty_min_amount = fields.Float(compute="_compute_cz_loyalty")
     cz_loyalty_valid_hours = fields.Integer(compute="_compute_cz_loyalty")
     cz_loyalty_excluded_partners = fields.Char(compute="_compute_cz_loyalty")
+    cz_loyalty_launch = fields.Char(compute="_compute_cz_loyalty")
 
     def _compute_cz_loyalty(self):
         cfg = self.env["cz.loyalty.config"].get()
@@ -27,3 +28,4 @@ class PosConfig(models.Model):
             config.cz_loyalty_min_amount = cfg.min_order_amount
             config.cz_loyalty_valid_hours = cfg.code_valid_hours
             config.cz_loyalty_excluded_partners = excluded
+            config.cz_loyalty_launch = cfg.launch_date.isoformat() if cfg.launch_date else ""

@@ -83,6 +83,7 @@ GIFT_NAMES = {"small": "Şefin İkramı", "big": "Hazine Tabağı"}
 
 # Customer-facing texts (Turkish). "siz" form, only the ✦ mark, hospitality words (ikram, misafir).
 MESSAGES = {
+    "prelaunch": "Kakao Hazinesi {day}'ta açılıyor ✦ Taneniz şimdiden kesenizde, sizi bekliyor.",
     "welcome": "Kakao Hazinesi'ne hoş geldiniz{name} ✦\nFişinizden 1 tane + hoş geldin hediyesi 1 tane = 2 tane.\n{row}\n{gift}'na {left} tane kaldı.",
     "consent": "İkramınız hazır olduğunda WhatsApp'tan haber verelim mi? «Evet» ya da «Hayır» yazmanız yeterli.\nAydınlatma metni: {kvkk_url}",
     "credit": "Kakao taneniz kesenize eklendi ✦\n{row}\n{gift}'na {left} tane kaldı.",

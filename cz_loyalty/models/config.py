@@ -50,8 +50,26 @@ class CzLoyaltyConfig(models.Model):
         string="Remind the cashier at payment", default=True, tracking=True,
         help="After the payment of a receipt that carries the banknote, the POS shows a short reminder with the "
              "sentence to say to the guest. Useful in the first weeks; switch it off when it has become a habit.")
+    launch_date = fields.Date(
+        string="Launch day", default=fields.Date.to_date("2026-12-01"), tracking=True,
+        help="Before this day the receipt prints the countdown (no QR from 4 days out, a sealed banknote "
+             "with a real QR in the last 3 days) and replies say the treasure opens on this day. "
+             "Codes printed before it stay valid until the launch day plus the code validity.")
     kvkk_url = fields.Char(string="KVKK notice URL", default="https://b2b.chocozuma.com/kvkk-aydinlatma-metni")
     alert_partner_ids = fields.Many2many("res.partner", string="Alert recipients")
+
+    def _launch_start_utc(self):
+        """00:00 Istanbul on the launch day, as naive UTC (False when no launch day is set)."""
+        if not self.launch_date:
+            return False
+        import pytz
+        from datetime import datetime, time
+        tz = pytz.timezone("Europe/Istanbul")
+        return tz.localize(datetime.combine(self.launch_date, time(0, 0))).astimezone(pytz.utc).replace(tzinfo=None)
+
+    def _is_prelaunch(self):
+        start = self._launch_start_utc()
+        return bool(start and fields.Datetime.now() < start)
 
     @api.model
     def get(self):

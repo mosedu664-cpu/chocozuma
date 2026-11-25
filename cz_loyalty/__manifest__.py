@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Choco Zuma — Kakao Hazinesi (Loyalty)",
-    "version": "18.0.0.4.7",
+    "version": "18.0.0.5.0",
     "summary": "One loyalty wallet for all Choco Zuma branches: receipt code → WhatsApp → bean; gifts at 4 and 8 visits",
     "description": """
 Kakao Hazinesi
