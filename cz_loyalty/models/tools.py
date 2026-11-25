@@ -52,12 +52,16 @@ def extract_code(text):
     return m.group(1).upper() if m else False
 
 
+# On the shop's own number guests also chat about orders, so only words nobody uses in an order
+# conversation act at any time. "evet" / "hayır" answer the consent question only (24 hours after it).
 KEYWORDS = {
-    "balance": {"kese", "kesem", "kase", "hazine", "bakiye", "tane"},
-    "code": {"kod", "kodum", "ikram", "ikramim"},
+    "balance": {"kese", "kesem", "bakiye"},
+    "code": {"kod", "kodum"},
     "optin": {"evet"},
-    "optout": {"durdur", "stop", "iptal", "hayir", "hayir, tesekkurler"},
+    "consent_no": {"hayir", "hayir, tesekkurler"},
+    "optout": {"durdur", "stop"},
 }
+CONSENT_WINDOW_HOURS = 24
 
 
 def keyword_intent(text):
@@ -83,7 +87,8 @@ GIFT_NAMES = {"small": "Şefin İkramı", "big": "Hazine Tabağı"}
 
 # Customer-facing texts (Turkish). "siz" form, only the ✦ mark, hospitality words (ikram, misafir).
 MESSAGES = {
-    "welcome": "Kakao Hazinesi'ne hoş geldiniz{name} ✦\nİlk taneniz sizden, biri de bizden.\n{row}\n{gift}'na {left} tane kaldı.",
+    "prelaunch": "Kakao Hazinesi {day}'ta açılıyor ✦ Taneniz şimdiden kesenizde, sizi bekliyor.",
+    "welcome": "Kakao Hazinesi'ne hoş geldiniz{name} ✦\nFişinizden 1 tane + hoş geldin hediyesi 1 tane = 2 tane.\n{row}\n{gift}'na {left} tane kaldı.",
     "consent": "İkramınız hazır olduğunda WhatsApp'tan haber verelim mi? «Evet» ya da «Hayır» yazmanız yeterli.\nAydınlatma metni: {kvkk_url}",
     "credit": "Kakao taneniz kesenize eklendi ✦\n{row}\n{gift}'na {left} tane kaldı.",
     "gift_small": "Dördüncü kakao taneniz kesenizde ✦\nŞefin İkramı sizi bekliyor: menümüzde yer almayan, yalnızca Kakao Hazinesi misafirlerimize hazırladığımız küçük bir lezzet.\nBir sonraki gelişinizde sipariş verirken bu kodu göstermeniz yeterli:\n{token}\nSon gün: {expiry}",

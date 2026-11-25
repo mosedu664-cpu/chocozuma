@@ -42,8 +42,34 @@ class CzLoyaltyConfig(models.Model):
     test_skip_daily_limit = fields.Boolean(
         string="Test mode: allow several beans per day", default=True, tracking=True,
         help="Only applies in Test mode, so a full cycle can be tested in one sitting.")
+    print_on_receipt = fields.Boolean(
+        string="Print the cacao banknote on receipts", tracking=True,
+        help="Adds the banknote with the QR code under every eligible receipt and bill of the branches above. "
+             "Switch it on only when guests can really use it (mode Live), or on staging.")
+    cashier_hint = fields.Boolean(
+        string="Remind the cashier at payment", default=True, tracking=True,
+        help="After the payment of a receipt that carries the banknote, the POS shows a short reminder with the "
+             "sentence to say to the guest. Useful in the first weeks; switch it off when it has become a habit.")
+    launch_date = fields.Date(
+        string="Launch day", default=fields.Date.to_date("2026-12-01"), tracking=True,
+        help="Before this day the receipt prints the countdown (no QR from 4 days out, a sealed banknote "
+             "with a real QR in the last 3 days) and replies say the treasure opens on this day. "
+             "Codes printed before it stay valid until the launch day plus the code validity.")
     kvkk_url = fields.Char(string="KVKK notice URL", default="https://b2b.chocozuma.com/kvkk-aydinlatma-metni")
     alert_partner_ids = fields.Many2many("res.partner", string="Alert recipients")
+
+    def _launch_start_utc(self):
+        """00:00 Istanbul on the launch day, as naive UTC (False when no launch day is set)."""
+        if not self.launch_date:
+            return False
+        import pytz
+        from datetime import datetime, time
+        tz = pytz.timezone("Europe/Istanbul")
+        return tz.localize(datetime.combine(self.launch_date, time(0, 0))).astimezone(pytz.utc).replace(tzinfo=None)
+
+    def _is_prelaunch(self):
+        start = self._launch_start_utc()
+        return bool(start and fields.Datetime.now() < start)
 
     @api.model
     def get(self):
@@ -51,6 +77,13 @@ class CzLoyaltyConfig(models.Model):
         if not cfg:
             cfg = self.sudo().create({})
         return cfg
+
+    def _platform_partner_ids(self):
+        """POS customers that stand for a delivery platform (*TRENDYOL, ...): their orders never earn."""
+        if "cz.platform.account" not in self.env:
+            return []
+        accounts = self.env["cz.platform.account"].sudo().with_context(active_test=False).search([("partner_id", "!=", False)])
+        return accounts.mapped("partner_id").ids
 
     @api.constrains("small_at", "cycle_len", "code_valid_hours", "reward_valid_days")
     def _check_positive(self):

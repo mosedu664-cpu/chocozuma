@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "Choco Zuma — Kakao Hazinesi (Loyalty)",
-    "version": "18.0.0.2.1",
+    "version": "18.0.0.5.2",
     "summary": "One loyalty wallet for all Choco Zuma branches: receipt code → WhatsApp → bean; gifts at 4 and 8 visits",
     "description": """
 Kakao Hazinesi
@@ -30,6 +30,12 @@ Increment 2 adds the receipt QR and the cashier scan in the POS.
         "wizard/simulate_views.xml",
         "views/loyalty_views.xml",
     ],
+    "assets": {
+        "point_of_sale._assets_pos": [
+            "cz_loyalty/static/src/receipt/*",
+            "cz_loyalty/static/src/redeem/*",
+        ],
+    },
     "installable": True,
     "application": False,
 }

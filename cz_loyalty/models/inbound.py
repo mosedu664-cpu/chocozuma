@@ -8,9 +8,11 @@ from markupsafe import Markup, escape
 from odoo import api, fields, models
 from odoo.tools import html2plaintext
 
-from .tools import GIFT_NAMES, MESSAGES, bean_row, extract_code, fmt_token, keyword_intent, normalize_phone
+from .tools import CONSENT_WINDOW_HOURS, GIFT_NAMES, MESSAGES, bean_row, extract_code, fmt_token, keyword_intent, normalize_phone
 
 _logger = logging.getLogger(__name__)
+
+STALE_HOURS = 2  # inbound messages older than this (history sync, very late webhooks) are not answered
 
 TZ = pytz.timezone("Europe/Istanbul")
 BACKOFF_MIN = [1, 5, 15, 60, 240]
@@ -57,8 +59,19 @@ class CzLoyaltyInbound(models.Model):
         if cfg.mode == "off":
             return self.browse()
         created = self.browse()
+        stale_before = fields.Datetime.now() - timedelta(hours=STALE_HOURS)
         for msg in wa_messages:
             if cfg.wa_account_ids and msg.wa_account_id not in cfg.wa_account_ids:
+                continue
+            mail = msg.mail_message_id
+            # Shop number in coexistence: what the staff type on the phone comes back as an "echo"
+            # written by an internal user. It is the shop talking, never a guest.
+            author = mail.author_id
+            if author and (author == self.env.ref("base.partner_root")
+                           or author.user_ids.filtered(lambda u: not u.share)):
+                continue
+            # History imported when a number is connected arrives with its old dates: never answer it.
+            if mail and mail.date and mail.date < stale_before:
                 continue
             if msg.msg_uid and self.search_count([("msg_uid", "=", msg.msg_uid)]):
                 continue
@@ -114,10 +127,13 @@ class CzLoyaltyInbound(models.Model):
             return self._handle_code(cfg, code)
         member = self.env["cz.loyalty.member"].sudo().search([("phone", "=", self.phone)], limit=1)
         intent = keyword_intent(self.body)
-        if member and intent == "optin":
+        consent_open = bool(
+            member and member.awaiting_consent and member.first_visit
+            and fields.Datetime.now() - member.first_visit <= timedelta(hours=CONSENT_WINDOW_HOURS))
+        if intent == "optin" and consent_open:
             member.write({"marketing_optin": True, "marketing_optin_date": fields.Datetime.now(), "awaiting_consent": False})
             return self._finish("optin", MESSAGES["optin"], member)
-        if member and intent == "optout":
+        if (member and intent == "optout") or (intent == "consent_no" and consent_open):
             member.write({"marketing_optin": False, "awaiting_consent": False})
             return self._finish("optout", MESSAGES["optout"], member)
         if member and intent == "balance":
@@ -150,10 +166,17 @@ class CzLoyaltyInbound(models.Model):
         self.pos_order_id = order.id
         if order.config_id not in cfg.pos_config_ids:
             return self._finish("invalid", MESSAGES["invalid"])
-        if self.received_at - order.date_order > window:
+        launch_start = cfg._launch_start_utc()
+        deadline = order.date_order + window
+        if launch_start and launch_start - timedelta(days=3) <= order.date_order < launch_start:
+            # Sealed receipts of the last days before launch say "scan on launch day": keep them alive until then.
+            deadline = max(deadline, launch_start + window)
+        if self.received_at > deadline:
             return self._finish("expired", MESSAGES["expired"])
         if order.amount_total < cfg.min_order_amount:
             return self._finish("small_order", MESSAGES["small_order"])
+        if order.partner_id and order.partner_id.id in cfg._platform_partner_ids():
+            return self._finish("platform_order", MESSAGES["small_order"])
         if self._is_refunded(order):
             return self._finish("refunded", MESSAGES["invalid"])
         Ledger = self.env["cz.loyalty.ledger"].sudo()
@@ -189,11 +212,35 @@ class CzLoyaltyInbound(models.Model):
         else:
             key = "welcome" if first_ever else "credit"
             texts.append(MESSAGES[key].format(name="", **self._progress(cfg, after)))
+        if cfg._is_prelaunch():
+            texts.insert(0, MESSAGES["prelaunch"].format(day=self._fmt_launch(cfg.launch_date)))
         if first_ever:
             member.awaiting_consent = True
             texts.append(MESSAGES["consent"].format(kvkk_url=cfg.kvkk_url or ""))
             result += "_new"
-        return self._finish(result, texts, member)
+        res = self._finish(result, texts, member)
+        if result.startswith("gift_"):
+            self._send_gift_qr(reward)
+        return res
+
+    def _send_gift_qr(self, reward):
+        """Second message with the gift code as a QR picture, so the cashier can scan the guest's phone.
+        Best effort: the code was already sent as text."""
+        if self.simulated or not self.wa_message_id:
+            return
+        try:
+            with self.env.cr.savepoint():
+                channel = self._channel()
+                if not channel:
+                    return
+                png = self.env["ir.actions.report"].sudo().barcode("QR", reward.token, width=400, height=400)
+                channel.message_post(
+                    body=Markup("%s") % ("%s kodunuz" % GIFT_NAMES[reward.kind]),
+                    attachments=[("ikram-%s.png" % reward.token[-4:], png)],
+                    message_type="whatsapp_message", subtype_xmlid="mail.mt_comment",
+                )
+        except Exception:  # noqa: BLE001
+            _logger.exception("cz_loyalty: gift QR picture not sent (text code was sent)")
 
     # ------------------------------------------------------------------ helpers
     @staticmethod
@@ -246,6 +293,11 @@ class CzLoyaltyInbound(models.Model):
         if "refunded_orderline_id" not in Line._fields:
             return False
         return bool(Line.search_count([("refunded_orderline_id", "in", order.lines.ids)]))
+
+    @staticmethod
+    def _fmt_launch(day):
+        months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"]
+        return "%d %s" % (day.day, months[day.month - 1])
 
     @staticmethod
     def _local_day_start_utc():
