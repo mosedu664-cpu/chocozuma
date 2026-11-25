@@ -8,9 +8,11 @@ from markupsafe import Markup, escape
 from odoo import api, fields, models
 from odoo.tools import html2plaintext
 
-from .tools import GIFT_NAMES, MESSAGES, bean_row, extract_code, fmt_token, keyword_intent, normalize_phone
+from .tools import CONSENT_WINDOW_HOURS, GIFT_NAMES, MESSAGES, bean_row, extract_code, fmt_token, keyword_intent, normalize_phone
 
 _logger = logging.getLogger(__name__)
+
+STALE_HOURS = 2  # inbound messages older than this (history sync, very late webhooks) are not answered
 
 TZ = pytz.timezone("Europe/Istanbul")
 BACKOFF_MIN = [1, 5, 15, 60, 240]
@@ -57,8 +59,19 @@ class CzLoyaltyInbound(models.Model):
         if cfg.mode == "off":
             return self.browse()
         created = self.browse()
+        stale_before = fields.Datetime.now() - timedelta(hours=STALE_HOURS)
         for msg in wa_messages:
             if cfg.wa_account_ids and msg.wa_account_id not in cfg.wa_account_ids:
+                continue
+            mail = msg.mail_message_id
+            # Shop number in coexistence: what the staff type on the phone comes back as an "echo"
+            # written by an internal user. It is the shop talking, never a guest.
+            author = mail.author_id
+            if author and (author == self.env.ref("base.partner_root")
+                           or author.user_ids.filtered(lambda u: not u.share)):
+                continue
+            # History imported when a number is connected arrives with its old dates: never answer it.
+            if mail and mail.date and mail.date < stale_before:
                 continue
             if msg.msg_uid and self.search_count([("msg_uid", "=", msg.msg_uid)]):
                 continue
@@ -114,10 +127,13 @@ class CzLoyaltyInbound(models.Model):
             return self._handle_code(cfg, code)
         member = self.env["cz.loyalty.member"].sudo().search([("phone", "=", self.phone)], limit=1)
         intent = keyword_intent(self.body)
-        if member and intent == "optin":
+        consent_open = bool(
+            member and member.awaiting_consent and member.first_visit
+            and fields.Datetime.now() - member.first_visit <= timedelta(hours=CONSENT_WINDOW_HOURS))
+        if intent == "optin" and consent_open:
             member.write({"marketing_optin": True, "marketing_optin_date": fields.Datetime.now(), "awaiting_consent": False})
             return self._finish("optin", MESSAGES["optin"], member)
-        if member and intent == "optout":
+        if (member and intent == "optout") or (intent == "consent_no" and consent_open):
             member.write({"marketing_optin": False, "awaiting_consent": False})
             return self._finish("optout", MESSAGES["optout"], member)
         if member and intent == "balance":
