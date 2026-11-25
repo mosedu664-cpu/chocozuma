@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="whatsapp_account_view_form_coex" model="ir.ui.view">
+        <field name="name">whatsapp.account.form.coexistence</field>
+        <field name="model">whatsapp.account</field>
+        <field name="inherit_id" ref="whatsapp.whatsapp_account_view_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Connection type selector, at the top -->
+            <xpath expr="//div[@id='title']" position="after">
+                <div class="row mt16 o_settings_container" id="wacoex_type">
+                    <setting string="Connection Type"
+                             help="Choose how this number connects to WhatsApp.">
+                        <field name="connection_type" widget="radio"/>
+                        <field name="wacoex_connected" invisible="1"/>
+                        <field name="wacoex_broker_mode" invisible="1"/>
+                    </setting>
+                    <setting invisible="connection_type != 'coexistence'"
+                             string="QR Onboarding (Coexistence)"
+                             help="Opens Meta's dialog to scan the QR code from the WhatsApp Business app. The number's details are filled in automatically.">
+                        <button name="action_wacoex_onboard" type="object"
+                                string="Connect via Coexistence"
+                                class="btn-primary mt8" icon="fa-whatsapp"
+                                invisible="not id"/>
+                        <span invisible="id" class="text-muted">Save the record first to enable the button.</span>
+                    </setting>
+                <setting string="Meta App Provider"
+                         invisible="connection_type != 'coexistence'"
+                         help="With your own App ID and App Secret, your Meta app is used. With just the RC Studio license, RC Studio's app is used and the App ID is filled in automatically; the secret never leaves their server.">
+                    <field name="wacoex_provider_label" readonly="1"/>
+                    <field name="wacoex_license_key" password="True"
+                           placeholder="wacoex_live_…"
+                           invisible="app_secret"/>
+                    <field name="wacoex_broker_url" groups="whatsapp.group_whatsapp_admin"
+                           invisible="app_secret or not wacoex_license_key"/>
+                </setting>
+                <setting string="Webhook Delivery" groups="whatsapp.group_whatsapp_admin"
+                         invisible="connection_type != 'coexistence' or app_secret or not wacoex_license_key"
+                         help="Meta delivers straight to this Odoo: no message passes through RC Studio, which only takes part in the connection. The secret token in the URL below is what guards the endpoint.">
+                    <field name="wacoex_webhook_mode" invisible="wacoex_webhook_mode == 'direct'"/>
+                    <div invisible="wacoex_webhook_mode != 'direct'">
+                        <field name="wacoex_direct_callback_url" widget="CopyClipboardChar" readonly="1"/>
+                        <button name="action_wacoex_rotate_webhook_token" type="object"
+                                string="Rotate the token" class="btn-link p-1" icon="fa-refresh"
+                                confirm="A new token means a new URL: the current one stops working and Meta is told about the new one. Continue?"/>
+                        <div class="text-muted small">
+                            Meta signs with the App Secret of RC Studio's app, which is not in this database, so the
+                            signature cannot be checked here. Deliveries addressed to another business account or
+                            another number are dropped. If the URL is ever exposed, rotate the token.
+                        </div>
+                    </div>
+                </setting>
+                <setting string="Meta Login Configuration" groups="whatsapp.group_whatsapp_admin"
+                         invisible="connection_type != 'coexistence' or not app_secret"
+                         help="The 'Facebook Login for Business' configuration used for this number's QR. With RC Studio's app the broker provides it.">
+                    <field name="wacoex_config_id"/>
+                </setting>
+                </div>
+            </xpath>
+
+            <!-- Hide the manual Cloud API credentials in coexistence mode, and the
+                 Meta app credentials too when RC Studio's app is used (license) -->
+            <xpath expr="//setting[field[@name='app_uid']]" position="attributes">
+                <attribute name="invisible">connection_type == 'coexistence' and wacoex_broker_mode</attribute>
+            </xpath>
+            <xpath expr="//setting[field[@name='app_secret']]" position="attributes">
+                <attribute name="invisible">connection_type == 'coexistence' and wacoex_broker_mode</attribute>
+            </xpath>
+            <!-- The native form marks the Phone Number ID as required; in coexistence
+                 mode the QR onboarding fills it in, so the user cannot type it. -->
+            <xpath expr="//field[@name='phone_uid']" position="attributes">
+                <attribute name="required">connection_type != 'coexistence'</attribute>
+            </xpath>
+            <xpath expr="//setting[field[@name='phone_uid']]" position="attributes">
+                <attribute name="invisible">connection_type == 'coexistence'</attribute>
+            </xpath>
+            <xpath expr="//setting[field[@name='account_uid']]" position="attributes">
+                <attribute name="invisible">connection_type == 'coexistence'</attribute>
+            </xpath>
+            <xpath expr="//setting[field[@name='token']]" position="attributes">
+                <attribute name="invisible">connection_type == 'coexistence'</attribute>
+            </xpath>
+            <!-- Coexistence status / actions panel -->
+            <xpath expr="//div[@id='api_setup']" position="after">
+                <div class="row mt16 o_settings_container" id="wacoex_setup"
+                     invisible="connection_type != 'coexistence'">
+                    <setting string="Coexistence Status"
+                             help="The number stays active on the phone app; the API observes (echoes) and can send.">
+                        <field name="wacoex_business_id" readonly="1"/>
+                        <field name="wacoex_state_synced_at" readonly="1"/>
+                        <field name="wacoex_history_synced_at" readonly="1"/>
+                        <div class="content-group mt8" invisible="not wacoex_connected">
+                            <button name="action_wacoex_diagnose" type="object"
+                                    string="Diagnose Number" class="btn-link p-1"
+                                    icon="fa-stethoscope"/><br/>
+                            <!-- Meta allows one sync per onboarding: once done, the button
+                                 disappears instead of burning quota. -->
+                            <button name="action_wacoex_sync_state" type="object"
+                                    string="Sync Contacts" class="btn-link p-1" icon="fa-refresh"
+                                    invisible="wacoex_state_synced_at"/><br/>
+                            <button name="action_wacoex_sync_history" type="object"
+                                    string="Sync History" class="btn-link p-1" icon="fa-history"
+                                    invisible="wacoex_history_synced_at"/><br/>
+                            <button name="action_wacoex_resubscribe" type="object"
+                                    string="Re-subscribe Webhook" class="btn-link p-1"
+                                    icon="fa-link"/><br/>
+                            <button name="action_wacoex_unsubscribe" type="object"
+                                    string="Remove Webhook Override" class="btn-link p-1"
+                                    icon="fa-unlink"
+                                    confirm="Send this number's webhooks back to the app default? Odoo will stop receiving messages from this number."/>
+                        </div>
+                    </setting>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- List: show the connection type -->
+    <record id="whatsapp_account_view_tree_coex" model="ir.ui.view">
+        <field name="name">whatsapp.account.list.coexistence</field>
+        <field name="model">whatsapp.account</field>
+        <field name="inherit_id" ref="whatsapp.whatsapp_account_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='phone_uid']" position="after">
+                <field name="connection_type"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

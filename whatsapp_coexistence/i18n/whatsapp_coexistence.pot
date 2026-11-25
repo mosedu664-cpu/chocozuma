@@ -1,0 +1,752 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* whatsapp_coexistence
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0+e\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-19 07:25+0000\n"
+"PO-Revision-Date: 2026-09-19 07:25+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid ""
+"<span invisible=\"id\" class=\"text-muted\">Save the record first to enable "
+"the button.</span>"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid ""
+"A Cloud API connection requires the Phone Number ID, the Account ID and the "
+"Access Token."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid ""
+"A new token means a new URL: the current one stops working and Meta is told "
+"about the new one. Continue?"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__token
+msgid "Access Token"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__account_uid
+msgid "Account ID"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Account not found."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__app_uid
+msgid "App ID"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_provider_label
+msgid "App Provider"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__app_secret
+msgid "App Secret"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_broker_mode
+msgid "Broker Mode"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_business_id
+msgid "Business ID (Coexistence)"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Cancelled."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Check the result again"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Choose how this number connects to WhatsApp."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Click %(button)s."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Click %(button)s: a secure window from RC Studio opens."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields.selection,name:whatsapp_coexistence.selection__whatsapp_account__connection_type__api
+msgid "Cloud API (dedicated)"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,help:whatsapp_coexistence.field_whatsapp_account__connection_type
+msgid ""
+"Cloud API: the number is dedicated to the API and stops working on the phone.\n"
+"Coexistence: the number stays on the phone app while the API observes and sends alongside it (QR onboarding)."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields.selection,name:whatsapp_coexistence.selection__whatsapp_account__connection_type__coexistence
+msgid "Coexistence"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_connected
+msgid "Coexistence Connected"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Coexistence Status"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Coexistence connected and synchronized."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid ""
+"Coexistence is connected, but the initial sync failed. There is only a "
+"24-hour window and one attempt per onboarding: if it cannot be fixed, unlink"
+" the number and connect it again.<br/>%s"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid ""
+"Coexistence needs one of two things: the App ID and App Secret of your own "
+"Meta app, or an RC Studio license to use ours as the provider (the App ID is"
+" then configured automatically)."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Complete the connection in the window that just opened…"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Completing the onboarding in Odoo…"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Connect WhatsApp via Coexistence"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Connect via Coexistence"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Connected:"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__connection_type
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Connection Type"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_state_synced_at
+msgid "Contacts Synced On"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Could not reach the RC Studio broker: %s"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Diagnose Number"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_webhook_token
+msgid "Direct Webhook Token"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_direct_callback_url
+msgid "Direct Webhook URL"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Enter the App ID of the Meta app on this account."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Error:"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Finishing the onboarding in Odoo…"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Graph failed after retries: %s"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_history_synced_at
+msgid "History Synced On"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,help:whatsapp_coexistence.field_whatsapp_account__wacoex_webhook_mode
+msgid ""
+"How Meta's deliveries reach this Odoo. The module always asks for direct "
+"delivery, so no message passes through RC Studio, which only takes part in "
+"the connection. Accounts connected with an older version stay on the relay "
+"until they are connected again; that is the only case where this reads "
+"otherwise."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid ""
+"In Meta's dialog choose %(option)s and scan the %(qr)s with your app (NOT "
+"\"new number\")."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,help:whatsapp_coexistence.field_whatsapp_account__wacoex_license_key
+msgid ""
+"Key issued by RC Studio. With it, nothing else is needed: the App ID and the"
+" Login Configuration are fetched from RC Studio automatically. It grants "
+"access only to the numbers of this account; it neither replaces nor reveals "
+"the App Secret."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Loading SDK…"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_config_id
+msgid "Login Configuration ID"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Meta App Provider"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Meta Login Configuration"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid ""
+"Meta delivers straight to this Odoo: no message passes through RC Studio, "
+"which only takes part in the connection. The secret token in the URL below "
+"is what guards the endpoint."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Meta did not return an access token: %s"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,help:whatsapp_coexistence.field_whatsapp_account__wacoex_webhook_secret
+msgid ""
+"Meta signs webhooks with the App Secret, which is not here in broker mode. "
+"The broker validates that signature and forwards the delivery re-signed with"
+" this secret, which is yours. Issued by the broker on subscription."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid ""
+"Meta signs with the App Secret of RC Studio's app, which is not in this database, so the\n"
+"                            signature cannot be checked here. Deliveries addressed to another business account or\n"
+"                            another number are dropped. If the URL is ever exposed, rotate the token."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Missing code, waba_id or phone_number_id."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Network error calling Graph: %s"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Network error:"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Not configured"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid ""
+"Number linked as coexistence. Status: %(status)s, platform: %(platform)s."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Only WhatsApp administrators can connect a number."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Opening Meta's dialog…"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Opening the secure connection window…"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid ""
+"Opens Meta's dialog to scan the QR code from the WhatsApp Business app. The "
+"number's details are filled in automatically."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__phone_uid
+msgid "Phone Number ID"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "QR Onboarding (Coexistence)"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_broker_url
+msgid "RC Studio Broker"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_license_key
+msgid "RC Studio License"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "RC Studio broker: %s"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "RC Studio's app (broker)"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Re-subscribe Webhook"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Remove Webhook Override"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Rotate the token"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Save the record before connecting."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,help:whatsapp_coexistence.field_whatsapp_account__wacoex_webhook_token
+msgid ""
+"Secret part of the direct webhook URL. It is what authenticates the "
+"deliveries Meta sends straight to this Odoo."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid ""
+"Send this number's webhooks back to the app default? Odoo will stop "
+"receiving messages from this number."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,help:whatsapp_coexistence.field_whatsapp_account__wacoex_broker_url
+msgid ""
+"Service that keeps the App Secret when you use RC Studio's Meta app. Only "
+"used when the App Secret is left empty."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_signup_token
+msgid "Signup Session Token"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields.selection,name:whatsapp_coexistence.selection__whatsapp_account__wacoex_webhook_mode__direct
+msgid "Straight from Meta to this Odoo"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Sync Contacts"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Sync History"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid ""
+"The %(label)s sync already ran on %(date)s. Meta allows only one per "
+"onboarding: to run it again, unlink the number and redo the Coexistence "
+"connection."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,help:whatsapp_coexistence.field_whatsapp_account__wacoex_config_id
+msgid ""
+"The 'Facebook Login for Business' configuration used for this number's QR. "
+"Defaults to the global one from Settings."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid ""
+"The 'Facebook Login for Business' configuration used for this number's QR. "
+"With RC Studio's app the broker provides it."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid ""
+"The Meta app quota is exhausted. Wait at least one hour without making calls"
+" before retrying: the window is sliding and every attempt extends it. "
+"(current usage: %s)"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "The Python package 'requests' is not installed."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid ""
+"The RC Studio license is missing. Set it on the account, or configure the "
+"App Secret of your own Meta app."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,help:whatsapp_coexistence.field_whatsapp_account__wacoex_direct_callback_url
+msgid ""
+"The URL registered with Meta when the delivery is direct. Its token is "
+"secret."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "The broker did not return a signup session: %s"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "The broker did not return an access token: %s"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "The broker returned an incomplete result: %s"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid ""
+"The connection is not finished yet. Complete it in the window and try again."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "The connection session expired. Click Connect again."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "The direct webhook token was rotated."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "The hosted connection is only available with an RC Studio license."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "The number must have been active on WhatsApp Business for %(days)s."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid ""
+"The number stays active on the phone app; the API observes (echoes) and can "
+"send."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "There is no connection session in progress. Click Connect again."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid ""
+"This number was NOT linked to the WhatsApp Business app "
+"(is_on_biz_app=%(on)s, platform_type=%(platform)s, status=%(status)s). Check"
+" that the Embedded Signup uses the coexistence Login Configuration and "
+"connect again; the syncs will fail with \"Account not registered\"."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields.selection,name:whatsapp_coexistence.selection__whatsapp_account__wacoex_webhook_mode__relay
+msgid "Through the RC Studio service (older connections)"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,help:whatsapp_coexistence.field_whatsapp_account__wacoex_signup_token
+msgid ""
+"Token of the Embedded Signup session opened on the RC Studio broker. Short-"
+"lived; only needed until the connection completes."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,help:whatsapp_coexistence.field_whatsapp_account__wacoex_broker_mode
+msgid ""
+"True when this number connects through RC Studio's Meta app (license set, no"
+" App Secret of your own)."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_webhook_mode
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "Webhook Delivery"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,field_description:whatsapp_coexistence.field_whatsapp_account__wacoex_webhook_secret
+msgid "Webhook Secret (Broker)"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Webhook override removed (back to the app default)."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Webhook re-subscribed."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model,name:whatsapp_coexistence.model_whatsapp_account
+msgid "WhatsApp Business Account"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model,name:whatsapp_coexistence.model_whatsapp_message
+msgid "WhatsApp Messages"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model:ir.model.fields,help:whatsapp_coexistence.field_whatsapp_account__wacoex_provider_label
+msgid "Which Meta app will be used to connect this number."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid ""
+"With your own App ID and App Secret, your Meta app is used. With just the RC"
+" Studio license, RC Studio's app is used and the App ID is filled in "
+"automatically; the secret never leaves their server."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "You can close this window."
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "Your browser blocked the window. Open it with this link:"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Your own Meta app"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "[%s sent from the phone]"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "contacts"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "history"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/controllers/main.py:0
+msgid "unknown"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#: model_terms:ir.ui.view,arch_db:whatsapp_coexistence.whatsapp_account_view_form_coex
+msgid "wacoex_live_…"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "[%s from the chat history]"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "[contact card]"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "[Attachment: WhatsApp did not include the file in the chat history]"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "Reacted %s"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "[Message not supported by WhatsApp: %s]"
+msgstr ""
+
+#. module: whatsapp_coexistence
+#. odoo-python
+#: code:addons/whatsapp_coexistence/models/whatsapp_account.py:0
+msgid "[Message not supported by WhatsApp]"
+msgstr ""
