@@ -5,8 +5,8 @@
         <xpath expr="//div[hasclass('before-footer')]" position="before">
             <div t-if="props.data.cz_kakao" class="cz-kakao" style="color:#000;margin-top:8px;font-family:Arial,Helvetica,sans-serif;">
                 <div style="display:flex;justify-content:space-between;align-items:center;background:#000;color:#fff;padding:7px 10px;font-weight:bold;">
-                    <span style="font-size:13px;letter-spacing:2px;">KAKAO ÜSTÜ</span>
-                    <span style="font-size:15px;">1 TANE</span>
+                    <span style="font-size:16px;letter-spacing:1.5px;line-height:1.5;">KAKAO ÜSTÜ</span>
+                    <span style="font-size:16px;line-height:1.5;">1 TANE</span>
                 </div>
                 <div style="text-align:center;font-size:12.5px;font-weight:bold;line-height:1.4;margin-top:7px;">Aztekler hesabı kakao tanesiyle öderdi.<br/>Biz de üstünü kakaoyla veriyoruz.</div>
                 <div style="border-top:1.5px dashed #000;margin:10px 0 9px;"/>
