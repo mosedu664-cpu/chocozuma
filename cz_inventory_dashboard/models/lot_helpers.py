@@ -26,6 +26,10 @@ from odoo.tools.float_utils import float_compare, float_is_zero, float_round
 TZ = "Europe/Istanbul"
 
 
+def _n(qty, rounding):
+    return "%g" % float_round(qty, precision_rounding=rounding)
+
+
 class MrpProduction(models.Model):
     _inherit = "mrp.production"
 
@@ -119,15 +123,15 @@ class StockPicking(models.Model):
                     })
                     need[lot] += take
                     excess -= take
-                    moved.append("%s × %s" % (float_round(take, precision_rounding=rounding), lot.name))
+                    moved.append("%s × %s" % (_n(take, rounding), lot.name))
                     if float_is_zero(excess, precision_rounding=rounding):
                         break
                 if not float_is_zero(excess, precision_rounding=rounding):
-                    stock_txt = ", ".join("%s: %s" % (l.name, float_round(q, precision_rounding=rounding))
+                    stock_txt = ", ".join("%s: %s" % (l.name, _n(q, rounding))
                                           for l, q in have.items() if q > 0) or _("hiç yok")
                     problems.append(_("%(p)s: lotlarda yeterli stok yok, %(x)s %(u)s eksik. Stoktaki lotlar: %(s)s. "
                                       "Önce üretim emrini bitirin (lot oluşsun) veya miktarı düzeltin.",
-                                      p=product.display_name, x=float_round(excess, precision_rounding=rounding),
+                                      p=product.display_name, x=_n(excess, rounding),
                                       u=product.uom_id.name, s=stock_txt))
                 elif moved:
                     notes.append("%s → %s" % (product.display_name, ", ".join(moved)))
