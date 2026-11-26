@@ -107,6 +107,10 @@ class ProductTemplate(models.Model):
             "ok": bool(fresh), "has_frozen": bool(frozen and fresh),
             "fresh_txt": "", "frozen_txt": "", "fresh_zpl": "", "frozen_zpl": "",
         }
+        if self.tracking != "none":
+            line.update(ok=False, msg="Bu ürün lot ile takip ediliyor: önce üretim emrinde lot oluşturun, "
+                                      "etiket lot bilgisiyle (lot + SKT) basılır.")
+            return line
         if not fresh:
             return line
 
@@ -169,3 +173,15 @@ class MrpProduction(models.Model):
 
     def cz_label_json(self):
         return json.dumps(self._cz_label_lines())
+
+    def action_cz_print_label(self):
+        """One button for every MO: a lot-tracked product (B2B CZ-...) opens the existing lot label
+        (cz.lot_rawbt, with lot / SKT from the lot); every other product opens the kitchen label."""
+        self.ensure_one()
+        if self.product_id.tracking != "none" and self.lot_producing_id:
+            lot_report = self.env["ir.actions.report"].sudo().search(
+                [("report_name", "=", "cz.lot_rawbt")], limit=1)
+            if lot_report:
+                return lot_report.report_action(self.lot_producing_id)
+        return self.env.ref("cz_inventory_dashboard.action_report_cz_mo_label").report_action(self)
+
