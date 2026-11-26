@@ -31,7 +31,7 @@ var bad=L.filter(function(x){return !x.ok;});
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 function draw(){
  var h='';L.forEach(function(x){
-  var t=!x.ok?'Etiket ömrü tanımlı değil — ürün kartında "Etiket: taze ömür" doldurun.':(mode==='frozen'&amp;&amp;x.has_frozen?x.frozen_txt:x.fresh_txt);
+  var t=!x.ok?(x.msg||'Etiket ömrü tanımlı değil — ürün kartında "Etiket: taze ömür" doldurun.'):(mode==='frozen'&amp;&amp;x.has_frozen?x.frozen_txt:x.fresh_txt);
   h+='&lt;div class="l'+(x.ok?'':' bad')+'"&gt;&lt;b&gt;['+esc(x.code)+'] '+esc(x.name)+'&lt;/b&gt;Üretim: '+esc(x.produced)+' · Parti: '+esc(x.ref)+'&lt;div class="d"&gt;'+esc(t)+'&lt;/div&gt;&lt;/div&gt;';
  });
  document.getElementById('czl').innerHTML=h;
@@ -39,7 +39,7 @@ function draw(){
 }
 if(anyFrozen){var m=document.getElementById('czm');m.style.display='flex';
  m.addEventListener('click',function(e){var b=e.target.closest('button');if(b){mode=b.getAttribute('data-m');draw();}});}
-if(bad.length||!L.length){document.getElementById('czp').disabled=true;document.getElementById('czn').textContent='Ömrü tanımsız ürün var: etiket basılmaz.';}
+if(bad.length||!L.length){document.getElementById('czp').disabled=true;document.getElementById('czn').textContent='Bu etiket basılamaz — yukarıdaki nota bakın.';}
 var mm=(location.hash||'').match(/n=(\d+)/);if(mm){document.getElementById('czq').value=mm[1];}
 draw();
 function b64(s){var b=new TextEncoder().encode(s),x='';for(var i=0;i&lt;b.length;i++)x+=String.fromCharCode(b[i]);return btoa(x);}
@@ -87,7 +87,7 @@ document.getElementById('czp').addEventListener('click',function(){
         <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
         <field name="arch" type="xml">
             <xpath expr="//header" position="inside">
-                <button name="%(action_report_cz_mo_label)d" type="action" string="🏷 Etiket Yazdır"
+                <button name="action_cz_print_label" type="object" string="🏷 Etiket Yazdır"
                         class="btn-secondary" invisible="state == 'cancel'"/>
             </xpath>
         </field>
