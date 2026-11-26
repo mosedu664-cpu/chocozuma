@@ -33,7 +33,7 @@ the transfers Odoo already lets them see.
     'author': 'Choco Zuma Yönetim',
     'website': 'https://chocozuma.com',
     'category': 'Inventory/Inventory',
-    'version': '18.0.1.4.0',
+    'version': '18.0.1.4.1',
     'license': 'LGPL-3',
     'depends': ['stock', 'mrp', 'web'],
     'data': [

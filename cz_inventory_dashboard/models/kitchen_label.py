@@ -51,6 +51,7 @@ LABEL_SHELF_LIFE = {
 }
 
 WHERE_FULL = {"fridge": "Buzdolabında saklayın (+4 °C)", "room": "Oda sıcaklığında, kuru yerde"}
+WHERE_LABEL = {"fridge": "Soğuk 0-4 °C", "room": "Oda sıcaklığı, kuru yer"}
 WHERE_SHORT = {"fridge": "Buzdolabı", "room": "Oda sıcaklığı"}
 
 
@@ -95,41 +96,57 @@ class ProductTemplate(models.Model):
         fresh, frozen = self.cz_lbl_fresh_days, self.cz_lbl_frozen_days
         where = self.cz_lbl_fresh_where or "fridge"
         d = -30 if len(name) <= 26 else 0
-        head = (
-            "^XA^CI28^PW440^LL320^LH0,0^MNY^MMT^PR3^MD10\n"
-            "^FO20,14^A0N,24,22^FD%s^FS\n"
-            "^FO296,14^A0N,24,22^FDCHOCO ZUMA^FS\n"
-            "^FO20,44^A0N,30,26^FB400,2,0,L^FD%s^FS\n"
-            "^FO20,%d^GB400,2,2^FS\n"
-            "^FO20,%d^A0N,22,20^FDÜretim: %s^FS\n"
-        ) % (code, name, 108 + d, 116 + d, local.strftime("%d.%m.%Y %H:%M"))
-        foot = (
-            "^FO20,266^A0N,22,20^FDParti: %s^FS\n"
-            "^FO344,262^A0N,36,32^FD#K#^FS\n^XZ"
-        ) % _zpl_text(ref)
+        produced_txt = local.strftime("%d.%m.%Y %H:%M")
+        batch = _zpl_text(ref.split("/", 1)[1] if ref.count("/") >= 2 else ref)  # CKWH/MO/05607 -> MO/05607
+        allergens = ", ".join(
+            t.name.split("·", 1)[1].strip() for t in self.product_tag_ids
+            if t.name.startswith("İÇERİR") and "·" in t.name)
         line = {
             "code": tmpl.default_code or "", "name": tmpl.name, "ref": ref,
-            "produced": local.strftime("%d.%m.%Y %H:%M"),
+            "produced": produced_txt, "allergens": allergens,
             "ok": bool(fresh), "has_frozen": bool(frozen and fresh),
             "fresh_txt": "", "frozen_txt": "", "fresh_zpl": "", "frozen_zpl": "",
         }
         if not fresh:
             return line
+
+        def zpl(skt_line, store_line, skt_txt, thaw_box=False):
+            # Same grid as the B2B lot label (cz.label_lot_zpl_55x40): text left, QR right, barcode bottom.
+            z = [
+                "^XA^CI28^PW440^LL320^LH0,0^MNY^MMT^PR3^MD10",
+                "^FO20,16^A0N,24,22^FD%s^FS" % code,
+                "^FO296,16^A0N,24,22^FDCHOCO ZUMA^FS",
+                "^FO20,48^A0N,32,28^FB400,2,2,L^FD%s^FS" % name,
+                "^FO20,%d^GB400,2,2^FS" % (118 + d),
+                "^FO20,%d^A0N,22,20^FDParti: %s^FS" % (128 + d, _zpl_text(ref)),
+                "^FO20,%d^A0N,22,20^FDÜretim: %s^FS" % (152 + d, produced_txt),
+                skt_line % (178 + d),
+                "^FO20,%d^A0N,22,20^FD%s^FS" % (216 + d, store_line),
+            ]
+            y = 242 + d  # free rows above the barcode (barcode starts at 266)
+            if thaw_box and y + 22 <= 264:
+                z.append("^FO20,%d^A0N,22,20^FDDondurucudan çıkış: ___/___/______^FS" % y)
+                y += 26
+            if allergens and y + 17 <= 264:
+                z.append("^FO20,%d^A0N,17,16^FB300,1,0,L^FDAlerjen: %s^FS" % (y, _zpl_text(allergens)))
+            z += [
+                "^FO330,%d^BQN,2,3^FDLA,%s|%s|SKT %s^FS" % (116 + d, code, batch, skt_txt),
+                "^FO20,266^BY2,2.5,34^BCN,34,N,N,N^FD%s^FS" % batch,
+                "^FO344,262^A0N,36,32^FD#K#^FS",
+                "^XZ",
+            ]
+            return "\n".join(z)
+
         skt = (local + timedelta(days=fresh)).strftime("%d.%m.%Y")
         line["fresh_txt"] = "SKT %s · %s" % (skt, WHERE_SHORT[where])
-        line["fresh_zpl"] = head + (
-            "^FO20,%d^A0N,40,34^FDSKT: %s^FS\n"
-            "^FO20,%d^A0N,24,22^FD%s^FS\n"
-        ) % (142 + d, skt, 188 + d, WHERE_FULL[where]) + foot
+        line["fresh_zpl"] = zpl("^FO20,%%d^A0N,34,30^FDSKT: %s^FS" % skt, WHERE_LABEL[where], skt)
         if frozen:
             fskt = (local + timedelta(days=frozen)).strftime("%d.%m.%Y")
-            line["frozen_txt"] = "Dondurucu SKT %s · çözünce %d gün (%s)" % (
+            line["frozen_txt"] = "Donuk SKT %s · çözünce %d gün (%s)" % (
                 fskt, fresh, WHERE_SHORT[where].lower())
-            line["frozen_zpl"] = head + (
-                "^FO20,%d^A0N,30,26^FDDondurucu SKT: %s^FS\n"
-                "^FO20,%d^A0N,24,22^FDÇözünce %d gün · %s^FS\n"
-                "^FO20,%d^A0N,22,20^FDÇıkış: ____.____.______^FS\n"
-            ) % (142 + d, fskt, 178 + d, fresh, WHERE_SHORT[where], 210 + d) + foot
+            line["frozen_zpl"] = zpl(
+                "^FO20,%%d^A0N,30,26^FDDonuk SKT: %s^FS" % fskt,
+                "Çözünce: %d gün · %s" % (fresh, WHERE_SHORT[where]), fskt, thaw_box=True)
         return line
 
     def _cz_label_lines(self):
