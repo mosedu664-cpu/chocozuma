@@ -92,4 +92,25 @@ document.getElementById('czp').addEventListener('click',function(){
             </xpath>
         </field>
     </record>
+
+    <record id="stock_picking_form_cz_quick_print" model="ir.ui.view">
+        <field name="name">stock.picking.form.cz.quick.print</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_cz_print_slip" type="object" string="🖨 Teslimat Fişi Yazdır"
+                        class="btn-secondary" invisible="state == 'cancel'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_cz_print_slip_server" model="ir.actions.server">
+        <field name="name">🖨 Teslimat Fişi Yazdır</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_model_id" ref="stock.model_stock_picking"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_cz_print_slip()</field>
+    </record>
 </odoo>
