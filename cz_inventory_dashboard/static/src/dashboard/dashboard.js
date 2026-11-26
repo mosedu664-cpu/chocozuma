@@ -117,6 +117,10 @@ export class CzInventoryDashboard extends Component {
         this.openList(dom, `${t.name} · ${which}`);
     }
 
+    openDropship() {
+        this.openList([["picking_type_code", "=", "dropship"], ["state", "in", ["assigned", "waiting", "confirmed"]]], "Dropship · açık");
+    }
+
     openPartner(g) {
         if (g.partner_id < 0) {  // kitchen ↔ depot transfers: the group key is the operation type id, negated
             this.openList([["picking_type_id", "=", -g.partner_id], ["state", "in", ["assigned", "waiting", "confirmed"]]], g.partner);
@@ -126,7 +130,7 @@ export class CzInventoryDashboard extends Component {
             ? ["|", ["partner_id", "=", g.partner_id], ["sale_id.partner_id", "=", g.partner_id]]
             : [["partner_id", "=", g.partner_id]];
         this.openList(
-            [...who, ["picking_type_code", "in", ["outgoing", "dropship"]], ["state", "in", ["assigned", "waiting", "confirmed"]]],
+            [...who, ["picking_type_code", "=", "outgoing"], ["state", "in", ["assigned", "waiting", "confirmed"]]],
             g.partner
         );
     }

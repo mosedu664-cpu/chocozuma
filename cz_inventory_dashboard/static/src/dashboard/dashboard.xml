@@ -51,6 +51,12 @@
 
       <!-- DELIVERIES by customer -->
       <div t-if="state.tab==='out'" class="cz_dash_body">
+        <div t-if="state.data.totals.dropship" class="text-muted small mb-2">
+          Dropship (tedarikçiden doğrudan müşteriye, depodan geçmez) bu listede gösterilmez:
+          <button class="btn btn-link btn-sm p-0 align-baseline" t-on-click="() => this.openDropship()">
+            <t t-esc="state.data.totals.dropship"/> açık<t t-if="state.data.totals.dropship_late"> · <t t-esc="state.data.totals.dropship_late"/> gecikmiş</t>
+          </button>
+        </div>
         <div t-if="!groups.length" class="cz_dash_empty"><i class="fa fa-check-circle"/> Açık teslimat yok.</div>
         <div t-foreach="groups" t-as="g" t-key="g.partner_id" class="cz_group">
           <div class="cz_group_head">

@@ -69,7 +69,7 @@ class StockPicking(models.Model):
                 depot_types |= depot_types.browse(int(ref.split(',')[1])).exists()
         depot_types = depot_types.filtered(lambda t: t.company_id == company)
         out = self.search(expression.AND([base, [
-            '|', ('picking_type_code', 'in', ('outgoing', 'dropship')), ('picking_type_id', 'in', depot_types.ids),
+            '|', ('picking_type_code', '=', 'outgoing'), ('picking_type_id', 'in', depot_types.ids),
             ('state', 'in', OPEN_STATES)]]), order='scheduled_date')
         rows = []
         has_sale = 'sale_id' in self._fields
@@ -122,7 +122,10 @@ class StockPicking(models.Model):
             'today': sum(1 for r in rows if r['is_today']),
             'receipts': len(receipts),
             'receipts_late': sum(1 for r in receipts if r['is_late']),
-            'done_today': count([('picking_type_code', 'in', ('outgoing', 'dropship')), ('state', '=', 'done'), ('date_done', '>=', start_today)]),
+            'done_today': count([('picking_type_code', '=', 'outgoing'), ('state', '=', 'done'), ('date_done', '>=', start_today)]),
+            # dropship (supplier → customer) never passes through the kitchen or the depot: counted, not listed
+            'dropship': count([('picking_type_code', '=', 'dropship'), ('state', 'in', OPEN_STATES)]),
+            'dropship_late': count([('picking_type_code', '=', 'dropship')] + late_dom),
         }
         return {
             'company': company.name, 'company_id': company.id, 'has_sale': has_sale,
