@@ -27,13 +27,17 @@ product Print menu) prints 55×40 Zebra labels through RawBT. Odoo computes prod
 (fresh) or freezer SKT + days after thawing (frozen) from the product's label shelf-life fields;
 the MO number is the batch reference (no lot tracking — kitchen products are shared with branches).
 
+Lot help (18.0.1.5.0): one lot per product per day (a second MO the same day reuses the
+morning lot); on validation a lot line asking more than the lot holds is completed from the other
+non-expired lots of the product (oldest first, noted in the chatter) — no more negative lots.
+
 Only reads/acts through standard stock.picking rights: a user sees exactly
 the transfers Odoo already lets them see.
     """,
     'author': 'Choco Zuma Yönetim',
     'website': 'https://chocozuma.com',
     'category': 'Inventory/Inventory',
-    'version': '18.0.1.4.2',
+    'version': '18.0.1.5.0',
     'license': 'LGPL-3',
     'depends': ['stock', 'mrp', 'web'],
     'data': [
