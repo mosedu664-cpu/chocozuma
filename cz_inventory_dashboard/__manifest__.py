@@ -31,13 +31,16 @@ Lot help (18.0.1.5.0): one lot per product per day (a second MO the same day reu
 morning lot); on validation a lot line asking more than the lot holds is completed from the other
 non-expired lots of the product (oldest first, noted in the chatter) — no more negative lots.
 
+Quick print (18.0.1.6.0): "Teslimat Fişi Yazdır" on the transfer (and in the list Action menu for many)
+opens the delivery slip as a page that shows the device's print dialog at once (/cz/print/...).
+
 Only reads/acts through standard stock.picking rights: a user sees exactly
 the transfers Odoo already lets them see.
     """,
     'author': 'Choco Zuma Yönetim',
     'website': 'https://chocozuma.com',
     'category': 'Inventory/Inventory',
-    'version': '18.0.1.5.1',
+    'version': '18.0.1.6.1',
     'license': 'LGPL-3',
     'depends': ['stock', 'mrp', 'web'],
     'data': [
