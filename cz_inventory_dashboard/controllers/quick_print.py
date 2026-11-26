@@ -17,8 +17,8 @@ BAR = """
 #czbar{position:sticky;top:0;z-index:99;display:flex;gap:10px;justify-content:center;padding:10px;
 background:#FFF7EF;border-bottom:1px solid #E8C9A0;font-family:Arial,Helvetica,sans-serif}
 #czbar button{padding:14px 28px;font-size:20px;font-weight:bold;border:0;border-radius:999px;color:#fff;
-background:linear-gradient(120deg,#E8A33D,#C77E1E)}
-#czbar .b2{background:#8A7460}
+background:linear-gradient(120deg,#6B3F24,#3E2418);box-shadow:0 3px 10px rgba(62,36,24,.35)}
+#czbar .b2{background:#fff;color:#6B3F24;border:2px solid #6B3F24;box-shadow:none}
 @media print{#czbar{display:none!important}}
 </style>
 <div id="czbar"><button type="button" onclick="window.print()">🖨 YAZDIR</button>
