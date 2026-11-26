@@ -11,6 +11,11 @@
                     <field name="cz_depot_zone"/>
                     <field name="cz_shelf_days"/>
                 </group>
+                <group string="Etiket ömrü" name="cz_label_life">
+                    <field name="cz_lbl_fresh_days"/>
+                    <field name="cz_lbl_fresh_where"/>
+                    <field name="cz_lbl_frozen_days"/>
+                </group>
             </xpath>
         </field>
     </record>
@@ -24,6 +29,9 @@
                 <field name="cz_chef_watch" optional="hide"/>
                 <field name="cz_depot_zone" optional="hide"/>
                 <field name="cz_shelf_days" optional="hide"/>
+                <field name="cz_lbl_fresh_days" optional="hide"/>
+                <field name="cz_lbl_fresh_where" optional="hide"/>
+                <field name="cz_lbl_frozen_days" optional="hide"/>
             </field>
         </field>
     </record>
