@@ -60,9 +60,16 @@ class StockPicking(models.Model):
                 'done_7d': count(d + [('state', '=', 'done'), ('date_done', '>=', week_ago)]),
             })
 
-        # Open outgoing (deliveries + dropship), grouped by customer
+        # Open outgoing (deliveries + dropship), grouped by customer — plus the kitchen ↔ depot transfers
+        # (Mutfak → Depo / Depo → Mutfak), so a load waiting for the car is seen next to the deliveries
+        depot_types = self.env['stock.picking.type']
+        for key in ('type_kitchen_to_depot', 'type_depot_to_kitchen'):
+            ref = self.env['ir.config_parameter'].sudo().get_param('cz_inventory_dashboard.%s' % key) or ''
+            if ref.startswith('stock.picking.type,'):
+                depot_types |= depot_types.browse(int(ref.split(',')[1])).exists()
+        depot_types = depot_types.filtered(lambda t: t.company_id == company)
         out = self.search(expression.AND([base, [
-            ('picking_type_code', 'in', ('outgoing', 'dropship')),
+            '|', ('picking_type_code', 'in', ('outgoing', 'dropship')), ('picking_type_id', 'in', depot_types.ids),
             ('state', 'in', OPEN_STATES)]]), order='scheduled_date')
         rows = []
         has_sale = 'sale_id' in self._fields
@@ -72,10 +79,13 @@ class StockPicking(models.Model):
             customer = p.partner_id
             if p.picking_type_code == 'dropship' and has_sale and p.sale_id.partner_id:
                 customer = p.sale_id.partner_id
+            label, key = customer.display_name or '—', customer.id
+            if p.picking_type_id in depot_types:  # one group per direction, never mixed with a customer
+                label, key = p.picking_type_id.name, -p.picking_type_id.id
             rows.append({
                 'id': p.id, 'name': p.name,
-                'partner': customer.display_name or '—',
-                'partner_id': customer.id,
+                'partner': label,
+                'partner_id': key,
                 'scheduled': fields.Datetime.context_timestamp(self, p.scheduled_date).strftime('%d.%m %H:%M'),
                 'is_late': is_late,
                 'is_today': start_today <= p.scheduled_date < end_today,

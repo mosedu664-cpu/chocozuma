@@ -118,6 +118,10 @@ export class CzInventoryDashboard extends Component {
     }
 
     openPartner(g) {
+        if (g.partner_id < 0) {  // kitchen ↔ depot transfers: the group key is the operation type id, negated
+            this.openList([["picking_type_id", "=", -g.partner_id], ["state", "in", ["assigned", "waiting", "confirmed"]]], g.partner);
+            return;
+        }
         const who = this.state.data.has_sale
             ? ["|", ["partner_id", "=", g.partner_id], ["sale_id.partner_id", "=", g.partner_id]]
             : [["partner_id", "=", g.partner_id]];
