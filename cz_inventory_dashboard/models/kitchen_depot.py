@@ -405,6 +405,7 @@ class StockPicking(models.Model):
     _inherit = "stock.picking"
 
     def button_validate(self):
+        self._cz_fix_lot_lines()
         self._cz_check_depot_rules()
         return super().button_validate()
 

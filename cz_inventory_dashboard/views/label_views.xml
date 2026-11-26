@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- One print page for both models: product list via a JSON blob, mode (taze / dondurucu) + box count, RawBT intent. -->
+    <template id="cz_label_rawbt_page">
+        <html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Etiket Yazdır</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;background:#FFF7EF;color:#231A11;margin:0;padding:24px;text-align:center}
+.k{max-width:540px;margin:0 auto;background:#fff;border:1px solid #E8C9A0;border-radius:18px;padding:22px}
+h1{font-size:22px;margin:0 0 6px}.s{color:#8A7460;font-size:15px;margin:0 0 14px}
+.l{text-align:left;border:1px dashed #C77E1E;border-radius:12px;padding:10px 14px;margin:8px 0;font-size:15px}
+.l b{display:block;font-size:16px}.l .d{font-size:17px;font-weight:bold;margin-top:4px}
+.bad{border-color:#B3261E;color:#B3261E}
+.m{display:flex;gap:10px;margin-top:14px}.m button{flex:1;margin:0;padding:14px;font-size:17px;border-radius:14px;background:#F3E6D6;color:#231A11}
+.m button.on{background:#2B6CB0;color:#fff}
+#czp{width:100%;margin-top:18px;padding:20px;font-size:22px;font-weight:bold;border:0;border-radius:999px;color:#fff;background:linear-gradient(120deg,#E8A33D,#C77E1E)}
+#czp[disabled]{opacity:.4}
+.n{font-size:13px;color:#8A7460;margin-top:12px}
+</style></head><body><div class="k">
+<h1>🏷 Etiket Yazdır</h1><p class="s">55 × 40 mm · Zebra (RawBT) · tarihleri Odoo hesaplar</p>
+<div id="czl"/>
+<div class="m" id="czm" style="display:none"><button type="button" data-m="frozen">❄ Dondurucuya</button><button type="button" data-m="fresh">Taze gönder</button></div>
+<div style="margin-top:16px;font-size:17px">Kutu sayısı: <input id="czq" type="number" min="1" max="99" value="1" style="width:90px;font-size:24px;font-weight:bold;text-align:center;padding:8px;border:2px solid #C77E1E;border-radius:12px"/></div>
+<button id="czp" type="button">YAZDIR</button>
+<div class="n" id="czn">Her kutu için bir etiket basılır (1/3, 2/3, 3/3).</div>
+</div>
+<script id="czd" t-att-data-lines="payload">
+(function(){
+var L=JSON.parse(document.getElementById('czd').getAttribute('data-lines')||'[]');
+var anyFrozen=L.some(function(x){return x.has_frozen;});var mode=anyFrozen?'frozen':'fresh';
+var bad=L.filter(function(x){return !x.ok;});
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function draw(){
+ var h='';L.forEach(function(x){
+  var t=!x.ok?(x.msg||'Etiket ömrü tanımlı değil — ürün kartında "Etiket: taze ömür" doldurun.'):(mode==='frozen'&amp;&amp;x.has_frozen?x.frozen_txt:x.fresh_txt);
+  h+='&lt;div class="l'+(x.ok?'':' bad')+'"&gt;&lt;b&gt;['+esc(x.code)+'] '+esc(x.name)+'&lt;/b&gt;Üretim: '+esc(x.produced)+' · Parti: '+esc(x.ref)+'&lt;div class="d"&gt;'+esc(t)+'&lt;/div&gt;&lt;/div&gt;';
+ });
+ document.getElementById('czl').innerHTML=h;
+ [].forEach.call(document.querySelectorAll('#czm button'),function(b){b.className=b.getAttribute('data-m')===mode?'on':'';});
+}
+if(anyFrozen){var m=document.getElementById('czm');m.style.display='flex';
+ m.addEventListener('click',function(e){var b=e.target.closest('button');if(b){mode=b.getAttribute('data-m');draw();}});}
+if(bad.length||!L.length){document.getElementById('czp').disabled=true;document.getElementById('czn').textContent='Bu etiket basılamaz — yukarıdaki nota bakın.';}
+var mm=(location.hash||'').match(/n=(\d+)/);if(mm){document.getElementById('czq').value=mm[1];}
+draw();
+function b64(s){var b=new TextEncoder().encode(s),x='';for(var i=0;i&lt;b.length;i++)x+=String.fromCharCode(b[i]);return btoa(x);}
+document.getElementById('czp').addEventListener('click',function(){
+ if(this.disabled)return;
+ var n=Math.max(1,Math.min(99,parseInt(document.getElementById('czq').value,10)||1));var all='';
+ L.forEach(function(x){var z=(mode==='frozen'&amp;&amp;x.has_frozen)?x.frozen_zpl:x.fresh_zpl;
+  for(var k=1;k&lt;=n;k++){all+=z.split('#K#').join(k+'/'+n)+'\n';}});
+ window.location.href='intent:base64,'+b64(all)+'#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;';
+});
+})();
+</script>
+</body></html>
+    </template>
+
+    <template id="cz_label_mo">
+        <t t-call="cz_inventory_dashboard.cz_label_rawbt_page"><t t-set="payload" t-value="docs.cz_label_json()"/></t>
+    </template>
+    <template id="cz_label_product">
+        <t t-call="cz_inventory_dashboard.cz_label_rawbt_page"><t t-set="payload" t-value="docs.cz_label_json()"/></t>
+    </template>
+
+    <record id="action_report_cz_mo_label" model="ir.actions.report">
+        <field name="name">Etiket Yazdır (Zebra)</field>
+        <field name="model">mrp.production</field>
+        <field name="report_type">qweb-html</field>
+        <field name="report_name">cz_inventory_dashboard.cz_label_mo</field>
+        <field name="report_file">cz_inventory_dashboard.cz_label_mo</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+        <field name="binding_type">report</field>
+    </record>
+    <record id="action_report_cz_product_label" model="ir.actions.report">
+        <field name="name">Mutfak Etiketi (Zebra)</field>
+        <field name="model">product.template</field>
+        <field name="report_type">qweb-html</field>
+        <field name="report_name">cz_inventory_dashboard.cz_label_product</field>
+        <field name="report_file">cz_inventory_dashboard.cz_label_product</field>
+        <field name="binding_model_id" ref="product.model_product_template"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <record id="mrp_production_form_cz_label" model="ir.ui.view">
+        <field name="name">mrp.production.form.cz.label</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_cz_print_label" type="object" string="🏷 Etiket Yazdır"
+                        class="btn-secondary" invisible="state == 'cancel'"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
