@@ -2,4 +2,6 @@
 <odoo>
     <!-- Idempotent: creates the kitchen/depot locations, putaway/removal and the two transfer types once. -->
     <function model="stock.warehouse" name="_cz_setup_kitchen_depot"/>
+    <!-- Idempotent: chef's label shelf lives, written only on products without label values. -->
+    <function model="product.template" name="_cz_setup_label_shelf_life"/>
 </odoo>

@@ -22,18 +22,24 @@ still reserve them and the car can load at the depot. Transfer types Mutfak → 
 Depo → Mutfak; a "Stok" tab for the chefs (kitchen | depot side by side, days of cover, age,
 alerts, one-click draft transfers); the same snapshot feeds the daily WhatsApp stock report.
 
+Labels (18.0.1.4.0): "Etiket Yazdır" on the manufacturing order (and "Mutfak Etiketi" in the
+product Print menu) prints 55×40 Zebra labels through RawBT. Odoo computes production date, SKT
+(fresh) or freezer SKT + days after thawing (frozen) from the product's label shelf-life fields;
+the MO number is the batch reference (no lot tracking — kitchen products are shared with branches).
+
 Only reads/acts through standard stock.picking rights: a user sees exactly
 the transfers Odoo already lets them see.
     """,
     'author': 'Choco Zuma Yönetim',
     'website': 'https://chocozuma.com',
     'category': 'Inventory/Inventory',
-    'version': '18.0.1.3.3',
+    'version': '18.0.1.4.0',
     'license': 'LGPL-3',
     'depends': ['stock', 'mrp', 'web'],
     'data': [
         'views/dashboard_views.xml',
         'views/product_views.xml',
+        'views/label_views.xml',
         'data/kitchen_depot_setup.xml',
     ],
     'assets': {
